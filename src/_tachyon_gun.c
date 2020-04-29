@@ -4,19 +4,19 @@
 
 
 static PyObject*
-_tachyongun_time(PyObject *self, PyObject *unused)
+_tachyon_gun_time(PyObject *self, PyObject *unused)
 {
-    return PyObject_CallMethod(PyImport_ImportModule("tachyongun"), "time", NULL);
+    return PyObject_CallMethod(PyImport_ImportModule("tachyon_gun"), "time", NULL);
 }
 PyDoc_STRVAR(time_doc,
 "time() -> floating point number\n\
 \n\
-Call tachyongun.time(), which replaces time.time().");
+Call tachyon_gun.time(), which replaces time.time().");
 
 PyCFunction original_time = NULL;
 
 static PyObject*
-_tachyongun_original_time(PyObject *self, PyObject *unused)
+_tachyon_gun_original_time(PyObject *self, PyObject *unused)
 {
     return original_time(self, unused);
 }
@@ -27,19 +27,19 @@ Call time.time() after patching.");
 
 
 static PyObject*
-_tachyongun_localtime(PyObject *self, PyObject *unused)
+_tachyon_gun_localtime(PyObject *self, PyObject *unused)
 {
-    return PyObject_CallMethod(PyImport_ImportModule("tachyongun"), "localtime", NULL);
+    return PyObject_CallMethod(PyImport_ImportModule("tachyon_gun"), "localtime", NULL);
 }
 PyDoc_STRVAR(localtime_doc,
 "localtime([secs]) -> floating point number\n\
 \n\
-Call tachyongun.localtime(), which replaces time.localtime().");
+Call tachyon_gun.localtime(), which replaces time.localtime().");
 
 PyCFunction original_localtime = NULL;
 
 static PyObject*
-_tachyongun_original_localtime(PyObject *self, PyObject *args)
+_tachyon_gun_original_localtime(PyObject *self, PyObject *args)
 {
     return original_localtime(self, args);
 }
@@ -50,7 +50,7 @@ Call time.localtime() after patching.");
 
 
 static PyObject*
-_tachyongun_patch(PyObject *self, PyObject *unused)
+_tachyon_gun_patch(PyObject *self, PyObject *unused)
 {
     if (original_time)
         Py_RETURN_NONE;
@@ -59,12 +59,12 @@ _tachyongun_patch(PyObject *self, PyObject *unused)
 
     PyCFunctionObject *time_time = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "time");
     original_time = time_time->m_ml->ml_meth;
-    time_time->m_ml->ml_meth = _tachyongun_time;
+    time_time->m_ml->ml_meth = _tachyon_gun_time;
     Py_DECREF(time_time);
 
     PyCFunctionObject *time_localtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "localtime");
     original_localtime = time_localtime->m_ml->ml_meth;
-    time_localtime->m_ml->ml_meth = _tachyongun_localtime;
+    time_localtime->m_ml->ml_meth = _tachyon_gun_localtime;
     Py_DECREF(time_localtime);
 
     Py_DECREF(time_module);
@@ -78,20 +78,20 @@ Swap in helpers.");
 
 
 
-PyDoc_STRVAR(module_doc, "_tachyongun module");
+PyDoc_STRVAR(module_doc, "_tachyon_gun module");
 
 static PyMethodDef module_methods[] = {
-    {"time", (PyCFunction)_tachyongun_time, METH_NOARGS, time_doc},
-    {"original_time", (PyCFunction)_tachyongun_original_time, METH_NOARGS, original_time_doc},
-    {"localtime", (PyCFunction)_tachyongun_localtime, METH_NOARGS, time_doc},
-    {"original_localtime", (PyCFunction)_tachyongun_original_localtime, METH_VARARGS, original_localtime_doc},
-    {"patch", (PyCFunction)_tachyongun_patch, METH_NOARGS, patch_doc},
+    {"time", (PyCFunction)_tachyon_gun_time, METH_NOARGS, time_doc},
+    {"original_time", (PyCFunction)_tachyon_gun_original_time, METH_NOARGS, original_time_doc},
+    {"localtime", (PyCFunction)_tachyon_gun_localtime, METH_NOARGS, time_doc},
+    {"original_localtime", (PyCFunction)_tachyon_gun_original_localtime, METH_VARARGS, original_localtime_doc},
+    {"patch", (PyCFunction)_tachyon_gun_patch, METH_NOARGS, patch_doc},
     {NULL, NULL}  /* sentinel */
 };
 
-static struct PyModuleDef _tachyongun_def = {
+static struct PyModuleDef _tachyon_gun_def = {
     PyModuleDef_HEAD_INIT,
-    "_tachyongun",
+    "_tachyon_gun",
     module_doc,
     -1,
     module_methods,
@@ -102,11 +102,11 @@ static struct PyModuleDef _tachyongun_def = {
 };
 
 PyMODINIT_FUNC
-PyInit__tachyongun(void)
+PyInit__tachyon_gun(void)
 {
     PyObject *m;
 
-    m = PyModule_Create(&_tachyongun_def);
+    m = PyModule_Create(&_tachyon_gun_def);
     if (m == NULL)
         return NULL;
 
