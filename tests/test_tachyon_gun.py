@@ -8,12 +8,13 @@ import tachyon_gun
 
 EPOCH = 0.0
 EPOCH_PLUS_ONE_YEAR = 31_536_000.0
+LIBRARY_EPOCH = dt.datetime(2020, 4, 29)  # The day this library was made
 
 
 def test_time_time():
     with tachyon_gun.warp_time(EPOCH):
         assert EPOCH < time.time() < EPOCH + 1.0
-    assert time.time() >= dt.datetime(2020, 4, 29).timestamp()
+    assert time.time() >= LIBRARY_EPOCH.timestamp()
 
 
 def test_time_localtime():
@@ -80,3 +81,12 @@ def test_exceptions_dont_break_it():
         raise ValueError("Hi")
     with tachyon_gun.warp_time(0.0):
         pass
+
+
+def test_date_today():
+    with tachyon_gun.warp_time(EPOCH):
+        today = dt.date.today()
+        assert today.year == 1970
+        assert today.month == 1
+        assert today.day == 1
+    assert dt.datetime.today() >= LIBRARY_EPOCH
