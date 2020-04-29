@@ -83,6 +83,24 @@ def test_exceptions_dont_break_it():
         pass
 
 
+def test_datetime_now_no_args():
+    with tachyon_gun.warp_time(EPOCH):
+        now = dt.datetime.now()
+        assert now.year == 1970
+        assert now.month == 1
+        assert now.day == 1
+    assert dt.datetime.now() >= LIBRARY_EPOCH
+
+
+def test_datetime_now_arg():
+    with tachyon_gun.warp_time(EPOCH):
+        now = dt.datetime.now(tz=dt.timezone.utc)
+        assert now.year == 1970
+        assert now.month == 1
+        assert now.day == 1
+    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH
+
+
 def test_datetime_utcnow():
     with tachyon_gun.warp_time(EPOCH):
         now = dt.datetime.utcnow()

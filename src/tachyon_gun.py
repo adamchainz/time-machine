@@ -34,6 +34,13 @@ def warp_time(destination):
 # datetime module
 
 
+def now(tz=None):
+    if current_warp is None:
+        return _tachyon_gun.original_now()
+    else:
+        return dt.datetime.fromtimestamp(time(), tz)
+
+
 def utcnow():
     if current_warp is None:
         return _tachyon_gun.original_utcnow()

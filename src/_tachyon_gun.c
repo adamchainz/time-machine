@@ -2,6 +2,46 @@
 #include <stdlib.h>
 #include <limits.h>
 
+/* datetime.datetime.now() */
+
+static PyObject*
+_tachyon_gun_now(PyTypeObject *type, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *tachyon_gun_module = PyImport_ImportModule("tachyon_gun");
+    PyObject *tachyon_gun_now = PyObject_GetAttrString(tachyon_gun_module, "now");
+
+    PyObject* result = _PyObject_Vectorcall(tachyon_gun_now, args, nargs, kwnames);
+
+    Py_DECREF(tachyon_gun_now);
+    Py_DECREF(tachyon_gun_module);
+
+    return result;
+}
+PyDoc_STRVAR(now_doc,
+"now() -> datetime\n\
+\n\
+Call tachyon_gun.now(), which replaces datetime.datetime.now().");
+
+_PyCFunctionFastWithKeywords original_now = NULL;
+
+static PyObject*
+_tachyon_gun_original_now(PyTypeObject *type, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *datetime_module = PyImport_ImportModule("datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+
+    PyObject* result = original_now(datetime_class, args, nargs, kwnames);
+
+    Py_DECREF(datetime_class);
+    Py_DECREF(datetime_module);
+
+    return result;
+}
+PyDoc_STRVAR(original_now_doc,
+"original_now() -> datetime\n\
+\n\
+Call datetime.datetime.now() after patching.");
+
 /* datetime.datetime.utcnow() */
 
 static PyObject*
@@ -41,7 +81,6 @@ PyDoc_STRVAR(original_utcnow_doc,
 "original_utcnow() -> datetime\n\
 \n\
 Call datetime.datetime.utcnow() after patching.");
-
 
 /* time.time() */
 
@@ -181,6 +220,11 @@ _tachyon_gun_patch(PyObject *self, PyObject *unused)
     PyObject *datetime_module = PyImport_ImportModule("datetime");
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
 
+    PyCFunctionObject *datetime_datetime_now = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "now");
+    original_now = datetime_datetime_now->m_ml->ml_meth;
+    datetime_datetime_now->m_ml->ml_meth = _tachyon_gun_now;
+    Py_DECREF(datetime_datetime_now);
+
     PyCFunctionObject *datetime_datetime_utcnow = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "utcnow");
     original_utcnow = datetime_datetime_utcnow->m_ml->ml_meth;
     datetime_datetime_utcnow->m_ml->ml_meth = _tachyon_gun_utcnow;
@@ -225,6 +269,7 @@ Swap in helpers.");
 PyDoc_STRVAR(module_doc, "_tachyon_gun module");
 
 static PyMethodDef module_methods[] = {
+    {"original_now", (PyCFunction)_tachyon_gun_original_now, METH_FASTCALL|METH_KEYWORDS, original_now_doc},
     {"original_utcnow", (PyCFunction)_tachyon_gun_original_utcnow, METH_NOARGS, original_utcnow_doc},
     {"original_time", (PyCFunction)_tachyon_gun_original_time, METH_NOARGS, original_time_doc},
     {"original_localtime", (PyCFunction)_tachyon_gun_original_localtime, METH_VARARGS, original_localtime_doc},
