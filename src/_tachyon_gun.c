@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <limits.h>
 
+/* time.time() */
 
 static PyObject*
 _tachyon_gun_time(PyObject *self, PyObject *unused)
@@ -25,6 +26,7 @@ PyDoc_STRVAR(original_time_doc,
 \n\
 Call time.time() after patching.");
 
+/* time.localtime() */
 
 static PyObject*
 _tachyon_gun_localtime(PyObject *self, PyObject *unused)
@@ -48,6 +50,30 @@ PyDoc_STRVAR(original_localtime_doc,
 \n\
 Call time.localtime() after patching.");
 
+/* time.gmtime() */
+
+static PyObject*
+_tachyon_gun_gmtime(PyObject *self, PyObject *unused)
+{
+    return PyObject_CallMethod(PyImport_ImportModule("tachyon_gun"), "gmtime", NULL);
+}
+PyDoc_STRVAR(gmtime_doc,
+"gmtime([secs]) -> floating point number\n\
+\n\
+Call tachyon_gun.gmtime(), which replaces time.gmtime().");
+
+PyCFunction original_gmtime = NULL;
+
+static PyObject*
+_tachyon_gun_original_gmtime(PyObject *self, PyObject *args)
+{
+    return original_gmtime(self, args);
+}
+PyDoc_STRVAR(original_gmtime_doc,
+"original_gmtime() -> floating point number\n\
+\n\
+Call time.gmtime() after patching.");
+
 
 static PyObject*
 _tachyon_gun_patch(PyObject *self, PyObject *unused)
@@ -67,6 +93,11 @@ _tachyon_gun_patch(PyObject *self, PyObject *unused)
     time_localtime->m_ml->ml_meth = _tachyon_gun_localtime;
     Py_DECREF(time_localtime);
 
+    PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
+    original_gmtime = time_gmtime->m_ml->ml_meth;
+    time_gmtime->m_ml->ml_meth = _tachyon_gun_gmtime;
+    Py_DECREF(time_gmtime);
+
     Py_DECREF(time_module);
 
     Py_RETURN_NONE;
@@ -85,6 +116,8 @@ static PyMethodDef module_methods[] = {
     {"original_time", (PyCFunction)_tachyon_gun_original_time, METH_NOARGS, original_time_doc},
     {"localtime", (PyCFunction)_tachyon_gun_localtime, METH_NOARGS, time_doc},
     {"original_localtime", (PyCFunction)_tachyon_gun_original_localtime, METH_VARARGS, original_localtime_doc},
+    {"gmtime", (PyCFunction)_tachyon_gun_gmtime, METH_NOARGS, time_doc},
+    {"original_gmtime", (PyCFunction)_tachyon_gun_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"patch", (PyCFunction)_tachyon_gun_patch, METH_NOARGS, patch_doc},
     {NULL, NULL}  /* sentinel */
 };

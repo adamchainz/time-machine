@@ -22,6 +22,16 @@ def test_time_localtime():
     assert now_time.tm_year >= 2020
 
 
+def test_time_gmtime():
+    with tachyon_gun.warp_time(0.0):
+        local_time = time.gmtime()
+        assert local_time.tm_year == 1970
+        assert local_time.tm_mon == 1
+        assert local_time.tm_mday == 1
+    now_time = time.gmtime()
+    assert now_time.tm_year >= 2020
+
+
 def test_not_nestable():
     with tachyon_gun.warp_time(0.0):
         with pytest.raises(RuntimeError) as excinfo:

@@ -44,3 +44,13 @@ def localtime(secs=None):
             current_warp.destination
             + (_tachyon_gun.original_time() - current_warp.start_time)
         )
+
+
+def gmtime(secs=None):
+    if current_warp is None:
+        return _tachyon_gun.original_gmtime(secs)
+    else:
+        return _tachyon_gun.original_gmtime(
+            current_warp.destination
+            + (_tachyon_gun.original_time() - current_warp.start_time)
+        )
