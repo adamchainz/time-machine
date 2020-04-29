@@ -5,9 +5,17 @@
 /* time.time() */
 
 static PyObject*
-_tachyon_gun_time(PyObject *self, PyObject *unused)
+_tachyon_gun_time(PyObject *self, PyObject *args)
 {
-    return PyObject_CallMethod(PyImport_ImportModule("tachyon_gun"), "time", NULL);
+    PyObject *tachyon_gun_module = PyImport_ImportModule("tachyon_gun");
+    PyObject *tachyon_gun_time = PyObject_GetAttrString(tachyon_gun_module, "time");
+
+    PyObject* result = PyObject_CallObject(tachyon_gun_time, args);
+
+    Py_DECREF(tachyon_gun_time);
+    Py_DECREF(tachyon_gun_module);
+
+    return result;
 }
 PyDoc_STRVAR(time_doc,
 "time() -> floating point number\n\
@@ -17,9 +25,9 @@ Call tachyon_gun.time(), which replaces time.time().");
 PyCFunction original_time = NULL;
 
 static PyObject*
-_tachyon_gun_original_time(PyObject *self, PyObject *unused)
+_tachyon_gun_original_time(PyObject *self, PyObject *args)
 {
-    return original_time(self, unused);
+    return original_time(self, args);
 }
 PyDoc_STRVAR(original_time_doc,
 "original_time() -> floating point number\n\
@@ -31,7 +39,15 @@ Call time.time() after patching.");
 static PyObject*
 _tachyon_gun_localtime(PyObject *self, PyObject *args)
 {
-    return PyObject_Call(PyObject_GetAttrString(PyImport_ImportModule("tachyon_gun"), "localtime"), args, NULL);
+    PyObject *tachyon_gun_module = PyImport_ImportModule("tachyon_gun");
+    PyObject *tachyon_gun_localtime = PyObject_GetAttrString(tachyon_gun_module, "localtime");
+
+    PyObject* result = PyObject_CallObject(tachyon_gun_localtime, args);
+
+    Py_DECREF(tachyon_gun_localtime);
+    Py_DECREF(tachyon_gun_module);
+
+    return result;
 }
 PyDoc_STRVAR(localtime_doc,
 "localtime([secs]) -> floating point number\n\
@@ -55,7 +71,15 @@ Call time.localtime() after patching.");
 static PyObject*
 _tachyon_gun_gmtime(PyObject *self, PyObject *args)
 {
-    return PyObject_Call(PyObject_GetAttrString(PyImport_ImportModule("tachyon_gun"), "gmtime"), args, NULL);
+    PyObject *tachyon_gun_module = PyImport_ImportModule("tachyon_gun");
+    PyObject *tachyon_gun_gmtime = PyObject_GetAttrString(tachyon_gun_module, "gmtime");
+
+    PyObject* result = PyObject_CallObject(tachyon_gun_gmtime, args);
+
+    Py_DECREF(tachyon_gun_gmtime);
+    Py_DECREF(tachyon_gun_module);
+
+    return result;
 }
 PyDoc_STRVAR(gmtime_doc,
 "gmtime([secs]) -> floating point number\n\
@@ -79,7 +103,15 @@ Call time.gmtime() after patching.");
 static PyObject*
 _tachyon_gun_strftime(PyObject *self, PyObject *args)
 {
-    return PyObject_Call(PyObject_GetAttrString(PyImport_ImportModule("tachyon_gun"), "strftime"), args, NULL);
+    PyObject *tachyon_gun_module = PyImport_ImportModule("tachyon_gun");
+    PyObject *tachyon_gun_strftime = PyObject_GetAttrString(tachyon_gun_module, "strftime");
+
+    PyObject* result = PyObject_CallObject(tachyon_gun_strftime, args);
+
+    Py_DECREF(tachyon_gun_strftime);
+    Py_DECREF(tachyon_gun_module);
+
+    return result;
 }
 PyDoc_STRVAR(strftime_doc,
 "strftime([secs]) -> floating point number\n\
