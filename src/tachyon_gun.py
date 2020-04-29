@@ -1,3 +1,4 @@
+import datetime as dt
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -28,6 +29,19 @@ def warp_time(destination):
         yield
     finally:
         current_warp = None
+
+
+# datetime module
+
+
+def utcnow():
+    if current_warp is None:
+        return _tachyon_gun.original_utcnow()
+    else:
+        return dt.datetime.fromtimestamp(time(), dt.timezone.utc)
+
+
+# time
 
 
 def time():
@@ -65,7 +79,4 @@ def strftime(format, t=None):
     elif current_warp is None:
         return _tachyon_gun.original_strftime(format)
     else:
-        return _tachyon_gun.original_strftime(
-            format,
-            localtime(),
-        )
+        return _tachyon_gun.original_strftime(format, localtime())

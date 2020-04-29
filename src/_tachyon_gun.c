@@ -2,6 +2,47 @@
 #include <stdlib.h>
 #include <limits.h>
 
+/* datetime.datetime.utcnow() */
+
+static PyObject*
+_tachyon_gun_utcnow(PyObject *cls, PyObject *args)
+{
+    PyObject *tachyon_gun_module = PyImport_ImportModule("tachyon_gun");
+    PyObject *tachyon_gun_utcnow = PyObject_GetAttrString(tachyon_gun_module, "utcnow");
+
+    PyObject* result = PyObject_CallObject(tachyon_gun_utcnow, args);
+
+    Py_DECREF(tachyon_gun_utcnow);
+    Py_DECREF(tachyon_gun_module);
+
+    return result;
+}
+PyDoc_STRVAR(utcnow_doc,
+"utcnow() -> datetime\n\
+\n\
+Call tachyon_gun.utcnow(), which replaces datetime.datetime.utcnow().");
+
+PyCFunction original_utcnow = NULL;
+
+static PyObject*
+_tachyon_gun_original_utcnow(PyObject *cls, PyObject *args)
+{
+    PyObject *datetime_module = PyImport_ImportModule("datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+
+    PyObject* result = original_utcnow(datetime_class, args);
+
+    Py_DECREF(datetime_class);
+    Py_DECREF(datetime_module);
+
+    return result;
+}
+PyDoc_STRVAR(original_utcnow_doc,
+"original_utcnow() -> datetime\n\
+\n\
+Call datetime.datetime.utcnow() after patching.");
+
+
 /* time.time() */
 
 static PyObject*
@@ -137,6 +178,17 @@ _tachyon_gun_patch(PyObject *self, PyObject *unused)
     if (original_time)
         Py_RETURN_NONE;
 
+    PyObject *datetime_module = PyImport_ImportModule("datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+
+    PyCFunctionObject *datetime_datetime_utcnow = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "utcnow");
+    original_utcnow = datetime_datetime_utcnow->m_ml->ml_meth;
+    datetime_datetime_utcnow->m_ml->ml_meth = _tachyon_gun_utcnow;
+    Py_DECREF(datetime_datetime_utcnow);
+
+    Py_DECREF(datetime_class);
+    Py_DECREF(datetime_module);
+
     PyObject *time_module = PyImport_ImportModule("time");
 
     PyCFunctionObject *time_time = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "time");
@@ -173,6 +225,8 @@ Swap in helpers.");
 PyDoc_STRVAR(module_doc, "_tachyon_gun module");
 
 static PyMethodDef module_methods[] = {
+    {"utcnow", (PyCFunction)_tachyon_gun_utcnow, METH_NOARGS, utcnow_doc},
+    {"original_utcnow", (PyCFunction)_tachyon_gun_original_utcnow, METH_NOARGS, original_utcnow_doc},
     {"time", (PyCFunction)_tachyon_gun_time, METH_NOARGS, time_doc},
     {"original_time", (PyCFunction)_tachyon_gun_original_time, METH_NOARGS, original_time_doc},
     {"localtime", (PyCFunction)_tachyon_gun_localtime, METH_NOARGS, time_doc},
