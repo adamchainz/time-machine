@@ -225,15 +225,10 @@ Swap in helpers.");
 PyDoc_STRVAR(module_doc, "_tachyon_gun module");
 
 static PyMethodDef module_methods[] = {
-    {"utcnow", (PyCFunction)_tachyon_gun_utcnow, METH_NOARGS, utcnow_doc},
     {"original_utcnow", (PyCFunction)_tachyon_gun_original_utcnow, METH_NOARGS, original_utcnow_doc},
-    {"time", (PyCFunction)_tachyon_gun_time, METH_NOARGS, time_doc},
     {"original_time", (PyCFunction)_tachyon_gun_original_time, METH_NOARGS, original_time_doc},
-    {"localtime", (PyCFunction)_tachyon_gun_localtime, METH_NOARGS, time_doc},
     {"original_localtime", (PyCFunction)_tachyon_gun_original_localtime, METH_VARARGS, original_localtime_doc},
-    {"gmtime", (PyCFunction)_tachyon_gun_gmtime, METH_NOARGS, time_doc},
     {"original_gmtime", (PyCFunction)_tachyon_gun_original_gmtime, METH_VARARGS, original_gmtime_doc},
-    {"strftime", (PyCFunction)_tachyon_gun_strftime, METH_NOARGS, time_doc},
     {"original_strftime", (PyCFunction)_tachyon_gun_original_strftime, METH_VARARGS, original_strftime_doc},
     {"patch", (PyCFunction)_tachyon_gun_patch, METH_NOARGS, patch_doc},
     {NULL, NULL}  /* sentinel */
