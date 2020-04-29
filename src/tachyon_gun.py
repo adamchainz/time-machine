@@ -40,7 +40,7 @@ def time():
 
 
 def localtime(secs=None):
-    if current_warp is None:
+    if current_warp is None or secs is not None:
         return _tachyon_gun.original_localtime(secs)
     else:
         return _tachyon_gun.original_localtime(
@@ -50,7 +50,7 @@ def localtime(secs=None):
 
 
 def gmtime(secs=None):
-    if current_warp is None:
+    if current_warp is None or secs is not None:
         return _tachyon_gun.original_gmtime(secs)
     else:
         return _tachyon_gun.original_gmtime(

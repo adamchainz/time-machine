@@ -29,9 +29,9 @@ Call time.time() after patching.");
 /* time.localtime() */
 
 static PyObject*
-_tachyon_gun_localtime(PyObject *self, PyObject *unused)
+_tachyon_gun_localtime(PyObject *self, PyObject *args)
 {
-    return PyObject_CallMethod(PyImport_ImportModule("tachyon_gun"), "localtime", NULL);
+    return PyObject_Call(PyObject_GetAttrString(PyImport_ImportModule("tachyon_gun"), "localtime"), args, NULL);
 }
 PyDoc_STRVAR(localtime_doc,
 "localtime([secs]) -> floating point number\n\
@@ -53,9 +53,9 @@ Call time.localtime() after patching.");
 /* time.gmtime() */
 
 static PyObject*
-_tachyon_gun_gmtime(PyObject *self, PyObject *unused)
+_tachyon_gun_gmtime(PyObject *self, PyObject *args)
 {
-    return PyObject_CallMethod(PyImport_ImportModule("tachyon_gun"), "gmtime", NULL);
+    return PyObject_Call(PyObject_GetAttrString(PyImport_ImportModule("tachyon_gun"), "gmtime"), args, NULL);
 }
 PyDoc_STRVAR(gmtime_doc,
 "gmtime([secs]) -> floating point number\n\
