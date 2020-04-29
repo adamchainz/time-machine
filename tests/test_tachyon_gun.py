@@ -39,3 +39,10 @@ def test_not_nestable():
                 pass
 
     assert excinfo.value.args == ("Cannot warp during a warp.",)
+
+
+def test_exceptions_dont_break_it():
+    with pytest.raises(ValueError), tachyon_gun.warp_time(0.0):
+        raise ValueError("Hi")
+    with tachyon_gun.warp_time(0.0):
+        pass

@@ -20,11 +20,14 @@ def warp_time(destination):
         raise RuntimeError("Cannot warp during a warp.")
 
     _tachyon_gun.patch()
+
     current_warp = Warp(
         destination=destination, start_time=_tachyon_gun.original_time(),
     )
-    yield
-    current_warp = None
+    try:
+        yield
+    finally:
+        current_warp = None
 
 
 def time():
