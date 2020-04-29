@@ -57,3 +57,15 @@ def gmtime(secs=None):
             current_warp.destination
             + (_tachyon_gun.original_time() - current_warp.start_time)
         )
+
+
+def strftime(format, t=None):
+    if t is not None:
+        return _tachyon_gun.original_strftime(format, t)
+    elif current_warp is None:
+        return _tachyon_gun.original_strftime(format)
+    else:
+        return _tachyon_gun.original_strftime(
+            format,
+            localtime(),
+        )

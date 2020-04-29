@@ -74,6 +74,30 @@ PyDoc_STRVAR(original_gmtime_doc,
 \n\
 Call time.gmtime() after patching.");
 
+/* time.strftime() */
+
+static PyObject*
+_tachyon_gun_strftime(PyObject *self, PyObject *args)
+{
+    return PyObject_Call(PyObject_GetAttrString(PyImport_ImportModule("tachyon_gun"), "strftime"), args, NULL);
+}
+PyDoc_STRVAR(strftime_doc,
+"strftime([secs]) -> floating point number\n\
+\n\
+Call tachyon_gun.strftime(), which replaces time.strftime().");
+
+PyCFunction original_strftime = NULL;
+
+static PyObject*
+_tachyon_gun_original_strftime(PyObject *self, PyObject *args)
+{
+    return original_strftime(self, args);
+}
+PyDoc_STRVAR(original_strftime_doc,
+"original_strftime() -> floating point number\n\
+\n\
+Call time.strftime() after patching.");
+
 
 static PyObject*
 _tachyon_gun_patch(PyObject *self, PyObject *unused)
@@ -98,6 +122,11 @@ _tachyon_gun_patch(PyObject *self, PyObject *unused)
     time_gmtime->m_ml->ml_meth = _tachyon_gun_gmtime;
     Py_DECREF(time_gmtime);
 
+    PyCFunctionObject *time_strftime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "strftime");
+    original_strftime = time_strftime->m_ml->ml_meth;
+    time_strftime->m_ml->ml_meth = _tachyon_gun_strftime;
+    Py_DECREF(time_strftime);
+
     Py_DECREF(time_module);
 
     Py_RETURN_NONE;
@@ -118,6 +147,8 @@ static PyMethodDef module_methods[] = {
     {"original_localtime", (PyCFunction)_tachyon_gun_original_localtime, METH_VARARGS, original_localtime_doc},
     {"gmtime", (PyCFunction)_tachyon_gun_gmtime, METH_NOARGS, time_doc},
     {"original_gmtime", (PyCFunction)_tachyon_gun_original_gmtime, METH_VARARGS, original_gmtime_doc},
+    {"strftime", (PyCFunction)_tachyon_gun_strftime, METH_NOARGS, time_doc},
+    {"original_strftime", (PyCFunction)_tachyon_gun_original_strftime, METH_VARARGS, original_strftime_doc},
     {"patch", (PyCFunction)_tachyon_gun_patch, METH_NOARGS, patch_doc},
     {NULL, NULL}  /* sentinel */
 };
