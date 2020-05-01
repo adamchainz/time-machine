@@ -1,14 +1,13 @@
 import datetime as dt
 from contextlib import contextmanager
-from dataclasses import dataclass
 
 import _tachyon_gun
 
 
-@dataclass
 class Warp:
-    destination: float
-    start_time: float
+    def __init__(self, destination: float, start_time: float):
+        self.destination = destination
+        self.start_time = start_time
 
 
 current_warp = None
