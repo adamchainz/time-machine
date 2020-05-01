@@ -10,9 +10,6 @@ if __name__ == "__main__":
     os.environ["CUSTOM_COMPILE_COMMAND"] = "requirements/compile.py"
     common_args = ["-m", "piptools", "compile", "--generate-hashes"] + sys.argv[1:]
     subprocess.run(
-        ["python3.5", *common_args, "-o", "py35.txt"], check=True,
-    )
-    subprocess.run(
         ["python3.6", *common_args, "-o", "py36.txt"], check=True,
     )
     subprocess.run(

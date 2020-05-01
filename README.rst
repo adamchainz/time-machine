@@ -33,7 +33,7 @@ Use **pip**:
 
     python -m pip install tachyon-gun
 
-Python 3.5 to 3.8 supported.
+Python 3.6 to 3.8 supported.
 
 Usage
 =====
