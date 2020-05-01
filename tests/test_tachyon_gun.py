@@ -5,7 +5,6 @@ import pytest
 
 import tachyon_gun
 
-
 EPOCH = 0.0
 EPOCH_PLUS_ONE_YEAR = 31_536_000.0
 LIBRARY_EPOCH = dt.datetime(2020, 4, 29)  # The day this library was made
