@@ -10,6 +10,48 @@ EPOCH_PLUS_ONE_YEAR = 31_536_000.0
 LIBRARY_EPOCH = dt.datetime(2020, 4, 29)  # The day this library was made
 
 
+# datetime module
+
+
+def test_datetime_now_no_args():
+    with time_machine.travel(EPOCH):
+        now = dt.datetime.now()
+        assert now.year == 1970
+        assert now.month == 1
+        assert now.day == 1
+    assert dt.datetime.now() >= LIBRARY_EPOCH
+
+
+def test_datetime_now_arg():
+    with time_machine.travel(EPOCH):
+        now = dt.datetime.now(tz=dt.timezone.utc)
+        assert now.year == 1970
+        assert now.month == 1
+        assert now.day == 1
+    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH
+
+
+def test_datetime_utcnow():
+    with time_machine.travel(EPOCH):
+        now = dt.datetime.utcnow()
+        assert now.year == 1970
+        assert now.month == 1
+        assert now.day == 1
+    assert dt.datetime.utcnow() >= LIBRARY_EPOCH
+
+
+def test_date_today():
+    with time_machine.travel(EPOCH):
+        today = dt.date.today()
+        assert today.year == 1970
+        assert today.month == 1
+        assert today.day == 1
+    assert dt.datetime.today() >= LIBRARY_EPOCH
+
+
+# time module
+
+
 def test_time_time():
     with time_machine.travel(EPOCH):
         assert EPOCH < time.time() < EPOCH + 1.0
@@ -66,6 +108,9 @@ def test_time_strftime_arg():
         )
 
 
+# other usage
+
+
 def test_not_nestable():
     with time_machine.travel(0.0):
         with pytest.raises(RuntimeError) as excinfo:
@@ -88,39 +133,3 @@ def test_exceptions_dont_break_it():
         raise ValueError("Hi")
     with time_machine.travel(0.0):
         pass
-
-
-def test_datetime_now_no_args():
-    with time_machine.travel(EPOCH):
-        now = dt.datetime.now()
-        assert now.year == 1970
-        assert now.month == 1
-        assert now.day == 1
-    assert dt.datetime.now() >= LIBRARY_EPOCH
-
-
-def test_datetime_now_arg():
-    with time_machine.travel(EPOCH):
-        now = dt.datetime.now(tz=dt.timezone.utc)
-        assert now.year == 1970
-        assert now.month == 1
-        assert now.day == 1
-    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH
-
-
-def test_datetime_utcnow():
-    with time_machine.travel(EPOCH):
-        now = dt.datetime.utcnow()
-        assert now.year == 1970
-        assert now.month == 1
-        assert now.day == 1
-    assert dt.datetime.utcnow() >= LIBRARY_EPOCH
-
-
-def test_date_today():
-    with time_machine.travel(EPOCH):
-        today = dt.date.today()
-        assert today.year == 1970
-        assert today.month == 1
-        assert today.day == 1
-    assert dt.datetime.today() >= LIBRARY_EPOCH

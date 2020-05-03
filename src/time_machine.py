@@ -53,7 +53,7 @@ def utcnow():
         return dt.datetime.fromtimestamp(time(), dt.timezone.utc)
 
 
-# time
+# time module
 
 
 def time():
