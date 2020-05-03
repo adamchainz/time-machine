@@ -1,7 +1,7 @@
 import datetime as dt
 from contextlib import contextmanager
 
-import _tachyon_gun
+import _time_machine
 
 
 class Warp:
@@ -19,10 +19,10 @@ def warp_time(destination):
     if current_warp is not None:
         raise RuntimeError("Cannot warp during a warp.")
 
-    _tachyon_gun.patch()
+    _time_machine.patch()
 
     current_warp = Warp(
-        destination=destination, start_time=_tachyon_gun.original_time(),
+        destination=destination, start_time=_time_machine.original_time(),
     )
     try:
         yield
@@ -35,14 +35,14 @@ def warp_time(destination):
 
 def now(tz=None):
     if current_warp is None:
-        return _tachyon_gun.original_now()
+        return _time_machine.original_now()
     else:
         return dt.datetime.fromtimestamp(time(), tz)
 
 
 def utcnow():
     if current_warp is None:
-        return _tachyon_gun.original_utcnow()
+        return _time_machine.original_utcnow()
     else:
         return dt.datetime.fromtimestamp(time(), dt.timezone.utc)
 
@@ -52,37 +52,37 @@ def utcnow():
 
 def time():
     if current_warp is None:
-        return _tachyon_gun.original_time()
+        return _time_machine.original_time()
     else:
         return current_warp.destination + (
-            _tachyon_gun.original_time() - current_warp.start_time
+            _time_machine.original_time() - current_warp.start_time
         )
 
 
 def localtime(secs=None):
     if current_warp is None or secs is not None:
-        return _tachyon_gun.original_localtime(secs)
+        return _time_machine.original_localtime(secs)
     else:
-        return _tachyon_gun.original_localtime(
+        return _time_machine.original_localtime(
             current_warp.destination
-            + (_tachyon_gun.original_time() - current_warp.start_time)
+            + (_time_machine.original_time() - current_warp.start_time)
         )
 
 
 def gmtime(secs=None):
     if current_warp is None or secs is not None:
-        return _tachyon_gun.original_gmtime(secs)
+        return _time_machine.original_gmtime(secs)
     else:
-        return _tachyon_gun.original_gmtime(
+        return _time_machine.original_gmtime(
             current_warp.destination
-            + (_tachyon_gun.original_time() - current_warp.start_time)
+            + (_time_machine.original_time() - current_warp.start_time)
         )
 
 
 def strftime(format, t=None):
     if t is not None:
-        return _tachyon_gun.original_strftime(format, t)
+        return _time_machine.original_strftime(format, t)
     elif current_warp is None:
-        return _tachyon_gun.original_strftime(format)
+        return _time_machine.original_strftime(format)
     else:
-        return _tachyon_gun.original_strftime(format, localtime())
+        return _time_machine.original_strftime(format, localtime())
