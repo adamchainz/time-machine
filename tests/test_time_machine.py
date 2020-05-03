@@ -6,8 +6,10 @@ import pytest
 
 import time_machine
 
-EPOCH = 0.0
-EPOCH_PLUS_ONE_YEAR = 31_536_000.0
+EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+EPOCH = EPOCH_DATETIME.timestamp()
+EPOCH_PLUS_ONE_YEAR_DATETIME = dt.datetime(1971, 1, 1, tzinfo=dt.timezone.utc)
+EPOCH_PLUS_ONE_YEAR = EPOCH_PLUS_ONE_YEAR_DATETIME.timestamp()
 LIBRARY_EPOCH_DATETIME = dt.datetime(2020, 4, 29)  # The day this library was made
 LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
 
@@ -135,6 +137,11 @@ def test_exceptions_dont_break_it():
         raise ValueError("Hi")
     with time_machine.travel(0.0):
         pass
+
+
+@time_machine.travel(EPOCH_DATETIME + dt.timedelta(seconds=70))
+def test_destination_datetime():
+    assert EPOCH + 70.0 < time.time() < EPOCH + 71.0
 
 
 def test_traveller_object():

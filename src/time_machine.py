@@ -17,6 +17,8 @@ class travel:
     def __init__(self, destination):
         if isinstance(destination, (int, float)):
             destination_timestamp = destination
+        elif isinstance(destination, dt.datetime):
+            destination_timestamp = destination.timestamp()
         else:
             raise TypeError(f"Unsupported destination {destination!r}")
 
