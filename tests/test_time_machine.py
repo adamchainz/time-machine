@@ -1,5 +1,6 @@
 import datetime as dt
 import time
+from unittest import TestCase
 
 import pytest
 
@@ -133,3 +134,20 @@ def test_exceptions_dont_break_it():
         raise ValueError("Hi")
     with time_machine.travel(0.0):
         pass
+
+
+@time_machine.travel(EPOCH + 15.0)
+def test_function_decorator():
+    assert EPOCH + 15.0 < time.time() < EPOCH + 16.0
+
+
+class MethodDecoratorTests:
+    @time_machine.travel(EPOCH + 25.0)
+    def test_method_decorator(self):
+        assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
+
+
+class UnitTestMethodTests(TestCase):
+    @time_machine.travel(EPOCH + 25.0)
+    def test_method_decorator(self):
+        assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
