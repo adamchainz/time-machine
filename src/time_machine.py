@@ -20,6 +20,8 @@ class travel:
         if isinstance(destination, (int, float)):
             destination_timestamp = destination
         elif isinstance(destination, dt.datetime):
+            if destination.tzinfo is None:
+                destination = destination.replace(tzinfo=dt.timezone.utc)
             destination_timestamp = destination.timestamp()
         elif isinstance(destination, str):
             destination_timestamp = parse_datetime(destination).timestamp()

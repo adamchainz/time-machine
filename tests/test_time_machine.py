@@ -150,6 +150,11 @@ def test_destination_datetime_timezone():
     assert EPOCH + 21600.0 < time.time() < EPOCH + 21601.0
 
 
+@time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
+def test_destination_datetime_naive():
+    assert EPOCH + 120.0 < time.time() < EPOCH + 121.0
+
+
 @time_machine.travel("1970-01-01 00:01 +0000")
 def test_destination_string():
     assert EPOCH + 60.0 < time.time() < EPOCH + 61.0
