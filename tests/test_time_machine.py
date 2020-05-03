@@ -8,7 +8,8 @@ import time_machine
 
 EPOCH = 0.0
 EPOCH_PLUS_ONE_YEAR = 31_536_000.0
-LIBRARY_EPOCH = dt.datetime(2020, 4, 29)  # The day this library was made
+LIBRARY_EPOCH_DATETIME = dt.datetime(2020, 4, 29)  # The day this library was made
+LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
 
 
 # datetime module
@@ -20,7 +21,7 @@ def test_datetime_now_no_args():
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
-    assert dt.datetime.now() >= LIBRARY_EPOCH
+    assert dt.datetime.now() >= LIBRARY_EPOCH_DATETIME
 
 
 def test_datetime_now_arg():
@@ -29,7 +30,7 @@ def test_datetime_now_arg():
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
-    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH
+    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH_DATETIME
 
 
 def test_datetime_utcnow():
@@ -38,7 +39,7 @@ def test_datetime_utcnow():
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
-    assert dt.datetime.utcnow() >= LIBRARY_EPOCH
+    assert dt.datetime.utcnow() >= LIBRARY_EPOCH_DATETIME
 
 
 def test_date_today():
@@ -47,7 +48,7 @@ def test_date_today():
         assert today.year == 1970
         assert today.month == 1
         assert today.day == 1
-    assert dt.datetime.today() >= LIBRARY_EPOCH
+    assert dt.datetime.today() >= LIBRARY_EPOCH_DATETIME
 
 
 # time module
@@ -56,7 +57,7 @@ def test_date_today():
 def test_time_time():
     with time_machine.travel(EPOCH):
         assert EPOCH < time.time() < EPOCH + 1.0
-    assert time.time() >= LIBRARY_EPOCH.timestamp()
+    assert time.time() >= LIBRARY_EPOCH
 
 
 def test_time_localtime():
@@ -134,6 +135,15 @@ def test_exceptions_dont_break_it():
         raise ValueError("Hi")
     with time_machine.travel(0.0):
         pass
+
+
+def test_traveller_object():
+    traveller = time_machine.travel(EPOCH + 10.0)
+    assert time.time() >= LIBRARY_EPOCH
+    traveller.start()
+    assert EPOCH + 10.0 < time.time() < EPOCH + 11.0
+    traveller.stop()
+    assert time.time() >= LIBRARY_EPOCH
 
 
 @time_machine.travel(EPOCH + 15.0)

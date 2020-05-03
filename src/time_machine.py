@@ -1,5 +1,5 @@
 import datetime as dt
-from contextlib import contextmanager
+import functools
 
 import _time_machine
 
@@ -13,27 +13,44 @@ class Coordinates:
 current_coordinates = None
 
 
-@contextmanager
-def travel(destination):
-    global current_coordinates
-    if current_coordinates is not None:
-        raise RuntimeError("Cannot time travel whilst already travelling.")
+class travel:
+    def __init__(self, destination):
+        if isinstance(destination, (int, float)):
+            destination_timestamp = destination
+        else:
+            raise TypeError(f"Unsupported destination {destination!r}")
 
-    if isinstance(destination, (int, float)):
-        destination_timestamp = destination
-    else:
-        raise TypeError(f"Unsupported destination {destination!r}")
+        self.destination_timestamp = destination_timestamp
 
-    _time_machine.patch()
+    def start(self):
+        global current_coordinates
+        if current_coordinates is not None:
+            raise RuntimeError("Cannot time travel whilst already travelling.")
 
-    current_coordinates = Coordinates(
-        destination_timestamp=destination_timestamp,
-        real_start_timestamp=_time_machine.original_time(),
-    )
-    try:
-        yield
-    finally:
+        _time_machine.patch()
+
+        current_coordinates = Coordinates(
+            destination_timestamp=self.destination_timestamp,
+            real_start_timestamp=_time_machine.original_time(),
+        )
+
+    def stop(self):
+        global current_coordinates
         current_coordinates = None
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, *exc_info):
+        self.stop()
+
+    def __call__(self, func):
+        @functools.wraps(func)
+        def time_traveller(*args, **kwargs):
+            with self:
+                func(*args, **kwargs)
+
+        return time_traveller
 
 
 # datetime module
