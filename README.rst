@@ -11,7 +11,7 @@ time-machine
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/python/black
 
-Warp time.
+Travel through time in your tests.
 
 A quick example:
 
@@ -20,9 +20,9 @@ A quick example:
     import datetime as dt
     import time_machine
 
-    with time_machine.warp_time(0.0):
-        print(dt.date.today().isoformat())  # 1970-01-01
-
+    @time_machine.travel(0.0)
+    def test_unix_epoch_timestamp():
+        assert dt.date.today().isoformat() == "1970-01-01"
 
 Installation
 ============
