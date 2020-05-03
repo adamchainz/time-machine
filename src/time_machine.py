@@ -1,6 +1,8 @@
 import datetime as dt
 import functools
 
+from dateutil.parser import parse as parse_datetime
+
 import _time_machine
 
 
@@ -19,6 +21,8 @@ class travel:
             destination_timestamp = destination
         elif isinstance(destination, dt.datetime):
             destination_timestamp = destination.timestamp()
+        elif isinstance(destination, str):
+            destination_timestamp = parse_datetime(destination).timestamp()
         else:
             raise TypeError(f"Unsupported destination {destination!r}")
 

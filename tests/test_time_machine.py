@@ -3,6 +3,7 @@ import time
 from unittest import TestCase
 
 import pytest
+from dateutil import tz
 
 import time_machine
 
@@ -142,6 +143,16 @@ def test_exceptions_dont_break_it():
 @time_machine.travel(EPOCH_DATETIME + dt.timedelta(seconds=70))
 def test_destination_datetime():
     assert EPOCH + 70.0 < time.time() < EPOCH + 71.0
+
+
+@time_machine.travel(EPOCH_DATETIME.replace(tzinfo=tz.gettz("America/Chicago")))
+def test_destination_datetime_timezone():
+    assert EPOCH + 21600.0 < time.time() < EPOCH + 21601.0
+
+
+@time_machine.travel("1970-01-01 00:01 +0000")
+def test_destination_string():
+    assert EPOCH + 60.0 < time.time() < EPOCH + 61.0
 
 
 def test_traveller_object():

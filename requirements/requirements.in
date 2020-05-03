@@ -11,5 +11,6 @@ pygments
 pytest
 pytest-cov
 pytest-randomly
+python-dateutil
 secretstorage # required for twine on linux
 twine
