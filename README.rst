@@ -49,6 +49,8 @@ It may be:
 
 * A ``datetime.datetime``.
   If it is naive, it will be assumed to have the UTC timezone.
+* A ``datetime.date``.
+  This will be converted to a UTC datetime with the time 00:00:00.
 * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
 * A string, which will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
 
