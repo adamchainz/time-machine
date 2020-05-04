@@ -53,7 +53,11 @@ It may be:
   This will be converted to a UTC datetime with the time 00:00:00.
 * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
 * A string, which will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
-* A callable, in which case it will be called with no parameters, and its result will be treated as above.
+
+Additionally, you can provide some more complex types:
+
+* A generator, in which case ``next()`` will be called on it, with the result treated as above.
+* A callable, in which case it will be called with no parameters, with the result treated as above.
 
 To use independently, instantiate, then use ``start()`` to move to the destination time, and ``stop()`` to move back.
 

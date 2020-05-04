@@ -175,6 +175,11 @@ def test_destination_callable_lambda_string():
     assert EPOCH + 120.0 < time.time() < EPOCH + 121.0
 
 
+@time_machine.travel((EPOCH + 13.0 for _ in range(1)))
+def test_destination_generator():
+    assert EPOCH + 13.0 < time.time() < EPOCH + 14.0
+
+
 def test_traveller_object():
     traveller = time_machine.travel(EPOCH + 10.0)
     assert time.time() >= LIBRARY_EPOCH

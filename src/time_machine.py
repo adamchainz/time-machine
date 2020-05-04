@@ -1,5 +1,6 @@
 import datetime as dt
 import functools
+from types import GeneratorType
 
 from dateutil.parser import parse as parse_datetime
 
@@ -19,6 +20,8 @@ class travel:
     def __init__(self, destination):
         if callable(destination):
             destination = destination()
+        elif isinstance(destination, GeneratorType):
+            destination = next(destination)
 
         if isinstance(destination, (int, float)):
             destination_timestamp = destination
