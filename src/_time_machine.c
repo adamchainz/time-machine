@@ -45,18 +45,15 @@ _time_machine_now(PyTypeObject *type, PyObject **args, Py_ssize_t nargs, PyObjec
     PyObject* now_args = PyTuple_Pack(1, tz);
     result = PyObject_CallObject(time_machine_now, now_args);
     Py_DECREF(now_args);
-#endif
 
 exit:
+#endif
+
     Py_DECREF(time_machine_now);
     Py_DECREF(time_machine_module);
 
     return result;
 }
-PyDoc_STRVAR(now_doc,
-"now() -> datetime\n\
-\n\
-Call time_machine.now(), which replaces datetime.datetime.now().");
 
 #if PY_VERSION_HEX >= 0x03070000
 _PyCFunctionFastWithKeywords original_now = NULL;
@@ -101,10 +98,6 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
 
     return result;
 }
-PyDoc_STRVAR(utcnow_doc,
-"utcnow() -> datetime\n\
-\n\
-Call time_machine.utcnow(), which replaces datetime.datetime.utcnow().");
 
 PyCFunction original_utcnow = NULL;
 
@@ -141,10 +134,6 @@ _time_machine_time(PyObject *self, PyObject *args)
 
     return result;
 }
-PyDoc_STRVAR(time_doc,
-"time() -> floating point number\n\
-\n\
-Call time_machine.time(), which replaces time.time().");
 
 PyCFunction original_time = NULL;
 
@@ -173,10 +162,6 @@ _time_machine_localtime(PyObject *self, PyObject *args)
 
     return result;
 }
-PyDoc_STRVAR(localtime_doc,
-"localtime([secs]) -> floating point number\n\
-\n\
-Call time_machine.localtime(), which replaces time.localtime().");
 
 PyCFunction original_localtime = NULL;
 
@@ -205,10 +190,6 @@ _time_machine_gmtime(PyObject *self, PyObject *args)
 
     return result;
 }
-PyDoc_STRVAR(gmtime_doc,
-"gmtime([secs]) -> floating point number\n\
-\n\
-Call time_machine.gmtime(), which replaces time.gmtime().");
 
 PyCFunction original_gmtime = NULL;
 
@@ -237,10 +218,6 @@ _time_machine_strftime(PyObject *self, PyObject *args)
 
     return result;
 }
-PyDoc_STRVAR(strftime_doc,
-"strftime([secs]) -> floating point number\n\
-\n\
-Call time_machine.strftime(), which replaces time.strftime().");
 
 PyCFunction original_strftime = NULL;
 
