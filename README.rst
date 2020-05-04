@@ -74,7 +74,7 @@ To use independently, instantiate, then use ``start()`` to move to the destinati
     # We've gone back to the future!
     assert dt.date.today() > dt.date(2020, 4, 29)
 
-Once started, all datetime functions in the standard library are mocked to pretend the current time is that time:
+Once started, all datetime functions in the standard library are mocked to pretend the current datetime is the destination:
 
 * ``datetime.datetime.now()``
 * ``datetime.datetime.utcnow()``
@@ -89,15 +89,7 @@ At least two functions are currently missing:
 * ``time.time_ns()``
 
 This mocking is at the C layer, replacing the function pointers for these built-ins.
-Therefore, it automatically affects everywhere those functions were imported.
-
-Any other functions that make system calls to retrieve the clock time will not be affected, but these are rare.
-Most Python libraries use the above standard library functions.
-
-Beware that time is global state.
-Any concurrent threads or async functions will also be affected.
-Some aren't ready for time to move so rapidly and may crash or produce unexpected results.
-But other processes are not affected, for example if you use datetime functions in a client/server database, they will still return the real time.
+Therefore, it automatically affects everywhere those functions have been imported, unlike use of ``unittest.mock.patch()``.
 
 Time "continues ticking," so two calls to ``time.time()`` will return results separated by the time elapsed between them.
 
@@ -119,6 +111,13 @@ When used as a context manager, time is mocked during the ``with`` block:
     def test_time_time():
         with time_machine.travel(0.0):
             assert EPOCH < time.time() < EPOCH + 1.0
+
+Beware: time is global state.
+Any concurrent threads or async functions are also be affected.
+Some aren't ready for time to move so rapidly or backwards, and may crash or produce unexpected results.
+
+Also beware that other processes are not affected.
+For example, if you use datetime functions in a client/server database they will still return the real time.
 
 Comparison
 ==========
