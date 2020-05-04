@@ -17,6 +17,9 @@ current_coordinates = None
 
 class travel:
     def __init__(self, destination):
+        if callable(destination):
+            destination = destination()
+
         if isinstance(destination, (int, float)):
             destination_timestamp = destination
         elif isinstance(destination, dt.datetime):
