@@ -66,10 +66,10 @@ To use independently, instantiate, then use ``start()`` to move to the destinati
     import datetime as dt
     import time_machine
 
-    traveller = time_machine.travel(dt.datetime(1985, 11, 5))
+    traveller = time_machine.travel(dt.datetime(1955, 11, 5))
     traveller.start()
     # It's the past!
-    assert dt.date.today() == dt.date(1985, 11, 5)
+    assert dt.date.today() == dt.date(1955, 11, 5)
     traveller.stop()
     # We've gone back to the future!
     assert dt.date.today() > dt.date(2020, 4, 29)
