@@ -38,8 +38,8 @@ Python 3.6 to 3.8 supported (CPython only).
 Usage
 =====
 
-``travel(destination)``
------------------------
+``travel(destination, *, tick=True)``
+-------------------------------------
 
 ``travel()`` is a class that allows movement to a given time specified by ``destination``.
 It can be used independently, as a function decorator, or as a context manager.
@@ -58,6 +58,9 @@ Additionally, you can provide some more complex types:
 
 * A generator, in which case ``next()`` will be called on it, with the result treated as above.
 * A callable, in which case it will be called with no parameters, with the result treated as above.
+
+``tick`` defines whether time continues to "tick" after travelling, or is frozen.
+If ``True``, the default, successive calls to the mocked functions increase by the elapsed time.
 
 To use independently, instantiate, then use ``start()`` to move to the destination time, and ``stop()`` to move back.
 

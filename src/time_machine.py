@@ -8,16 +8,19 @@ import _time_machine
 
 
 class Coordinates:
-    def __init__(self, destination_timestamp: float, real_start_timestamp: float):
+    def __init__(
+        self, destination_timestamp: float, real_start_timestamp: float, tick: bool
+    ):
         self.destination_timestamp = destination_timestamp
         self.real_start_timestamp = real_start_timestamp
+        self.tick = tick
 
 
 current_coordinates = None
 
 
 class travel:
-    def __init__(self, destination):
+    def __init__(self, destination, *, tick=True):
         if callable(destination):
             destination = destination()
         elif isinstance(destination, GeneratorType):
@@ -39,6 +42,7 @@ class travel:
             raise TypeError(f"Unsupported destination {destination!r}")
 
         self.destination_timestamp = destination_timestamp
+        self.tick = tick
 
     def start(self):
         global current_coordinates
@@ -50,6 +54,7 @@ class travel:
         current_coordinates = Coordinates(
             destination_timestamp=self.destination_timestamp,
             real_start_timestamp=_time_machine.original_time(),
+            tick=self.tick,
         )
 
     def stop(self):
@@ -64,11 +69,11 @@ class travel:
 
     def __call__(self, func):
         @functools.wraps(func)
-        def time_traveller(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             with self:
                 func(*args, **kwargs)
 
-        return time_traveller
+        return wrapper
 
 
 # datetime module
@@ -94,30 +99,38 @@ def utcnow():
 def time():
     if current_coordinates is None:
         return _time_machine.original_time()
-    else:
+    elif current_coordinates.tick:
         return current_coordinates.destination_timestamp + (
             _time_machine.original_time() - current_coordinates.real_start_timestamp
         )
+    else:
+        return current_coordinates.destination_timestamp
 
 
 def localtime(secs=None):
     if current_coordinates is None or secs is not None:
         return _time_machine.original_localtime(secs)
-    else:
+    elif current_coordinates.tick:
         return _time_machine.original_localtime(
             current_coordinates.destination_timestamp
             + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
+        )
+    else:
+        return _time_machine.original_localtime(
+            current_coordinates.destination_timestamp
         )
 
 
 def gmtime(secs=None):
     if current_coordinates is None or secs is not None:
         return _time_machine.original_gmtime(secs)
-    else:
+    elif current_coordinates.tick:
         return _time_machine.original_gmtime(
             current_coordinates.destination_timestamp
             + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
         )
+    else:
+        return _time_machine.original_gmtime(current_coordinates.destination_timestamp)
 
 
 def strftime(format, t=None):
@@ -125,5 +138,7 @@ def strftime(format, t=None):
         return _time_machine.original_strftime(format, t)
     elif current_coordinates is None:
         return _time_machine.original_strftime(format)
+    elif current_coordinates.tick:
+        return _time_machine.original_strftime(format, localtime())
     else:
         return _time_machine.original_strftime(format, localtime())

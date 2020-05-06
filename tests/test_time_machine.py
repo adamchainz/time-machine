@@ -24,7 +24,16 @@ def test_datetime_now_no_args():
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
+        # Not asserting on hour/minute because local timezone could shift it
+        assert now.second == 0
+        assert now.microsecond > 0
     assert dt.datetime.now() >= LIBRARY_EPOCH_DATETIME
+
+
+def test_datetime_now_no_args_no_tick():
+    with time_machine.travel(EPOCH, tick=False):
+        now = dt.datetime.now()
+        assert now.microsecond == 0
 
 
 def test_datetime_now_arg():
@@ -42,7 +51,17 @@ def test_datetime_utcnow():
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
+        assert now.hour == 0
+        assert now.minute == 0
+        assert now.second == 0
+        assert now.microsecond > 0
     assert dt.datetime.utcnow() >= LIBRARY_EPOCH_DATETIME
+
+
+def test_datetime_utcnow_no_tick():
+    with time_machine.travel(EPOCH, tick=False):
+        now = dt.datetime.utcnow()
+        assert now.microsecond == 0
 
 
 def test_date_today():
@@ -63,6 +82,11 @@ def test_time_time():
     assert time.time() >= LIBRARY_EPOCH
 
 
+def test_time_time_no_tick():
+    with time_machine.travel(EPOCH, tick=False):
+        assert time.time() == EPOCH
+
+
 def test_time_localtime():
     with time_machine.travel(EPOCH):
         local_time = time.localtime()
@@ -71,6 +95,12 @@ def test_time_localtime():
         assert local_time.tm_mday == 1
     now_time = time.localtime()
     assert now_time.tm_year >= 2020
+
+
+def test_time_localtime_no_tick():
+    with time_machine.travel(EPOCH, tick=False):
+        local_time = time.localtime()
+        assert local_time.tm_sec == 0
 
 
 def test_time_localtime_arg():
@@ -91,6 +121,12 @@ def test_time_gmtime_no_args():
     assert now_time.tm_year >= 2020
 
 
+def test_time_gmtime_no_args_no_tick():
+    with time_machine.travel(EPOCH, tick=False):
+        local_time = time.gmtime()
+        assert local_time.tm_sec == 0
+
+
 def test_time_gmtime_arg():
     with time_machine.travel(EPOCH):
         local_time = time.gmtime(EPOCH_PLUS_ONE_YEAR)
@@ -103,6 +139,11 @@ def test_time_strftime_no_args():
     with time_machine.travel(EPOCH):
         assert time.strftime("%Y-%m-%d") == "1970-01-01"
     assert int(time.strftime("%Y")) >= 2020
+
+
+def test_time_strftime_no_args_no_tick():
+    with time_machine.travel(EPOCH, tick=False):
+        assert time.strftime("%S") == "00"
 
 
 def test_time_strftime_arg():
