@@ -87,6 +87,17 @@ def test_time_time_no_tick():
         assert time.time() == EPOCH
 
 
+def test_time_time_ns():
+    with time_machine.travel(EPOCH):
+        assert int(EPOCH * 1_000_000) < time.time_ns() < 1_000_000
+    assert time.time_ns() >= int(LIBRARY_EPOCH * 1_000_000)
+
+
+def test_time_time_ns_no_tick():
+    with time_machine.travel(EPOCH, tick=False):
+        assert time.time_ns() == int(EPOCH * 1_000_000)
+
+
 def test_time_localtime():
     with time_machine.travel(EPOCH):
         local_time = time.localtime()
