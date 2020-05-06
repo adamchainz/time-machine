@@ -20,9 +20,9 @@ A quick example:
     import datetime as dt
     import time_machine
 
-    @time_machine.travel(0.0)
-    def test_unix_epoch_timestamp():
-        assert dt.date.today().isoformat() == "1970-01-01"
+    @time_machine.travel("1955-11-05 01:22")
+    def test_delorean():
+        assert dt.date.today().isoformat() == "1955-11-05"
 
 Installation
 ============
@@ -41,10 +41,11 @@ Usage
 ``travel(destination, *, tick=True)``
 -------------------------------------
 
-``travel()`` is a class that allows movement to a given time specified by ``destination``.
+``travel()`` is a class that allows time travel, to the datetime specified by ``destination``.
+It does so by mocking all functions from Python's standard library that return the current date or datetime.
 It can be used independently, as a function decorator, or as a context manager.
 
-``destination`` specifies the time to move to.
+``destination`` specifies the datetime to move to.
 It may be:
 
 * A ``datetime.datetime``.
@@ -62,7 +63,31 @@ Additionally, you can provide some more complex types:
 ``tick`` defines whether time continues to "tick" after travelling, or is frozen.
 If ``True``, the default, successive calls to the mocked functions increase by the elapsed time.
 
-To use independently, instantiate, then use ``start()`` to move to the destination time, and ``stop()`` to move back.
+Mocked Functions
+^^^^^^^^^^^^^^^^
+
+All datetime functions in the standard library are mocked to pretend the current datetime is the destination:
+
+* ``datetime.datetime.now()``
+* ``datetime.datetime.utcnow()``
+* ``time.time()``
+* ``time.gmtime()``
+* ``time.localtime()``
+* ``time.strftime()``
+
+At least two functions are currently missing:
+
+* ``time.clock_gettime``
+* ``time.time_ns()``
+
+This mocking is done at the C layer, replacing the function pointers for these built-ins.
+Therefore, it automatically affects everywhere those functions have been imported, unlike use of ``unittest.mock.patch()``.
+
+Usage with ``start()`` / ``stop()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To use independently, create and instance, use ``start()`` to move to the destination time, and ``stop()`` to move back.
+For example:
 
 .. code-block:: python
 
@@ -77,24 +102,8 @@ To use independently, instantiate, then use ``start()`` to move to the destinati
     # We've gone back to the future!
     assert dt.date.today() > dt.date(2020, 4, 29)
 
-Once started, all datetime functions in the standard library are mocked to pretend the current datetime is the destination:
-
-* ``datetime.datetime.now()``
-* ``datetime.datetime.utcnow()``
-* ``time.time()``
-* ``time.gmtime()``
-* ``time.localtime()``
-* ``time.strftime()``
-
-At least two functions are currently missing:
-
-* ``time.clock_gettime``
-* ``time.time_ns()``
-
-This mocking is at the C layer, replacing the function pointers for these built-ins.
-Therefore, it automatically affects everywhere those functions have been imported, unlike use of ``unittest.mock.patch()``.
-
-Time "continues ticking," so two calls to ``time.time()`` will return results separated by the time elapsed between them.
+Function Decorator
+^^^^^^^^^^^^^^^^^^
 
 When used as a function decorator, time is mocked during the wrapped function's duration:
 
@@ -107,6 +116,9 @@ When used as a function decorator, time is mocked during the wrapped function's 
     def test_in_the_deep_past():
         assert 0.0 < time.time() < 1.0
 
+Context Manager
+^^^^^^^^^^^^^^^
+
 When used as a context manager, time is mocked during the ``with`` block:
 
 .. code-block:: python
@@ -115,7 +127,10 @@ When used as a context manager, time is mocked during the ``with`` block:
         with time_machine.travel(0.0):
             assert EPOCH < time.time() < EPOCH + 1.0
 
-Beware: time is global state.
+Caveats
+^^^^^^^
+
+Time is global state.
 Any concurrent threads or async functions are also be affected.
 Some aren't ready for time to move so rapidly or backwards, and may crash or produce unexpected results.
 
@@ -142,7 +157,7 @@ See `Why Your Mock Doesn't Work <https://nedbatchelder.com//blog/201908/why_your
 -------------
 
 Steve Pulec's `freezegun <https://github.com/spulec/freezegun>`__ library is a popular solution.
-It provides a nice API which was much of the inspiration for time-machine.
+It provides a clear API which was much of the inspiration for time-machine.
 
 The main drawback is its slow implementation.
 It essentially does a find-and-replace mock of all the places that the ``datetime`` and ``time`` modules have been imported.
@@ -170,8 +185,8 @@ Manually managing the environment variable is a bit of overhead for each environ
 ``time-machine`` is intended to combine the advantages of ``freezegun`` and ``libfaketime``.
 It works without ``LD_PRELOAD`` but still mocks the standard library functions everywhere they may be referenced.
 Its weak point is that other libraries using date/time system calls won't be mocked.
-Thankfully this is rare - all Python libraries I've seen use the standard library functions.
-And other python libraries can probably be added to the set detected and mocked by ``time-machine``.
+Thankfully this is rare.
+It's also possible such python libraries can be added to the set mocked by ``time-machine``.
 
 One drawback is that it only works with CPython, so can't be used with other Python interpreters like PyPy.
 However it may possible to extend it to use different mocking mechanisms there.
