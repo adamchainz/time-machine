@@ -1,6 +1,6 @@
 import datetime as dt
 import time
-from unittest import TestCase
+from unittest import SkipTest, TestCase
 
 import pytest
 from dateutil import tz
@@ -246,8 +246,18 @@ def test_function_decorator():
     assert EPOCH + 15.0 < time.time() < EPOCH + 16.0
 
 
+def test_class_decorator_fails_non_testcase():
+    with pytest.raises(TypeError) as excinfo:
+
+        @time_machine.travel(EPOCH)
+        class Something:
+            pass
+
+    assert excinfo.value.args == ("Can only decorate unittest.TestCase subclasses.",)
+
+
 class MethodDecoratorTests:
-    @time_machine.travel(EPOCH + 25.0)
+    @time_machine.travel(EPOCH + 95.0)
     def test_method_decorator(self):
         assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
 
@@ -256,3 +266,36 @@ class UnitTestMethodTests(TestCase):
     @time_machine.travel(EPOCH + 25.0)
     def test_method_decorator(self):
         assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
+
+
+@time_machine.travel(EPOCH + 95.0)
+class UnitTestClassTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+    def test_class_decorator(self):
+        assert EPOCH + 95.0 < time.time() < EPOCH + 96.0
+
+
+@time_machine.travel(EPOCH + 95.0)
+class UnitTestClassCustomSetUpClassTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.custom_setupclass_ran = True
+
+    def test_class_decorator(self):
+        assert EPOCH + 95.0 < time.time() < EPOCH + 96.0
+        assert self.custom_setupclass_ran
+
+
+@time_machine.travel(EPOCH + 110.0)
+class UnitTestClassSetUpClassSkipTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        raise SkipTest("Not today")
+        # Other tests would fail if the travel() wasn't stopped
+
+    def test_thats_always_skipped(self):
+        pass

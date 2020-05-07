@@ -1,6 +1,9 @@
 import datetime as dt
 import functools
+import inspect
+import sys
 from types import GeneratorType
+from unittest import TestCase
 
 from dateutil.parser import parse as parse_datetime
 
@@ -67,13 +70,43 @@ class travel:
     def __exit__(self, *exc_info):
         self.stop()
 
-    def __call__(self, func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            with self:
-                func(*args, **kwargs)
+    def __call__(self, wrapped):
+        if inspect.isclass(wrapped):
+            # Class decorator
+            if not issubclass(wrapped, TestCase):
+                raise TypeError("Can only decorate unittest.TestCase subclasses.")
 
-        return wrapper
+            # Modify the setUpClass method
+            orig_setUpClass = wrapped.setUpClass
+
+            @functools.wraps(orig_setUpClass)
+            def setUpClass(cls):
+                self.__enter__()
+                try:
+                    orig_setUpClass()
+                except Exception:
+                    self.__exit__(*sys.exc_info())
+                    raise
+
+            wrapped.setUpClass = classmethod(setUpClass)
+
+            orig_tearDownClass = wrapped.tearDownClass
+
+            @functools.wraps(orig_tearDownClass)
+            def tearDownClass(cls):
+                orig_tearDownClass()
+                self.__exit__(None, None, None)
+
+            wrapped.tearDownClass = classmethod(tearDownClass)
+            return wrapped
+        else:
+
+            @functools.wraps(wrapped)
+            def wrapper(*args, **kwargs):
+                with self:
+                    return wrapped(*args, **kwargs)
+
+            return wrapper
 
 
 # datetime module
