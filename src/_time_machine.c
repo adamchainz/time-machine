@@ -148,6 +148,7 @@ PyDoc_STRVAR(original_time_doc,
 Call time.time() after patching.");
 
 /* time.time_ns() */
+#if PY_VERSION_HEX >= 0x03070000
 
 static PyObject*
 _time_machine_time_ns(PyObject *self, PyObject *args)
@@ -174,6 +175,8 @@ PyDoc_STRVAR(original_time_ns_doc,
 "original_time_ns() -> floating point number\n\
 \n\
 Call time.time_ns() after patching.");
+
+#endif
 
 /* time.localtime() */
 
@@ -293,10 +296,12 @@ _time_machine_patch(PyObject *self, PyObject *unused)
     time_time->m_ml->ml_meth = _time_machine_time;
     Py_DECREF(time_time);
 
+#if PY_VERSION_HEX >= 0x03070000
     PyCFunctionObject *time_time_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "time_ns");
     original_time_ns = time_time_ns->m_ml->ml_meth;
     time_time_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_time_ns);
+#endif
 
     PyCFunctionObject *time_localtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "localtime");
     original_localtime = time_localtime->m_ml->ml_meth;
@@ -334,7 +339,9 @@ static PyMethodDef module_methods[] = {
 #endif
     {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
     {"original_time", (PyCFunction)_time_machine_original_time, METH_NOARGS, original_time_doc},
+#if PY_VERSION_HEX >= 0x03070000
     {"original_time_ns", (PyCFunction)_time_machine_original_time_ns, METH_NOARGS, original_time_ns_doc},
+#endif
     {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
     {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"original_strftime", (PyCFunction)_time_machine_original_strftime, METH_VARARGS, original_strftime_doc},

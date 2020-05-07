@@ -1,4 +1,5 @@
 import datetime as dt
+import sys
 import time
 from unittest import SkipTest, TestCase
 
@@ -13,6 +14,8 @@ EPOCH_PLUS_ONE_YEAR_DATETIME = dt.datetime(1971, 1, 1, tzinfo=dt.timezone.utc)
 EPOCH_PLUS_ONE_YEAR = EPOCH_PLUS_ONE_YEAR_DATETIME.timestamp()
 LIBRARY_EPOCH_DATETIME = dt.datetime(2020, 4, 29)  # The day this library was made
 LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
+
+py_3_7_plus = pytest.mark.skipif(sys.version_info < (3, 7), reason="Python 3.7+")
 
 
 # datetime module
@@ -87,12 +90,14 @@ def test_time_time_no_tick():
         assert time.time() == EPOCH
 
 
+@py_3_7_plus
 def test_time_time_ns():
     with time_machine.travel(EPOCH):
         assert int(EPOCH * 1_000_000) < time.time_ns() < 1_000_000
     assert time.time_ns() >= int(LIBRARY_EPOCH * 1_000_000)
 
 
+@py_3_7_plus
 def test_time_time_ns_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         assert time.time_ns() == int(EPOCH * 1_000_000)

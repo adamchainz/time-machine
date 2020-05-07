@@ -140,17 +140,22 @@ def time():
         return current_coordinates.destination_timestamp
 
 
-def time_ns():
-    if current_coordinates is None:
-        return _time_machine.original_time_ns()
-    elif current_coordinates.tick:
-        return int(
-            current_coordinates.destination_timestamp
-            + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
-            * 1_000_000
-        )
-    else:
-        return int(current_coordinates.destination_timestamp * 1_000_000)
+if sys.version_info >= (3, 7):  # pragma: no cover
+
+    def time_ns():
+        if current_coordinates is None:
+            return _time_machine.original_time_ns()
+        elif current_coordinates.tick:
+            return int(
+                current_coordinates.destination_timestamp
+                + (
+                    _time_machine.original_time()
+                    - current_coordinates.real_start_timestamp
+                )
+                * 1_000_000
+            )
+        else:
+            return int(current_coordinates.destination_timestamp * 1_000_000)
 
 
 def localtime(secs=None):
