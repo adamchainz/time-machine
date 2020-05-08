@@ -148,6 +148,7 @@ PyDoc_STRVAR(original_clock_gettime_doc,
 Call time.clock_gettime() after patching.");
 
 /* time.clock_gettime_ns() */
+#if PY_VERSION_HEX >= 0x03070000
 
 static PyObject*
 _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
@@ -174,6 +175,8 @@ PyDoc_STRVAR(original_clock_gettime_ns_doc,
 "original_clock_gettime_ns() -> floating point number\n\
 \n\
 Call time.clock_gettime_ns() after patching.");
+
+#endif
 
 /* time.gmtime() */
 
@@ -351,10 +354,12 @@ _time_machine_patch(PyObject *self, PyObject *unused)
     time_clock_gettime->m_ml->ml_meth = _time_machine_clock_gettime;
     Py_DECREF(time_clock_gettime);
 
+#if PY_VERSION_HEX >= 0x03070000
     PyCFunctionObject *time_clock_gettime_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime_ns");
     original_clock_gettime_ns = time_clock_gettime_ns->m_ml->ml_meth;
     time_clock_gettime_ns->m_ml->ml_meth = _time_machine_clock_gettime_ns;
     Py_DECREF(time_clock_gettime_ns);
+#endif
 
     PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
     original_gmtime = time_gmtime->m_ml->ml_meth;
@@ -404,7 +409,9 @@ static PyMethodDef module_methods[] = {
 #endif
     {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
     {"original_clock_gettime", (PyCFunction)_time_machine_original_clock_gettime, METH_VARARGS, original_clock_gettime_doc},
+#if PY_VERSION_HEX >= 0x03070000
     {"original_clock_gettime_ns", (PyCFunction)_time_machine_original_clock_gettime_ns, METH_VARARGS, original_clock_gettime_ns_doc},
+#endif
     {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
     {"original_strftime", (PyCFunction)_time_machine_original_strftime, METH_VARARGS, original_strftime_doc},

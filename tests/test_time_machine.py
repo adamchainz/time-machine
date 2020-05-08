@@ -83,7 +83,7 @@ def test_date_today():
 def test_time_clock_gettime_realtime():
     with time_machine.travel(EPOCH + 180.0):
         assert EPOCH + 180.0 < time.clock_gettime(time.CLOCK_REALTIME) < 181.0
-    assert time.clock_gettime_ns(time.CLOCK_REALTIME) >= LIBRARY_EPOCH
+    assert time.clock_gettime(time.CLOCK_REALTIME) >= LIBRARY_EPOCH
 
 
 def test_time_clock_gettime_monotonic_unaffected():
