@@ -22,7 +22,7 @@ class Coordinates:
         self.tick = tick
 
 
-current_coordinates = None
+coordinates_stack = []
 
 
 class travel:
@@ -51,21 +51,21 @@ class travel:
         self.tick = tick
 
     def start(self):
-        global current_coordinates
-        if current_coordinates is not None:
-            raise RuntimeError("Cannot time travel whilst already travelling.")
+        global coordinates_stack
 
         _time_machine.patch_if_needed()
 
-        current_coordinates = Coordinates(
-            destination_timestamp=self.destination_timestamp,
-            real_start_timestamp=_time_machine.original_time(),
-            tick=self.tick,
+        coordinates_stack.append(
+            Coordinates(
+                destination_timestamp=self.destination_timestamp,
+                real_start_timestamp=_time_machine.original_time(),
+                tick=self.tick,
+            )
         )
 
     def stop(self):
-        global current_coordinates
-        current_coordinates = None
+        global coordinates_stack
+        coordinates_stack = coordinates_stack[:-1]
 
     def __enter__(self):
         self.start()
@@ -124,14 +124,14 @@ class travel:
 
 
 def now(tz=None):
-    if current_coordinates is None:
+    if not coordinates_stack:
         return _time_machine.original_now()
     else:
         return dt.datetime.fromtimestamp(time(), tz)
 
 
 def utcnow():
-    if current_coordinates is None:
+    if not coordinates_stack:
         return _time_machine.original_utcnow()
     else:
         return dt.datetime.fromtimestamp(time(), dt.timezone.utc)
@@ -141,7 +141,7 @@ def utcnow():
 
 
 def clock_gettime(clk_id):
-    if current_coordinates is None or clk_id != CLOCK_REALTIME:
+    if not coordinates_stack or clk_id != CLOCK_REALTIME:
         return _time_machine.original_clock_gettime(clk_id)
     else:
         return time()
@@ -150,16 +150,17 @@ def clock_gettime(clk_id):
 if sys.version_info >= (3, 7):
 
     def clock_gettime_ns(clk_id):
-        if current_coordinates is None or clk_id != CLOCK_REALTIME:
+        if not coordinates_stack or clk_id != CLOCK_REALTIME:
             return _time_machine.original_clock_gettime_ns(clk_id)
         else:
             return time_ns()
 
 
 def gmtime(secs=None):
-    if current_coordinates is None or secs is not None:
+    if not coordinates_stack or secs is not None:
         return _time_machine.original_gmtime(secs)
-    elif current_coordinates.tick:
+    current_coordinates = coordinates_stack[-1]
+    if current_coordinates.tick:
         return _time_machine.original_gmtime(
             current_coordinates.destination_timestamp
             + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
@@ -169,9 +170,10 @@ def gmtime(secs=None):
 
 
 def localtime(secs=None):
-    if current_coordinates is None or secs is not None:
+    if not coordinates_stack or secs is not None:
         return _time_machine.original_localtime(secs)
-    elif current_coordinates.tick:
+    current_coordinates = coordinates_stack[-1]
+    if current_coordinates.tick:
         return _time_machine.original_localtime(
             current_coordinates.destination_timestamp
             + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
@@ -185,18 +187,20 @@ def localtime(secs=None):
 def strftime(format, t=None):
     if t is not None:
         return _time_machine.original_strftime(format, t)
-    elif current_coordinates is None:
+    elif not coordinates_stack:
         return _time_machine.original_strftime(format)
-    elif current_coordinates.tick:
+    current_coordinates = coordinates_stack[-1]
+    if current_coordinates.tick:
         return _time_machine.original_strftime(format, localtime())
     else:
         return _time_machine.original_strftime(format, localtime())
 
 
 def time():
-    if current_coordinates is None:
+    if not coordinates_stack:
         return _time_machine.original_time()
-    elif current_coordinates.tick:
+    current_coordinates = coordinates_stack[-1]
+    if current_coordinates.tick:
         return current_coordinates.destination_timestamp + (
             _time_machine.original_time() - current_coordinates.real_start_timestamp
         )
@@ -207,7 +211,7 @@ def time():
 if sys.version_info >= (3, 7):
 
     def time_ns():
-        if current_coordinates is None:
+        if not coordinates_stack:
             return _time_machine.original_time_ns()
         else:
             # Imprecise.
