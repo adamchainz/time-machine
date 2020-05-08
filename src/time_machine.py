@@ -55,7 +55,7 @@ class travel:
         if current_coordinates is not None:
             raise RuntimeError("Cannot time travel whilst already travelling.")
 
-        _time_machine.patch()
+        _time_machine.patch_if_needed()
 
         current_coordinates = Coordinates(
             destination_timestamp=self.destination_timestamp,

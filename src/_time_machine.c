@@ -322,7 +322,7 @@ Call time.time_ns() after patching.");
 #endif
 
 static PyObject*
-_time_machine_patch(PyObject *self, PyObject *unused)
+_time_machine_patch_if_needed(PyObject *self, PyObject *unused)
 {
     if (original_time)
         Py_RETURN_NONE;
@@ -392,8 +392,8 @@ _time_machine_patch(PyObject *self, PyObject *unused)
 
     Py_RETURN_NONE;
 }
-PyDoc_STRVAR(patch_doc,
-"patch() -> None\n\
+PyDoc_STRVAR(patch_if_needed_doc,
+"patch_if_needed() -> None\n\
 \n\
 Swap in helpers.");
 
@@ -419,7 +419,7 @@ static PyMethodDef module_methods[] = {
 #if PY_VERSION_HEX >= 0x03070000
     {"original_time_ns", (PyCFunction)_time_machine_original_time_ns, METH_NOARGS, original_time_ns_doc},
 #endif
-    {"patch", (PyCFunction)_time_machine_patch, METH_NOARGS, patch_doc},
+    {"patch_if_needed", (PyCFunction)_time_machine_patch_if_needed, METH_NOARGS, patch_if_needed_doc},
     {NULL, NULL}  /* sentinel */
 };
 
