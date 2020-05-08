@@ -335,10 +335,6 @@ class UnitTestMethodTests(TestCase):
 
 @time_machine.travel(EPOCH + 95.0)
 class UnitTestClassTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
     def test_class_decorator(self):
         assert EPOCH + 95.0 < time.time() < EPOCH + 96.0
 
