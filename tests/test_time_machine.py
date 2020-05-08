@@ -8,6 +8,7 @@ from dateutil import tz
 
 import time_machine
 
+NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
 EPOCH = EPOCH_DATETIME.timestamp()
 EPOCH_PLUS_ONE_YEAR_DATETIME = dt.datetime(1971, 1, 1, tzinfo=dt.timezone.utc)
@@ -174,14 +175,18 @@ def test_time_time_no_tick():
 @py_3_7_plus
 def test_time_time_ns():
     with time_machine.travel(EPOCH):
-        assert int(EPOCH * 1_000_000) < time.time_ns() < 1_000_000
-    assert time.time_ns() >= int(LIBRARY_EPOCH * 1_000_000)
+        assert (
+            int(EPOCH * NANOSECONDS_PER_SECOND)
+            < time.time_ns()
+            < NANOSECONDS_PER_SECOND
+        )
+    assert time.time_ns() >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
 
 
 @py_3_7_plus
 def test_time_time_ns_no_tick():
     with time_machine.travel(EPOCH, tick=False):
-        assert time.time_ns() == int(EPOCH * 1_000_000)
+        assert time.time_ns() == int(EPOCH * NANOSECONDS_PER_SECOND)
 
 
 # other usage

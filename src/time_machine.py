@@ -10,6 +10,8 @@ from dateutil.parser import parse as parse_datetime
 
 import _time_machine
 
+NANOSECONDS_PER_SECOND = 1_000_000_000
+
 
 class Coordinates:
     def __init__(
@@ -197,7 +199,9 @@ if sys.version_info >= (3, 7):
                     _time_machine.original_time()
                     - current_coordinates.real_start_timestamp
                 )
-                * 1_000_000
+                * NANOSECONDS_PER_SECOND
             )
         else:
-            return int(current_coordinates.destination_timestamp * 1_000_000)
+            return int(
+                current_coordinates.destination_timestamp * NANOSECONDS_PER_SECOND
+            )
