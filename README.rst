@@ -73,15 +73,16 @@ All datetime functions in the standard library are mocked to pretend the current
 
 * ``datetime.datetime.now()``
 * ``datetime.datetime.utcnow()``
-* ``time.time()``
 * ``time.gmtime()``
 * ``time.localtime()``
+* ``time.clock_gettime()`` (only for ``CLOCK_REALTIME``)
 * ``time.strftime()``
-
-At least two functions are currently missing:
-
-* ``time.clock_gettime``
+* ``time.time()``
 * ``time.time_ns()``
+
+At least one function is currently missing:
+
+* ``time.clock_gettime_ns()``
 
 This mocking is done at the C layer, replacing the function pointers for these built-ins.
 Therefore, it automatically affects everywhere those functions have been imported, unlike use of ``unittest.mock.patch()``.

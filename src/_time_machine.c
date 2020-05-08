@@ -122,6 +122,34 @@ Call datetime.datetime.utcnow() after patching.");
 /* time.gmtime() */
 
 static PyObject*
+_time_machine_clock_gettime(PyObject *self, PyObject *args)
+{
+    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    PyObject *time_machine_clock_gettime = PyObject_GetAttrString(time_machine_module, "clock_gettime");
+
+    PyObject* result = PyObject_CallObject(time_machine_clock_gettime, args);
+
+    Py_DECREF(time_machine_clock_gettime);
+    Py_DECREF(time_machine_module);
+
+    return result;
+}
+
+PyCFunction original_clock_gettime = NULL;
+
+static PyObject*
+_time_machine_original_clock_gettime(PyObject *self, PyObject *args)
+{
+    return original_clock_gettime(self, args);
+}
+PyDoc_STRVAR(original_clock_gettime_doc,
+"original_clock_gettime() -> floating point number\n\
+\n\
+Call time.clock_gettime() after patching.");
+
+/* time.gmtime() */
+
+static PyObject*
 _time_machine_gmtime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
@@ -290,6 +318,11 @@ _time_machine_patch(PyObject *self, PyObject *unused)
 
     PyObject *time_module = PyImport_ImportModule("time");
 
+    PyCFunctionObject *time_clock_gettime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime");
+    original_clock_gettime = time_clock_gettime->m_ml->ml_meth;
+    time_clock_gettime->m_ml->ml_meth = _time_machine_clock_gettime;
+    Py_DECREF(time_clock_gettime);
+
     PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
     original_gmtime = time_gmtime->m_ml->ml_meth;
     time_gmtime->m_ml->ml_meth = _time_machine_gmtime;
@@ -337,6 +370,7 @@ static PyMethodDef module_methods[] = {
     {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL, original_now_doc},
 #endif
     {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
+    {"original_clock_gettime", (PyCFunction)_time_machine_original_clock_gettime, METH_VARARGS, original_clock_gettime_doc},
     {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
     {"original_strftime", (PyCFunction)_time_machine_original_strftime, METH_VARARGS, original_strftime_doc},

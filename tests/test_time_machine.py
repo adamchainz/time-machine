@@ -79,6 +79,20 @@ def test_date_today():
 # time module
 
 
+def test_time_clock_gettime_realtime():
+    with time_machine.travel(EPOCH + 180.0):
+        assert EPOCH + 180.0 < time.clock_gettime(time.CLOCK_REALTIME) < 181.0
+    assert time.time() >= LIBRARY_EPOCH
+
+
+def test_time_clock_gettime_monotonic_unaffected():
+    start = time.clock_gettime(time.CLOCK_MONOTONIC)
+    with time_machine.travel(EPOCH + 180.0):
+        frozen = time.clock_gettime(time.CLOCK_MONOTONIC)
+        assert frozen > start
+    assert time.clock_gettime(time.CLOCK_MONOTONIC) > frozen
+
+
 def test_time_gmtime_no_args():
     with time_machine.travel(EPOCH):
         local_time = time.gmtime()

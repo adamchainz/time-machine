@@ -2,6 +2,7 @@ import datetime as dt
 import functools
 import inspect
 import sys
+from time import CLOCK_REALTIME
 from types import GeneratorType
 from unittest import TestCase
 
@@ -127,6 +128,13 @@ def utcnow():
 
 
 # time module
+
+
+def clock_gettime(clk_id):
+    if current_coordinates is None or clk_id != CLOCK_REALTIME:
+        return _time_machine.original_clock_gettime(clk_id)
+    else:
+        return time()
 
 
 def gmtime(secs=None):
