@@ -1,5 +1,6 @@
 black ; python_version == '3.8.*'
 check-manifest ; python_version == '3.8.*'
+coverage
 docutils
 flake8
 flake8-bugbear
@@ -9,7 +10,6 @@ isort
 multilint
 pygments
 pytest
-pytest-cov
 pytest-randomly
 python-dateutil
 secretstorage # required for twine on linux
