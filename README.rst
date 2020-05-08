@@ -117,6 +117,17 @@ When used as a function decorator, time is mocked during the wrapped function's 
     def test_in_the_deep_past():
         assert 0.0 < time.time() < 1.0
 
+This also works for asynchronous functions (coroutines):
+
+.. code-block:: python
+
+    import time
+    import time_machine
+
+    @time_machine.travel("1970-01-01 00:00 +0000")
+    async def test_in_the_deep_past():
+        assert 0.0 < time.time() < 1.0
+
 Context Manager
 ^^^^^^^^^^^^^^^
 
