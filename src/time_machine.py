@@ -139,6 +139,15 @@ def clock_gettime(clk_id):
         return time()
 
 
+if sys.version_info >= (3, 7):
+
+    def clock_gettime_ns(clk_id):
+        if current_coordinates is None or clk_id != CLOCK_REALTIME:
+            return _time_machine.original_clock_gettime_ns(clk_id)
+        else:
+            return time_ns()
+
+
 def gmtime(secs=None):
     if current_coordinates is None or secs is not None:
         return _time_machine.original_gmtime(secs)
@@ -192,16 +201,6 @@ if sys.version_info >= (3, 7):
     def time_ns():
         if current_coordinates is None:
             return _time_machine.original_time_ns()
-        elif current_coordinates.tick:
-            return int(
-                current_coordinates.destination_timestamp
-                + (
-                    _time_machine.original_time()
-                    - current_coordinates.real_start_timestamp
-                )
-                * NANOSECONDS_PER_SECOND
-            )
         else:
-            return int(
-                current_coordinates.destination_timestamp * NANOSECONDS_PER_SECOND
-            )
+            # Imprecise.
+            return int(time() * NANOSECONDS_PER_SECOND)
