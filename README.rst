@@ -5,6 +5,9 @@ time-machine
 .. image:: https://github.com/adamchainz/time-machine/workflows/CI/badge.svg?branch=master
    :target: https://github.com/adamchainz/time-machine/actions?workflow=CI
 
+.. image:: https://coveralls.io/repos/adamchainz/time-machine/badge.svg
+  :target: https://coveralls.io/r/adamchainz/time-machine
+
 .. image:: https://img.shields.io/pypi/v/time-machine.svg
    :target: https://pypi.python.org/pypi/time-machine
 
