@@ -1,3 +1,4 @@
+import asyncio
 import datetime as dt
 import sys
 import time
@@ -290,6 +291,24 @@ def test_traveller_object():
 @time_machine.travel(EPOCH + 15.0)
 def test_function_decorator():
     assert EPOCH + 15.0 < time.time() < EPOCH + 16.0
+
+
+def test_coroutine_decorator():
+    recorded_time = None
+
+    @time_machine.travel(EPOCH + 140.0)
+    async def record_time():
+        nonlocal recorded_time
+        recorded_time = time.time()
+
+    if sys.version_info < (3, 7):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(record_time())
+        loop.close()
+    else:
+        asyncio.run(record_time())
+
+    assert EPOCH + 140.0 < recorded_time < EPOCH + 141.0
 
 
 def test_class_decorator_fails_non_testcase():

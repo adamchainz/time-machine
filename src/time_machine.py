@@ -102,6 +102,14 @@ class travel:
 
             wrapped.tearDownClass = classmethod(tearDownClass)
             return wrapped
+        elif inspect.iscoroutinefunction(wrapped):
+
+            @functools.wraps(wrapped)
+            async def wrapper(*args, **kwargs):
+                with self:
+                    return await wrapped(*args, **kwargs)
+
+            return wrapper
         else:
 
             @functools.wraps(wrapped)
