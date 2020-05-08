@@ -103,6 +103,9 @@ For example:
     # We've gone back to the future!
     assert dt.date.today() > dt.date(2020, 4, 29)
 
+``travel()`` instances are nestable, but you'll need to be careful when manually managing to call their ``stop()`` methods in the correct order, even when exceptions occur.
+It's recommended to use the decorator or context manager forms instead, to take advantage of Python features to do this.
+
 Function Decorator
 ^^^^^^^^^^^^^^^^^^
 

@@ -215,13 +215,11 @@ def test_time_time_ns_no_tick():
 # other usage
 
 
-def test_not_nestable():
-    with time_machine.travel(0.0):
-        with pytest.raises(RuntimeError) as excinfo:
-            with time_machine.travel(1.0):
-                pass
-
-    assert excinfo.value.args == ("Cannot time travel whilst already travelling.",)
+def test_nestable():
+    with time_machine.travel(EPOCH + 55.0):
+        assert EPOCH + 55.0 < time.time() < EPOCH + 56.0
+        with time_machine.travel(EPOCH + 50.0):
+            assert EPOCH + 50.0 < time.time() < EPOCH + 51.0
 
 
 def test_unsupported_type():
@@ -337,6 +335,10 @@ class UnitTestMethodTests(TestCase):
 class UnitTestClassTests(TestCase):
     def test_class_decorator(self):
         assert EPOCH + 95.0 < time.time() < EPOCH + 96.0
+
+    @time_machine.travel(EPOCH + 25.0)
+    def test_stacked_method_decorator(self):
+        assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
 
 
 @time_machine.travel(EPOCH + 95.0)
