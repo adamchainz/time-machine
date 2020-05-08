@@ -140,7 +140,7 @@ def time():
         return current_coordinates.destination_timestamp
 
 
-if sys.version_info >= (3, 7):  # pragma: no cover
+if sys.version_info >= (3, 7):
 
     def time_ns():
         if current_coordinates is None:
