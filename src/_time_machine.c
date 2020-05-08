@@ -119,6 +119,90 @@ PyDoc_STRVAR(original_utcnow_doc,
 \n\
 Call datetime.datetime.utcnow() after patching.");
 
+/* time.gmtime() */
+
+static PyObject*
+_time_machine_gmtime(PyObject *self, PyObject *args)
+{
+    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    PyObject *time_machine_gmtime = PyObject_GetAttrString(time_machine_module, "gmtime");
+
+    PyObject* result = PyObject_CallObject(time_machine_gmtime, args);
+
+    Py_DECREF(time_machine_gmtime);
+    Py_DECREF(time_machine_module);
+
+    return result;
+}
+
+PyCFunction original_gmtime = NULL;
+
+static PyObject*
+_time_machine_original_gmtime(PyObject *self, PyObject *args)
+{
+    return original_gmtime(self, args);
+}
+PyDoc_STRVAR(original_gmtime_doc,
+"original_gmtime() -> floating point number\n\
+\n\
+Call time.gmtime() after patching.");
+
+/* time.localtime() */
+
+static PyObject*
+_time_machine_localtime(PyObject *self, PyObject *args)
+{
+    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    PyObject *time_machine_localtime = PyObject_GetAttrString(time_machine_module, "localtime");
+
+    PyObject* result = PyObject_CallObject(time_machine_localtime, args);
+
+    Py_DECREF(time_machine_localtime);
+    Py_DECREF(time_machine_module);
+
+    return result;
+}
+
+PyCFunction original_localtime = NULL;
+
+static PyObject*
+_time_machine_original_localtime(PyObject *self, PyObject *args)
+{
+    return original_localtime(self, args);
+}
+PyDoc_STRVAR(original_localtime_doc,
+"original_localtime() -> floating point number\n\
+\n\
+Call time.localtime() after patching.");
+
+/* time.strftime() */
+
+static PyObject*
+_time_machine_strftime(PyObject *self, PyObject *args)
+{
+    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    PyObject *time_machine_strftime = PyObject_GetAttrString(time_machine_module, "strftime");
+
+    PyObject* result = PyObject_CallObject(time_machine_strftime, args);
+
+    Py_DECREF(time_machine_strftime);
+    Py_DECREF(time_machine_module);
+
+    return result;
+}
+
+PyCFunction original_strftime = NULL;
+
+static PyObject*
+_time_machine_original_strftime(PyObject *self, PyObject *args)
+{
+    return original_strftime(self, args);
+}
+PyDoc_STRVAR(original_strftime_doc,
+"original_strftime() -> floating point number\n\
+\n\
+Call time.strftime() after patching.");
+
 /* time.time() */
 
 static PyObject*
@@ -178,91 +262,6 @@ Call time.time_ns() after patching.");
 
 #endif
 
-/* time.localtime() */
-
-static PyObject*
-_time_machine_localtime(PyObject *self, PyObject *args)
-{
-    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
-    PyObject *time_machine_localtime = PyObject_GetAttrString(time_machine_module, "localtime");
-
-    PyObject* result = PyObject_CallObject(time_machine_localtime, args);
-
-    Py_DECREF(time_machine_localtime);
-    Py_DECREF(time_machine_module);
-
-    return result;
-}
-
-PyCFunction original_localtime = NULL;
-
-static PyObject*
-_time_machine_original_localtime(PyObject *self, PyObject *args)
-{
-    return original_localtime(self, args);
-}
-PyDoc_STRVAR(original_localtime_doc,
-"original_localtime() -> floating point number\n\
-\n\
-Call time.localtime() after patching.");
-
-/* time.gmtime() */
-
-static PyObject*
-_time_machine_gmtime(PyObject *self, PyObject *args)
-{
-    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
-    PyObject *time_machine_gmtime = PyObject_GetAttrString(time_machine_module, "gmtime");
-
-    PyObject* result = PyObject_CallObject(time_machine_gmtime, args);
-
-    Py_DECREF(time_machine_gmtime);
-    Py_DECREF(time_machine_module);
-
-    return result;
-}
-
-PyCFunction original_gmtime = NULL;
-
-static PyObject*
-_time_machine_original_gmtime(PyObject *self, PyObject *args)
-{
-    return original_gmtime(self, args);
-}
-PyDoc_STRVAR(original_gmtime_doc,
-"original_gmtime() -> floating point number\n\
-\n\
-Call time.gmtime() after patching.");
-
-/* time.strftime() */
-
-static PyObject*
-_time_machine_strftime(PyObject *self, PyObject *args)
-{
-    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
-    PyObject *time_machine_strftime = PyObject_GetAttrString(time_machine_module, "strftime");
-
-    PyObject* result = PyObject_CallObject(time_machine_strftime, args);
-
-    Py_DECREF(time_machine_strftime);
-    Py_DECREF(time_machine_module);
-
-    return result;
-}
-
-PyCFunction original_strftime = NULL;
-
-static PyObject*
-_time_machine_original_strftime(PyObject *self, PyObject *args)
-{
-    return original_strftime(self, args);
-}
-PyDoc_STRVAR(original_strftime_doc,
-"original_strftime() -> floating point number\n\
-\n\
-Call time.strftime() after patching.");
-
-
 static PyObject*
 _time_machine_patch(PyObject *self, PyObject *unused)
 {
@@ -291,6 +290,21 @@ _time_machine_patch(PyObject *self, PyObject *unused)
 
     PyObject *time_module = PyImport_ImportModule("time");
 
+    PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
+    original_gmtime = time_gmtime->m_ml->ml_meth;
+    time_gmtime->m_ml->ml_meth = _time_machine_gmtime;
+    Py_DECREF(time_gmtime);
+
+    PyCFunctionObject *time_localtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "localtime");
+    original_localtime = time_localtime->m_ml->ml_meth;
+    time_localtime->m_ml->ml_meth = _time_machine_localtime;
+    Py_DECREF(time_localtime);
+
+    PyCFunctionObject *time_strftime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "strftime");
+    original_strftime = time_strftime->m_ml->ml_meth;
+    time_strftime->m_ml->ml_meth = _time_machine_strftime;
+    Py_DECREF(time_strftime);
+
     PyCFunctionObject *time_time = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "time");
     original_time = time_time->m_ml->ml_meth;
     time_time->m_ml->ml_meth = _time_machine_time;
@@ -302,21 +316,6 @@ _time_machine_patch(PyObject *self, PyObject *unused)
     time_time_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_time_ns);
 #endif
-
-    PyCFunctionObject *time_localtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "localtime");
-    original_localtime = time_localtime->m_ml->ml_meth;
-    time_localtime->m_ml->ml_meth = _time_machine_localtime;
-    Py_DECREF(time_localtime);
-
-    PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
-    original_gmtime = time_gmtime->m_ml->ml_meth;
-    time_gmtime->m_ml->ml_meth = _time_machine_gmtime;
-    Py_DECREF(time_gmtime);
-
-    PyCFunctionObject *time_strftime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "strftime");
-    original_strftime = time_strftime->m_ml->ml_meth;
-    time_strftime->m_ml->ml_meth = _time_machine_strftime;
-    Py_DECREF(time_strftime);
 
     Py_DECREF(time_module);
 
@@ -338,13 +337,13 @@ static PyMethodDef module_methods[] = {
     {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL, original_now_doc},
 #endif
     {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
+    {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
+    {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
+    {"original_strftime", (PyCFunction)_time_machine_original_strftime, METH_VARARGS, original_strftime_doc},
     {"original_time", (PyCFunction)_time_machine_original_time, METH_NOARGS, original_time_doc},
 #if PY_VERSION_HEX >= 0x03070000
     {"original_time_ns", (PyCFunction)_time_machine_original_time_ns, METH_NOARGS, original_time_ns_doc},
 #endif
-    {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
-    {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
-    {"original_strftime", (PyCFunction)_time_machine_original_strftime, METH_VARARGS, original_strftime_doc},
     {"patch", (PyCFunction)_time_machine_patch, METH_NOARGS, patch_doc},
     {NULL, NULL}  /* sentinel */
 };

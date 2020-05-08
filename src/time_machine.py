@@ -129,6 +129,43 @@ def utcnow():
 # time module
 
 
+def gmtime(secs=None):
+    if current_coordinates is None or secs is not None:
+        return _time_machine.original_gmtime(secs)
+    elif current_coordinates.tick:
+        return _time_machine.original_gmtime(
+            current_coordinates.destination_timestamp
+            + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
+        )
+    else:
+        return _time_machine.original_gmtime(current_coordinates.destination_timestamp)
+
+
+def localtime(secs=None):
+    if current_coordinates is None or secs is not None:
+        return _time_machine.original_localtime(secs)
+    elif current_coordinates.tick:
+        return _time_machine.original_localtime(
+            current_coordinates.destination_timestamp
+            + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
+        )
+    else:
+        return _time_machine.original_localtime(
+            current_coordinates.destination_timestamp
+        )
+
+
+def strftime(format, t=None):
+    if t is not None:
+        return _time_machine.original_strftime(format, t)
+    elif current_coordinates is None:
+        return _time_machine.original_strftime(format)
+    elif current_coordinates.tick:
+        return _time_machine.original_strftime(format, localtime())
+    else:
+        return _time_machine.original_strftime(format, localtime())
+
+
 def time():
     if current_coordinates is None:
         return _time_machine.original_time()
@@ -156,40 +193,3 @@ if sys.version_info >= (3, 7):
             )
         else:
             return int(current_coordinates.destination_timestamp * 1_000_000)
-
-
-def localtime(secs=None):
-    if current_coordinates is None or secs is not None:
-        return _time_machine.original_localtime(secs)
-    elif current_coordinates.tick:
-        return _time_machine.original_localtime(
-            current_coordinates.destination_timestamp
-            + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
-        )
-    else:
-        return _time_machine.original_localtime(
-            current_coordinates.destination_timestamp
-        )
-
-
-def gmtime(secs=None):
-    if current_coordinates is None or secs is not None:
-        return _time_machine.original_gmtime(secs)
-    elif current_coordinates.tick:
-        return _time_machine.original_gmtime(
-            current_coordinates.destination_timestamp
-            + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
-        )
-    else:
-        return _time_machine.original_gmtime(current_coordinates.destination_timestamp)
-
-
-def strftime(format, t=None):
-    if t is not None:
-        return _time_machine.original_strftime(format, t)
-    elif current_coordinates is None:
-        return _time_machine.original_strftime(format)
-    elif current_coordinates.tick:
-        return _time_machine.original_strftime(format, localtime())
-    else:
-        return _time_machine.original_strftime(format, localtime())
