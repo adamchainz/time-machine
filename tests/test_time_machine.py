@@ -2,6 +2,7 @@ import asyncio
 import datetime as dt
 import sys
 import time
+import uuid
 from unittest import SkipTest, TestCase
 
 import pytest
@@ -362,3 +363,22 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
 
     def test_thats_always_skipped(self):
         pass
+
+
+# uuid tests
+
+
+def time_from_uuid1(value):
+    return dt.datetime(1582, 10, 15) + dt.timedelta(microseconds=value.time // 10)
+
+
+def test_uuid1():
+    """
+    Test that the uuid.uuid1() methods generate values for the destination.
+    They are a known location in the stdlib that can make system calls to find
+    the current datetime.
+    """
+    destination = dt.datetime(2017, 2, 6, 14, 8, 21)
+
+    with time_machine.travel(destination, tick=False):
+        assert time_from_uuid1(uuid.uuid1()) == destination
