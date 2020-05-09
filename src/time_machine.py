@@ -2,9 +2,10 @@ import datetime as dt
 import functools
 import inspect
 import sys
+import uuid
 from time import CLOCK_REALTIME
 from types import GeneratorType
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from dateutil.parser import parse as parse_datetime
 
@@ -23,6 +24,25 @@ class Coordinates:
 
 
 coordinates_stack = []
+
+# During time travel, patch the uuid module's time-based generation function to
+# None, which makes it use time.time(). Otherwise it makes a system call to
+# find the current datetime. The time it finds is stored in generated UUID1
+# values.
+if sys.version_info >= (3, 7):
+    uuid_generate_time_attr = "_generate_time_safe"
+else:
+    uuid_generate_time_attr = "_uuid_generate_time"
+uuid_generate_time_patcher = mock.patch.object(uuid, uuid_generate_time_attr, new=None)
+uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
+# We need to cause the functions to be loaded before we try patch them out,
+# which is done by this internal function in Python 3.7+
+if sys.version_info >= (3, 7):
+    uuid_idempotent_load_system_functions = uuid._load_system_functions
+else:
+
+    def uuid_idempotent_load_system_functions():
+        pass
 
 
 class travel:
@@ -55,6 +75,11 @@ class travel:
 
         _time_machine.patch_if_needed()
 
+        if not coordinates_stack:
+            uuid_idempotent_load_system_functions()
+            uuid_generate_time_patcher.start()
+            uuid_uuid_create_patcher.start()
+
         coordinates_stack.append(
             Coordinates(
                 destination_timestamp=self.destination_timestamp,
@@ -66,6 +91,10 @@ class travel:
     def stop(self):
         global coordinates_stack
         coordinates_stack = coordinates_stack[:-1]
+
+        if not coordinates_stack:
+            uuid_generate_time_patcher.stop()
+            uuid_uuid_create_patcher.stop()
 
     def __enter__(self):
         self.start()
