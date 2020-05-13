@@ -41,8 +41,8 @@ Python 3.6 to 3.8 supported (CPython only).
 Usage
 =====
 
-``travel(destination, *, tick=True)``
--------------------------------------
+``travel(destination, *, tick=True, tz_offset=None)``
+-----------------------------------------------------
 
 ``travel()`` is a class that allows time travel, to the datetime specified by ``destination``.
 It does so by mocking all functions from Python's standard library that return the current date or datetime.
@@ -67,6 +67,10 @@ Additionally, you can provide some more complex types:
 If ``True``, the default, successive calls to mocked functions return values increasing by the elapsed real time *since the first call.*
 So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
 The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
+
+``tz_offset`` allows you to offset the given destination.
+It may be a ``timedelta`` or a number of seconds, which will be added to destination.
+It may be negative.
 
 Mocked Functions
 ^^^^^^^^^^^^^^^^

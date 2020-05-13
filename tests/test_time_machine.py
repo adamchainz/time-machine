@@ -214,7 +214,7 @@ def test_time_time_ns_no_tick():
         assert time.time_ns() == int(EPOCH * NANOSECONDS_PER_SECOND)
 
 
-# other usage
+# all supported forms
 
 
 def test_nestable():
@@ -366,6 +366,27 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
 
     def test_thats_always_skipped(self):
         pass
+
+
+# tz_offset tests
+
+
+def test_tz_offset_float():
+    with time_machine.travel(EPOCH, tz_offset=3600.0):
+        assert time.time() == EPOCH + 3600.0
+
+
+def test_tz_offset_timedelta():
+    with time_machine.travel(EPOCH, tz_offset=dt.timedelta(hours=5.5)):
+        assert time.time() == EPOCH + (5.5 * 3600.0)
+
+
+def test_tz_offset_unsupported_type():
+    with pytest.raises(TypeError) as excinfo:
+        with time_machine.travel(EPOCH, tz_offset="something"):
+            pass
+
+    assert excinfo.value.args == ("Unsupported tz_offset 'something'",)
 
 
 # uuid tests
