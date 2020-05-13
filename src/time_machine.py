@@ -57,7 +57,7 @@ else:
 
 
 class travel:
-    def __init__(self, destination, *, tick=True):
+    def __init__(self, destination, *, tick=True, tz_offset=None):
         if callable(destination):
             destination = destination()
         elif isinstance(destination, GeneratorType):
@@ -77,6 +77,15 @@ class travel:
             destination_timestamp = parse_datetime(destination).timestamp()
         else:
             raise TypeError(f"Unsupported destination {destination!r}")
+
+        if tz_offset is not None:
+            if isinstance(tz_offset, dt.timedelta):
+                tz_offset = tz_offset.total_seconds()
+
+            if not isinstance(tz_offset, (float, int)):
+                raise TypeError(f"Unsupported tz_offset {tz_offset!r}")
+
+            destination_timestamp += tz_offset
 
         self.destination_timestamp = destination_timestamp
         self.tick = tick
