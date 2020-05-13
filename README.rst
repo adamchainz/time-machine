@@ -64,12 +64,14 @@ Additionally, you can provide some more complex types:
 * A callable, in which case it will be called with no parameters, with the result treated as above.
 
 ``tick`` defines whether time continues to "tick" after travelling, or is frozen.
-If ``True``, the default, successive calls to the mocked functions increase by the elapsed time.
+If ``True``, the default, successive calls to mocked functions return values increasing by the elapsed real time *since the first call.*
+So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
+The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
 
 Mocked Functions
 ^^^^^^^^^^^^^^^^
 
-All datetime functions in the standard library are mocked to pretend the current datetime is the destination:
+All datetime functions in the standard library are mocked to move to the destination current datetime:
 
 * ``datetime.datetime.now()``
 * ``datetime.datetime.utcnow()``
