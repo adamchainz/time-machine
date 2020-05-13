@@ -15,12 +15,23 @@ NANOSECONDS_PER_SECOND = 1_000_000_000
 
 
 class Coordinates:
-    def __init__(
-        self, destination_timestamp: float, real_start_timestamp: float, tick: bool
-    ):
+    def __init__(self, destination_timestamp: float, tick: bool):
         self.destination_timestamp = destination_timestamp
-        self.real_start_timestamp = real_start_timestamp
         self.tick = tick
+        self.requested = False
+
+    def time(self):
+        if not self.tick:
+            return self.destination_timestamp
+
+        if not self.requested:
+            self.requested = True
+            self.real_start_timestamp = _time_machine.original_time()
+            return self.destination_timestamp
+
+        return self.destination_timestamp + (
+            _time_machine.original_time() - self.real_start_timestamp
+        )
 
 
 coordinates_stack = []
@@ -82,9 +93,7 @@ class travel:
 
         coordinates_stack.append(
             Coordinates(
-                destination_timestamp=self.destination_timestamp,
-                real_start_timestamp=_time_machine.original_time(),
-                tick=self.tick,
+                destination_timestamp=self.destination_timestamp, tick=self.tick,
             )
         )
 
@@ -172,8 +181,7 @@ def utcnow():
 def clock_gettime(clk_id):
     if not coordinates_stack or clk_id != CLOCK_REALTIME:
         return _time_machine.original_clock_gettime(clk_id)
-    else:
-        return time()
+    return time()
 
 
 if sys.version_info >= (3, 7):
@@ -181,36 +189,19 @@ if sys.version_info >= (3, 7):
     def clock_gettime_ns(clk_id):
         if not coordinates_stack or clk_id != CLOCK_REALTIME:
             return _time_machine.original_clock_gettime_ns(clk_id)
-        else:
-            return time_ns()
+        return time_ns()
 
 
 def gmtime(secs=None):
     if not coordinates_stack or secs is not None:
         return _time_machine.original_gmtime(secs)
-    current_coordinates = coordinates_stack[-1]
-    if current_coordinates.tick:
-        return _time_machine.original_gmtime(
-            current_coordinates.destination_timestamp
-            + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
-        )
-    else:
-        return _time_machine.original_gmtime(current_coordinates.destination_timestamp)
+    return _time_machine.original_gmtime(coordinates_stack[-1].time())
 
 
 def localtime(secs=None):
     if not coordinates_stack or secs is not None:
         return _time_machine.original_localtime(secs)
-    current_coordinates = coordinates_stack[-1]
-    if current_coordinates.tick:
-        return _time_machine.original_localtime(
-            current_coordinates.destination_timestamp
-            + (_time_machine.original_time() - current_coordinates.real_start_timestamp)
-        )
-    else:
-        return _time_machine.original_localtime(
-            current_coordinates.destination_timestamp
-        )
+    return _time_machine.original_localtime(coordinates_stack[-1].time())
 
 
 def strftime(format, t=None):
@@ -218,23 +209,13 @@ def strftime(format, t=None):
         return _time_machine.original_strftime(format, t)
     elif not coordinates_stack:
         return _time_machine.original_strftime(format)
-    current_coordinates = coordinates_stack[-1]
-    if current_coordinates.tick:
-        return _time_machine.original_strftime(format, localtime())
-    else:
-        return _time_machine.original_strftime(format, localtime())
+    return _time_machine.original_strftime(format, localtime())
 
 
 def time():
     if not coordinates_stack:
         return _time_machine.original_time()
-    current_coordinates = coordinates_stack[-1]
-    if current_coordinates.tick:
-        return current_coordinates.destination_timestamp + (
-            _time_machine.original_time() - current_coordinates.real_start_timestamp
-        )
-    else:
-        return current_coordinates.destination_timestamp
+    return coordinates_stack[-1].time()
 
 
 if sys.version_info >= (3, 7):
@@ -243,5 +224,4 @@ if sys.version_info >= (3, 7):
         if not coordinates_stack:
             return _time_machine.original_time_ns()
         else:
-            # Imprecise.
-            return int(time() * NANOSECONDS_PER_SECOND)
+            return int(coordinates_stack[-1].time() * NANOSECONDS_PER_SECOND)

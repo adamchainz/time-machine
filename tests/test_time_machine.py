@@ -32,7 +32,7 @@ def test_datetime_now_no_args():
         assert now.day == 1
         # Not asserting on hour/minute because local timezone could shift it
         assert now.second == 0
-        assert now.microsecond > 0
+        assert now.microsecond == 0
     assert dt.datetime.now() >= LIBRARY_EPOCH_DATETIME
 
 
@@ -60,7 +60,7 @@ def test_datetime_utcnow():
         assert now.hour == 0
         assert now.minute == 0
         assert now.second == 0
-        assert now.microsecond > 0
+        assert now.microsecond == 0
     assert dt.datetime.utcnow() >= LIBRARY_EPOCH_DATETIME
 
 
@@ -84,7 +84,7 @@ def test_date_today():
 
 def test_time_clock_gettime_realtime():
     with time_machine.travel(EPOCH + 180.0):
-        assert EPOCH + 180.0 < time.clock_gettime(time.CLOCK_REALTIME) < 181.0
+        assert time.clock_gettime(time.CLOCK_REALTIME) == EPOCH + 180.0
     assert time.clock_gettime(time.CLOCK_REALTIME) >= LIBRARY_EPOCH
 
 
@@ -99,11 +99,10 @@ def test_time_clock_gettime_monotonic_unaffected():
 @py_3_7_plus
 def test_time_clock_gettime_ns_realtime():
     with time_machine.travel(EPOCH + 190.0):
-        assert (
-            int((EPOCH + 190.0) * NANOSECONDS_PER_SECOND)
-            < time.clock_gettime_ns(time.CLOCK_REALTIME)
-            < int((EPOCH + 191.0) * NANOSECONDS_PER_SECOND)
-        )
+        first = time.clock_gettime_ns(time.CLOCK_REALTIME)
+        assert first == int((EPOCH + 190.0) * NANOSECONDS_PER_SECOND)
+        second = time.clock_gettime_ns(time.CLOCK_REALTIME)
+        assert first < second < int((EPOCH + 191.0) * NANOSECONDS_PER_SECOND)
     assert time.clock_gettime_ns(time.CLOCK_REALTIME) >= int(
         LIBRARY_EPOCH * NANOSECONDS_PER_SECOND
     )
@@ -187,7 +186,10 @@ def test_time_strftime_arg():
 
 def test_time_time():
     with time_machine.travel(EPOCH):
-        assert EPOCH < time.time() < EPOCH + 1.0
+        first = time.time()
+        assert first == EPOCH
+        second = time.time()
+        assert first < second < EPOCH + 1.0
     assert time.time() >= LIBRARY_EPOCH
 
 
@@ -199,11 +201,10 @@ def test_time_time_no_tick():
 @py_3_7_plus
 def test_time_time_ns():
     with time_machine.travel(EPOCH + 150.0):
-        assert (
-            int((EPOCH + 150.0) * NANOSECONDS_PER_SECOND)
-            < time.time_ns()
-            < int((EPOCH + 151.0) * NANOSECONDS_PER_SECOND)
-        )
+        first = time.time_ns()
+        assert first == int((EPOCH + 150.0) * NANOSECONDS_PER_SECOND)
+        second = time.time_ns()
+        assert first < second < int((EPOCH + 151.0) * NANOSECONDS_PER_SECOND)
     assert time.time_ns() >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
 
 
@@ -218,9 +219,9 @@ def test_time_time_ns_no_tick():
 
 def test_nestable():
     with time_machine.travel(EPOCH + 55.0):
-        assert EPOCH + 55.0 < time.time() < EPOCH + 56.0
+        assert time.time() == EPOCH + 55.0
         with time_machine.travel(EPOCH + 50.0):
-            assert EPOCH + 50.0 < time.time() < EPOCH + 51.0
+            assert time.time() == EPOCH + 50.0
 
 
 def test_unsupported_type():
@@ -240,56 +241,58 @@ def test_exceptions_dont_break_it():
 
 @time_machine.travel(EPOCH_DATETIME + dt.timedelta(seconds=70))
 def test_destination_datetime():
-    assert EPOCH + 70.0 < time.time() < EPOCH + 71.0
+    assert time.time() == EPOCH + 70.0
 
 
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=tz.gettz("America/Chicago")))
 def test_destination_datetime_timezone():
-    assert EPOCH + 21600.0 < time.time() < EPOCH + 21601.0
+    assert time.time() == EPOCH + 21600.0
 
 
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
 def test_destination_datetime_naive():
-    assert EPOCH + 120.0 < time.time() < EPOCH + 121.0
+    assert time.time() == EPOCH + 120.0
 
 
 @time_machine.travel(EPOCH_DATETIME.date())
 def test_destination_date():
-    assert EPOCH + 0.0 < time.time() < EPOCH + 1.0
+    assert time.time() == EPOCH
 
 
 @time_machine.travel("1970-01-01 00:01 +0000")
 def test_destination_string():
-    assert EPOCH + 60.0 < time.time() < EPOCH + 61.0
+    assert time.time() == EPOCH + 60.0
 
 
 @time_machine.travel(lambda: EPOCH + 140.0)
 def test_destination_callable_lambda_float():
-    assert EPOCH + 140.0 < time.time() < EPOCH + 141.0
+    assert time.time() == EPOCH + 140.0
 
 
 @time_machine.travel(lambda: "1970-01-01 00:02 +0000")
 def test_destination_callable_lambda_string():
-    assert EPOCH + 120.0 < time.time() < EPOCH + 121.0
+    assert time.time() == EPOCH + 120.0
 
 
 @time_machine.travel((EPOCH + 13.0 for _ in range(1)))
 def test_destination_generator():
-    assert EPOCH + 13.0 < time.time() < EPOCH + 14.0
+    assert time.time() == EPOCH + 13.0
 
 
 def test_traveller_object():
     traveller = time_machine.travel(EPOCH + 10.0)
     assert time.time() >= LIBRARY_EPOCH
-    traveller.start()
-    assert EPOCH + 10.0 < time.time() < EPOCH + 11.0
-    traveller.stop()
+    try:
+        traveller.start()
+        assert time.time() == EPOCH + 10.0
+    finally:
+        traveller.stop()
     assert time.time() >= LIBRARY_EPOCH
 
 
 @time_machine.travel(EPOCH + 15.0)
 def test_function_decorator():
-    assert EPOCH + 15.0 < time.time() < EPOCH + 16.0
+    assert time.time() == EPOCH + 15.0
 
 
 def test_coroutine_decorator():
@@ -307,7 +310,7 @@ def test_coroutine_decorator():
     else:
         asyncio.run(record_time())
 
-    assert EPOCH + 140.0 < recorded_time < EPOCH + 141.0
+    assert recorded_time == EPOCH + 140.0
 
 
 def test_class_decorator_fails_non_testcase():
@@ -323,13 +326,13 @@ def test_class_decorator_fails_non_testcase():
 class MethodDecoratorTests:
     @time_machine.travel(EPOCH + 95.0)
     def test_method_decorator(self):
-        assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
+        assert time.time() == EPOCH + 25.0
 
 
 class UnitTestMethodTests(TestCase):
     @time_machine.travel(EPOCH + 25.0)
     def test_method_decorator(self):
-        assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
+        assert time.time() == EPOCH + 25.0
 
 
 @time_machine.travel(EPOCH + 95.0)
@@ -339,7 +342,7 @@ class UnitTestClassTests(TestCase):
 
     @time_machine.travel(EPOCH + 25.0)
     def test_stacked_method_decorator(self):
-        assert EPOCH + 25.0 < time.time() < EPOCH + 26.0
+        assert time.time() == EPOCH + 25.0
 
 
 @time_machine.travel(EPOCH + 95.0)
