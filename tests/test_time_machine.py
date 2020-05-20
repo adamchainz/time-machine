@@ -368,6 +368,43 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
         pass
 
 
+# auto_tick_seconds tests
+
+
+def test_auto_tick_seconds_float():
+    with time_machine.travel(EPOCH, auto_tick_seconds=12.0):
+        assert time.time() == EPOCH
+        assert time.time() == EPOCH + 12.0
+        assert time.time() == EPOCH + 24.0
+        assert time.time() == EPOCH + 36.0
+
+
+def test_auto_tick_seconds_int():
+    with time_machine.travel(EPOCH, auto_tick_seconds=7):
+        assert time.time() == EPOCH
+        assert time.time() == EPOCH + 7.0
+        assert time.time() == EPOCH + 14.0
+        assert time.time() == EPOCH + 21.0
+
+
+def test_auto_tick_seconds_unsupported_type():
+    with pytest.raises(TypeError) as excinfo:
+        with time_machine.travel(EPOCH, auto_tick_seconds="something"):
+            pass
+
+    assert excinfo.value.args == ("Unsupported auto_tick_seconds 'something'",)
+
+
+def test_auto_tick_seconds_requires_tick():
+    with pytest.raises(ValueError) as excinfo:
+        with time_machine.travel(EPOCH, tick=False, auto_tick_seconds=5):
+            pass
+
+    assert excinfo.value.args == (
+        "auto_tick_seconds may not be specified when tick is False",
+    )
+
+
 # tz_offset tests
 
 

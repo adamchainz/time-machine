@@ -41,8 +41,8 @@ Python 3.6 to 3.8 supported (CPython only).
 Usage
 =====
 
-``travel(destination, *, tick=True, tz_offset=None)``
------------------------------------------------------
+``travel(destination, *, tick=True, auto_tick_seconds=None, tz_offset=None)``
+-----------------------------------------------------------------------------
 
 ``travel()`` is a class that allows time travel, to the datetime specified by ``destination``.
 It does so by mocking all functions from Python's standard library that return the current date or datetime.
@@ -57,6 +57,7 @@ It may be:
   This will be converted to a UTC datetime with the time 00:00:00.
 * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
 * A string, which will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
+  This allows you to use various "human formats" for strings, such as ``"November 5, 1955"``.
 
 Additionally, you can provide some more complex types:
 
@@ -64,9 +65,14 @@ Additionally, you can provide some more complex types:
 * A callable, in which case it will be called with no parameters, with the result treated as above.
 
 ``tick`` defines whether time continues to "tick" after travelling, or is frozen.
-If ``True``, the default, successive calls to mocked functions return values increasing by the elapsed real time *since the first call.*
+If ``True``, the default, successive calls to mocked functions return values increasing by the elapsed real time *since the first call* (or the value passed in ``auto_tick_seconds``).
 So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
 The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
+
+``auto_tick_seconds`` specifies how much time progresses between successive calls to mocked functions when ``tick=True``.
+The default ``None``, means successive calls increase by elapsed time.
+It may be set to a number, in which case successive calls instead increase by that amount of time.
+It's an error to pass ``auto_tick_seconds`` if ``tick`` is not ``True``.
 
 ``tz_offset`` allows you to offset the given destination.
 It may be a ``timedelta`` or a number of seconds, which will be added to destination.

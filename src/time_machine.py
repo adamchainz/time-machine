@@ -15,19 +15,28 @@ NANOSECONDS_PER_SECOND = 1_000_000_000
 
 
 class Coordinates:
-    def __init__(self, destination_timestamp: float, tick: bool):
+    def __init__(
+        self, destination_timestamp: float, tick: bool, auto_tick_seconds: float
+    ):
         self.destination_timestamp = destination_timestamp
         self.tick = tick
-        self.requested = False
+        self.auto_tick_seconds = auto_tick_seconds
+        self.requests = 0
 
     def time(self):
         if not self.tick:
             return self.destination_timestamp
 
-        if not self.requested:
-            self.requested = True
+        self.requests += 1
+        if self.requests == 1:
             self.real_start_timestamp = _time_machine.original_time()
             return self.destination_timestamp
+
+        if self.auto_tick_seconds is not None:
+            return (
+                self.destination_timestamp
+                + (self.requests - 1) * self.auto_tick_seconds
+            )
 
         return self.destination_timestamp + (
             _time_machine.original_time() - self.real_start_timestamp
@@ -57,7 +66,9 @@ else:
 
 
 class travel:
-    def __init__(self, destination, *, tick=True, tz_offset=None):
+    def __init__(
+        self, destination, *, tick=True, auto_tick_seconds=None, tz_offset=None
+    ):
         if callable(destination):
             destination = destination()
         elif isinstance(destination, GeneratorType):
@@ -87,8 +98,17 @@ class travel:
 
             destination_timestamp += tz_offset
 
+        if auto_tick_seconds is not None:
+            if not isinstance(auto_tick_seconds, (int, float)):
+                raise TypeError(f"Unsupported auto_tick_seconds {auto_tick_seconds!r}")
+            if not tick:
+                raise ValueError(
+                    "auto_tick_seconds may not be specified when tick is False"
+                )
+
         self.destination_timestamp = destination_timestamp
         self.tick = tick
+        self.auto_tick_seconds = auto_tick_seconds
 
     def start(self):
         global coordinates_stack
@@ -102,7 +122,9 @@ class travel:
 
         coordinates_stack.append(
             Coordinates(
-                destination_timestamp=self.destination_timestamp, tick=self.tick,
+                destination_timestamp=self.destination_timestamp,
+                tick=self.tick,
+                auto_tick_seconds=self.auto_tick_seconds,
             )
         )
 
