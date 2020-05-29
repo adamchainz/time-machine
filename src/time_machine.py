@@ -172,7 +172,7 @@ class travel:
 
 def now(tz=None):
     if not coordinates_stack:
-        return _time_machine.original_now()
+        return _time_machine.original_now(tz)
     else:
         return dt.datetime.fromtimestamp(time(), tz)
 

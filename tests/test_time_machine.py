@@ -40,6 +40,7 @@ def test_datetime_now_no_args_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         now = dt.datetime.now()
         assert now.microsecond == 0
+    assert dt.datetime.now() >= LIBRARY_EPOCH_DATETIME
 
 
 def test_datetime_now_arg():
@@ -48,7 +49,9 @@ def test_datetime_now_arg():
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
-    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH_DATETIME
+    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH_DATETIME.replace(
+        tzinfo=dt.timezone.utc
+    )
 
 
 def test_datetime_utcnow():
