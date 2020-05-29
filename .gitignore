@@ -44,3 +44,4 @@ output/*.html
 output/*/index.html
 
 pip-wheel-metadata/
+wheelhouse/
