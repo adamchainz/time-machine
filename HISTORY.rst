@@ -1,6 +1,9 @@
 History
 =======
 
+1.0.1 (2020-05-29)
+------------------
+
 * Fix ``datetime.now()`` behaviour with the ``tz`` argument when not time-travelling.
 
 1.0.0 (2020-05-29)
