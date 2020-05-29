@@ -241,3 +241,15 @@ It's also possible such python libraries can be added to the set mocked by time-
 
 One drawback is that it only works with CPython, so can't be used with other Python interpreters like PyPy.
 However it may possible to extend it to support other interpreters through different mocking mechanisms.
+
+Migrating from libfaketime or freezegun
+=======================================
+
+freezegun has a useful API, and python-libfaketime copies some of it, with a different function name.
+time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, ``tick``, and ``tz_offset`` arguments.
+There is one difference - time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses between function calls, and should normally be tested as such.
+
+Some arguments aren't supported like ``auto_tick_seconds``, or the ``move_to()`` and ``tick()`` methods.
+These may be added in a future release.
+
+If you are only fairly simple function calls, you should be able to migrate by replacing calls to ``freezegun.freeze_time()`` and ``libfaketime.fake_time()`` with ``time_machine.travel()``.
