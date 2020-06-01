@@ -87,7 +87,7 @@ All datetime functions in the standard library are mocked to move to the destina
 * ``time.time()``
 * ``time.time_ns()``
 
-This mocking is done at the C layer, replacing the function pointers for these built-ins.
+The mocking is done at the C layer, replacing the function pointers for these built-ins.
 Therefore, it automatically affects everywhere those functions have been imported, unlike use of ``unittest.mock.patch()``.
 
 Usage with ``start()`` / ``stop()``
@@ -126,7 +126,7 @@ When used as a function decorator, time is mocked during the wrapped function's 
     def test_in_the_deep_past():
         assert 0.0 < time.time() < 1.0
 
-This also works for asynchronous functions (coroutines):
+You can also decorate asynchronous functions (coroutines):
 
 .. code-block:: python
 
@@ -136,6 +136,8 @@ This also works for asynchronous functions (coroutines):
     @time_machine.travel("1970-01-01 00:00 +0000")
     async def test_in_the_deep_past():
         assert 0.0 < time.time() < 1.0
+
+Beware: time is a *global* state - see below.
 
 Context Manager
 ^^^^^^^^^^^^^^^
@@ -170,12 +172,12 @@ Note this is different to ``unittest.mock.patch()``\'s behaviour, which is to mo
 Caveats
 ^^^^^^^
 
-Time is global state.
-Any concurrent threads or async functions are also be affected.
+Time is a global state.
+Any concurrent threads or asynchronous functions are also be affected.
 Some aren't ready for time to move so rapidly or backwards, and may crash or produce unexpected results.
 
 Also beware that other processes are not affected.
-For example, if you use datetime functions in a client/server database they will still return the real time.
+For example, if you use SQL datetime functions on a database server, they will return the real time.
 
 Comparison
 ==========
@@ -213,22 +215,31 @@ It essentially does a find-and-replace mock of all the places that the ``datetim
 This gets around the problems with using unittest.mock, but it means the time it takes to do the mocking is proportional to the number of loaded modules.
 In large projects, this can take several seconds, an impractical overhead for an individual test.
 
-Also, it can't affect C extensions that call the standard library functions, including Cython-ized Python code.
+It's also not a perfect search, since it searches only module-level imports.
+Such imports are definitely the most common way projects use date and time functions, but they're not the only way.
+freezegun won’t find functions that have been “hidden” inside arbitrary objects, such as class-level attributes.
 
-Additionally, it has the same problem that it can't mock function default arguments and some other references.
+It also can't affect C extensions that call the standard library functions, including (I believe) Cython-ized Python code.
 
 python-libfaketime
 ------------------
 
-Simon Weber's `python-libfaketime <https://github.com/simon-weber/python-libfaketime/>`__ wraps the ``LD_PRELOAD`` library `libfaketime <https://github.com/wolfcw/libfaketime>`__.
+Simon Weber's `python-libfaketime <https://github.com/simon-weber/python-libfaketime/>`__ wraps the `libfaketime <https://github.com/wolfcw/libfaketime>`__ library.
 libfaketime replaces all the C-level system calls for the current time with its own wrappers.
 It's therefore a "perfect" mock for the current process, affecting every single point the current time might be fetched, and performs much faster than freezegun.
 
-Unfortunately it comes with the limitations of ``LD_PRELOAD`` (`explanation <http://www.goldsborough.me/c/low-level/kernel/2016/08/29/16-48-53-the_-ld_preload-_trick/>`__).
-First, this is only available on Unix platforms, which prevents it from working on Windows.
-Seccond, you either use its ``reexec_if_needed()`` function, which restarts (re-execs) your tests' process once while loading, or manually manage the ``LD_PRELOAD`` environment variable (everywhere you run your tests).
-Re-execing breaks profilers, use of ``python -m pdb`` and similar, and other things that might wrap your test process.
-Manually managing the environment variable is a bit of overhead for each environment you want to run your tests in.
+Unfortunately python-libfaketime comes with the limitations of ``LD_PRELOAD``.
+This is a mechanism to replace system libraries for a program as it loads (`explanation <http://www.goldsborough.me/c/low-level/kernel/2016/08/29/16-48-53-the_-ld_preload-_trick/>`__).
+This causes two issues in particular when you use python-libfaketime.
+
+First, ``LD_PRELOAD`` is only available on Unix platforms, which prevents you from using it on Windows.
+This can be a complete blocker for many teams.
+
+Second, you have to help manage ``LD_PRELOAD``.
+You either use python-libfaketime's `reexec_if_needed()` function, which restarts (re-execs) your test process while loading, or manually manage the ``LD_PRELOAD`` environment variable.
+Neither is ideal.
+Re-execing breaks anything that might wrap your test process, such as profilers, debuggers, and IDE test runners.
+Manually managing the environment variable is a bit of overhead, and must be done for each environment you run your tests in, including each developer's machine.
 
 time-machine
 ------------
