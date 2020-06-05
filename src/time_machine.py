@@ -12,16 +12,17 @@ from dateutil.parser import parse as parse_datetime
 import _time_machine
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
+DEFAULT_TICK_DELTA = dt.timedelta(seconds=1)
 
 
 class Coordinates:
     def __init__(self, destination_timestamp: float, tick: bool):
         self.destination_timestamp = destination_timestamp
-        self.tick = tick
+        self._tick = tick
         self.requested = False
 
     def time(self):
-        if not self.tick:
+        if not self._tick:
             return self.destination_timestamp
 
         if not self.requested:
@@ -32,6 +33,19 @@ class Coordinates:
         return self.destination_timestamp + (
             _time_machine.original_time() - self.real_start_timestamp
         )
+
+    def tick(self, delta: dt.timedelta = DEFAULT_TICK_DELTA):
+        if self._tick:
+            raise ValueError("tick method can not be used when tick argument is True")
+
+        if isinstance(delta, dt.timedelta):
+            total_seconds = delta.total_seconds()
+        elif isinstance(delta, (int, float)):
+            total_seconds = delta
+        else:
+            raise TypeError(f"Unsupported type for delta argument: {delta!r}")
+
+        self.destination_timestamp += total_seconds
 
 
 coordinates_stack = []
@@ -100,11 +114,11 @@ class travel:
             uuid_generate_time_patcher.start()
             uuid_uuid_create_patcher.start()
 
-        coordinates_stack.append(
-            Coordinates(
-                destination_timestamp=self.destination_timestamp, tick=self.tick,
-            )
+        coordinates = Coordinates(
+            destination_timestamp=self.destination_timestamp, tick=self.tick,
         )
+        coordinates_stack.append(coordinates)
+        return coordinates
 
     def stop(self):
         global coordinates_stack
@@ -115,7 +129,8 @@ class travel:
             uuid_uuid_create_patcher.stop()
 
     def __enter__(self):
-        self.start()
+        coordinates = self.start()
+        return coordinates
 
     def __exit__(self, *exc_info):
         self.stop()

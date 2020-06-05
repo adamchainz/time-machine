@@ -392,7 +392,7 @@ def test_tz_offset_unsupported_type():
     assert excinfo.value.args == ("Unsupported tz_offset 'something'",)
 
 
-# auto_tick_seconds tests
+# tick method tests
 
 
 def test_tick_method_without_arguments():
