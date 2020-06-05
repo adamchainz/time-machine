@@ -115,7 +115,11 @@ It's recommended to use the decorator or context manager forms instead, to take 
 Usage with ``tick()`` method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``tick()`` forwards mocked time by 1 second. However you can specify a timedelta by how many seconds you want to move mocked time.
+The context manager form of ``travel()`` and ``start()`` return a ``Coordinates`` object.
+This has a ``tick()`` method that moves the current time by its one argument, ``delta``, which may be:
+
+* A ``timedelta``
+* A ``float`` or an ``int``
 
 For example:
 
@@ -124,15 +128,13 @@ For example:
     import datetime as dt
     import time_machine
 
-    with time_machine.travel(0, tick=False) as deep_past_time:
+    with time_machine.travel(0, tick=False) as traveller:
         assert time.time() == 0
 
-        deep_past_time.tick()
-
+        traveller.tick()
         assert time.time() == 1
 
-        deep_past_time.tick(delta=dt.timedelta(seconds=100))
-
+        traveller.tick(dt.timedelta(seconds=100))
         assert time.time() == 101
 
 Function Decorator

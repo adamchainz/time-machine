@@ -396,54 +396,45 @@ def test_tz_offset_unsupported_type():
 
 
 def test_tick_method_without_arguments():
-    with time_machine.travel(EPOCH, tick=False) as mocked_time:
-        assert time.time() == EPOCH
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.tick()
+        assert time.time() == EPOCH + 1.0
 
-        for _ in range(10):
-            mocked_time.tick()
-
-        assert time.time() == EPOCH + 10.0
+        traveller.tick()
+        assert time.time() == EPOCH + 2.0
 
 
 def test_tick_method_with_timedelta():
-    with time_machine.travel(EPOCH, tick=False) as mocked_time:
-        assert time.time() == EPOCH
-
-        mocked_time.tick(delta=dt.timedelta(days=1))
-
-        assert time.time() == EPOCH + 3600.0 * 24
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.tick(dt.timedelta(days=1))
+        assert time.time() == EPOCH + (3600.0 * 24)
 
 
 def test_tick_method_integer_delta():
-    with time_machine.travel(EPOCH, tick=False) as mocked_time:
-        assert time.time() == EPOCH
-
-        mocked_time.tick(delta=10)
-
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.tick(10)
         assert time.time() == EPOCH + 10
 
 
 def test_tick_method_negative_delta():
-    with time_machine.travel(EPOCH, tick=False) as mocked_time:
-        assert time.time() == EPOCH
-
-        mocked_time.tick(delta=-10)
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.tick(delta=-10)
 
         assert time.time() == EPOCH - 10
 
 
 def test_tick_method_wrong_delta():
-    with time_machine.travel(EPOCH, tick=False) as mocked_time:
+    with time_machine.travel(EPOCH, tick=False) as traveller:
         with pytest.raises(TypeError) as excinfo:
-            mocked_time.tick(delta="1.1")
+            traveller.tick(delta="1.1")
 
     assert excinfo.value.args == ("Unsupported type for delta argument: '1.1'",)
 
 
 def test_tick_method_when_tick():
-    with time_machine.travel(EPOCH, tick=True) as mocked_time:
+    with time_machine.travel(EPOCH, tick=True) as traveller:
         with pytest.raises(ValueError) as excinfo:
-            mocked_time.tick()
+            traveller.tick()
 
     assert excinfo.value.args == (
         "tick method can not be used when tick argument is True",

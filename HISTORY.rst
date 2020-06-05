@@ -1,6 +1,8 @@
 History
 =======
 
+* Add ``tick()`` method to move forward in time by a delta whilst travelling.
+
 1.0.1 (2020-05-29)
 ------------------
 
