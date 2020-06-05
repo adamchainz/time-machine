@@ -112,6 +112,29 @@ For example:
 ``travel()`` instances are nestable, but you'll need to be careful when manually managing to call their ``stop()`` methods in the correct order, even when exceptions occur.
 It's recommended to use the decorator or context manager forms instead, to take advantage of Python features to do this.
 
+Usage with ``tick()`` method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``tick()`` forwards mocked time by 1 second. However you can specify a timedelta by how many seconds you want to move mocked time.
+
+For example:
+
+.. code-block:: python
+
+    import datetime as dt
+    import time_machine
+
+    with time_machine.travel(0, tick=False) as deep_past_time:
+        assert time.time() == 0
+
+        deep_past_time.tick()
+
+        assert time.time() == 1
+
+        deep_past_time.tick(delta=dt.timedelta(seconds=100))
+
+        assert time.time() == 101
+
 Function Decorator
 ^^^^^^^^^^^^^^^^^^
 
@@ -260,7 +283,7 @@ freezegun has a useful API, and python-libfaketime copies some of it, with a dif
 time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, ``tick``, and ``tz_offset`` arguments.
 There is one difference - time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses between function calls, and should normally be tested as such.
 
-Some arguments aren't supported like ``auto_tick_seconds``, or the ``move_to()`` and ``tick()`` methods.
+Some arguments aren't supported like ``auto_tick_seconds``, or the ``move_to()`` method.
 These may be added in a future release.
 
 If you are only fairly simple function calls, you should be able to migrate by replacing calls to ``freezegun.freeze_time()`` and ``libfaketime.fake_time()`` with ``time_machine.travel()``.
