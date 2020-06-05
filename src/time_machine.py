@@ -12,6 +12,7 @@ from dateutil.parser import parse as parse_datetime
 import _time_machine
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
+DEFAULT_TICK_DELTA = dt.timedelta(seconds=1)
 
 
 class Coordinates:
@@ -33,7 +34,7 @@ class Coordinates:
             _time_machine.original_time() - self.real_start_timestamp
         )
 
-    def tick(self, delta=dt.timedelta(seconds=1)):
+    def tick(self, delta=DEFAULT_TICK_DELTA):
         if self._tick:
             raise ValueError("tick method can not be used when tick argument is True")
 
