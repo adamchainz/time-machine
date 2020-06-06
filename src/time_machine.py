@@ -12,7 +12,6 @@ from dateutil.parser import parse as parse_datetime
 import _time_machine
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
-DEFAULT_TICK_DELTA = dt.timedelta(seconds=1)
 
 
 class Coordinates:
@@ -34,10 +33,7 @@ class Coordinates:
             _time_machine.original_time() - self.real_start_timestamp
         )
 
-    def tick(self, delta=DEFAULT_TICK_DELTA):
-        if self._tick:
-            raise ValueError("tick method can not be used when tick argument is True")
-
+    def shift(self, delta):
         if isinstance(delta, dt.timedelta):
             total_seconds = delta.total_seconds()
         elif isinstance(delta, (int, float)):
@@ -129,8 +125,7 @@ class travel:
             uuid_uuid_create_patcher.stop()
 
     def __enter__(self):
-        coordinates = self.start()
-        return coordinates
+        return self.start()
 
     def __exit__(self, *exc_info):
         self.stop()

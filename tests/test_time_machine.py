@@ -392,53 +392,40 @@ def test_tz_offset_unsupported_type():
     assert excinfo.value.args == ("Unsupported tz_offset 'something'",)
 
 
-# tick method tests
+# shift() tests
 
 
-def test_tick_method_without_arguments():
+def test_shift_with_timedelta():
     with time_machine.travel(EPOCH, tick=False) as traveller:
-        traveller.tick()
-        assert time.time() == EPOCH + 1.0
-
-        traveller.tick()
-        assert time.time() == EPOCH + 2.0
-
-
-def test_tick_method_with_timedelta():
-    with time_machine.travel(EPOCH, tick=False) as traveller:
-        traveller.tick(dt.timedelta(days=1))
+        traveller.shift(dt.timedelta(days=1))
         assert time.time() == EPOCH + (3600.0 * 24)
 
 
-def test_tick_method_integer_delta():
+def test_shift_integer_delta():
     with time_machine.travel(EPOCH, tick=False) as traveller:
-        traveller.tick(10)
+        traveller.shift(10)
         assert time.time() == EPOCH + 10
 
 
-def test_tick_method_negative_delta():
+def test_shift_negative_delta():
     with time_machine.travel(EPOCH, tick=False) as traveller:
-        traveller.tick(delta=-10)
+        traveller.shift(-10)
 
         assert time.time() == EPOCH - 10
 
 
-def test_tick_method_wrong_delta():
+def test_shift_wrong_delta():
     with time_machine.travel(EPOCH, tick=False) as traveller:
         with pytest.raises(TypeError) as excinfo:
-            traveller.tick(delta="1.1")
+            traveller.shift(delta="1.1")
 
     assert excinfo.value.args == ("Unsupported type for delta argument: '1.1'",)
 
 
-def test_tick_method_when_tick():
+def test_shift_when_tick():
     with time_machine.travel(EPOCH, tick=True) as traveller:
-        with pytest.raises(ValueError) as excinfo:
-            traveller.tick()
-
-    assert excinfo.value.args == (
-        "tick method can not be used when tick argument is True",
-    )
+        traveller.shift(10.0)
+        assert EPOCH + 10.0 <= time.time() < EPOCH + 20.0
 
 
 # uuid tests
