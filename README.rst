@@ -129,9 +129,6 @@ For example:
     with time_machine.travel(0, tick=False) as traveller:
         assert time.time() == 0
 
-        traveller.shift()
-        assert time.time() == 1
-
         traveller.shift(dt.timedelta(seconds=100))
         assert time.time() == 101
 
