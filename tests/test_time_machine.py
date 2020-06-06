@@ -392,6 +392,42 @@ def test_tz_offset_unsupported_type():
     assert excinfo.value.args == ("Unsupported tz_offset 'something'",)
 
 
+# shift() tests
+
+
+def test_shift_with_timedelta():
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.shift(dt.timedelta(days=1))
+        assert time.time() == EPOCH + (3600.0 * 24)
+
+
+def test_shift_integer_delta():
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.shift(10)
+        assert time.time() == EPOCH + 10
+
+
+def test_shift_negative_delta():
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.shift(-10)
+
+        assert time.time() == EPOCH - 10
+
+
+def test_shift_wrong_delta():
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        with pytest.raises(TypeError) as excinfo:
+            traveller.shift(delta="1.1")
+
+    assert excinfo.value.args == ("Unsupported type for delta argument: '1.1'",)
+
+
+def test_shift_when_tick():
+    with time_machine.travel(EPOCH, tick=True) as traveller:
+        traveller.shift(10.0)
+        assert EPOCH + 10.0 <= time.time() < EPOCH + 20.0
+
+
 # uuid tests
 
 
