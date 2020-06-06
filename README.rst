@@ -130,7 +130,7 @@ For example:
         assert time.time() == 0
 
         traveller.shift(dt.timedelta(seconds=100))
-        assert time.time() == 101
+        assert time.time() == 100
 
 Function Decorator
 ^^^^^^^^^^^^^^^^^^
