@@ -112,14 +112,12 @@ For example:
 ``travel()`` instances are nestable, but you'll need to be careful when manually managing to call their ``stop()`` methods in the correct order, even when exceptions occur.
 It's recommended to use the decorator or context manager forms instead, to take advantage of Python features to do this.
 
-Usage with ``tick()`` method
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Usage with ``shift()`` method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The context manager form of ``travel()`` and ``start()`` return a ``Coordinates`` object.
-This has a ``tick()`` method that moves the current time by its one argument, ``delta``, which may be:
-
-* A ``timedelta``
-* A ``float`` or an ``int``
+The ``start()`` method and entry of the context manager both return a ``Coordinates`` object that corresponds to the time travel.
+This has a ``shift()`` method that takes one argument, ``delta``, which moves the current time.
+``delta`` may be a ``timedelta`` or a number of seconds, which will be added to destination.
 
 For example:
 
@@ -282,10 +280,15 @@ Migrating from libfaketime or freezegun
 =======================================
 
 freezegun has a useful API, and python-libfaketime copies some of it, with a different function name.
-time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, ``tick``, and ``tz_offset`` arguments.
-There is one difference - time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses between function calls, and should normally be tested as such.
+time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, ``tick``, and ``tz_offset`` arguments, and the ``shift()`` method.
+There are a few differences:
 
-Some arguments aren't supported like ``auto_tick_seconds``, or the ``move_to()`` method.
+* time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses between function calls, and should normally be tested as such.
+  Testing with time frozen can make it easy to write complete assertions, but it's quite artificial.
+* freezegun's ``tick()`` method has been implemented as ``shift()``, to avoid confusion with the ``tick`` argument.
+  It also requires an explicit delta rather than defaulting to 1 second.
+
+Some features aren't supported like the ``auto_tick_seconds`` argument, or the ``move_to()`` method.
 These may be added in a future release.
 
 If you are only fairly simple function calls, you should be able to migrate by replacing calls to ``freezegun.freeze_time()`` and ``libfaketime.fake_time()`` with ``time_machine.travel()``.

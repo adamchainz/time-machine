@@ -1,7 +1,8 @@
 History
 =======
 
-* Add ``tick()`` method to move forward in time by a delta whilst travelling.
+* Add ``shift()`` method to move forward in time by a delta whilst travelling.
+  This is based on freezegun's ``tick()`` method.
 
 1.0.1 (2020-05-29)
 ------------------
