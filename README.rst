@@ -129,10 +129,10 @@ For example:
     with time_machine.travel(0, tick=False) as traveller:
         assert time.time() == 0
 
-        traveller.tick()
+        traveller.shift()
         assert time.time() == 1
 
-        traveller.tick(dt.timedelta(seconds=100))
+        traveller.shift(dt.timedelta(seconds=100))
         assert time.time() == 101
 
 Function Decorator
