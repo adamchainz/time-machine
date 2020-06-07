@@ -19,6 +19,9 @@ LIBRARY_EPOCH_DATETIME = dt.datetime(2020, 4, 29)  # The day this library was ma
 LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
 
 py_3_7_plus = pytest.mark.skipif(sys.version_info < (3, 7), reason="Python 3.7+")
+py_have_clock_gettime = pytest.mark.skipif(
+    not hasattr(time, "clock_gettime"), reason="Doesn't have clock_gettime"
+)
 
 
 # datetime module
@@ -85,12 +88,14 @@ def test_date_today():
 # time module
 
 
+@py_have_clock_gettime
 def test_time_clock_gettime_realtime():
     with time_machine.travel(EPOCH + 180.0):
         assert time.clock_gettime(time.CLOCK_REALTIME) == EPOCH + 180.0
     assert time.clock_gettime(time.CLOCK_REALTIME) >= LIBRARY_EPOCH
 
 
+@py_have_clock_gettime
 def test_time_clock_gettime_monotonic_unaffected():
     start = time.clock_gettime(time.CLOCK_MONOTONIC)
     with time_machine.travel(EPOCH + 180.0):
@@ -100,6 +105,7 @@ def test_time_clock_gettime_monotonic_unaffected():
 
 
 @py_3_7_plus
+@py_have_clock_gettime
 def test_time_clock_gettime_ns_realtime():
     with time_machine.travel(EPOCH + 190.0):
         first = time.clock_gettime_ns(time.CLOCK_REALTIME)
@@ -112,6 +118,7 @@ def test_time_clock_gettime_ns_realtime():
 
 
 @py_3_7_plus
+@py_have_clock_gettime
 def test_time_clock_gettime_ns_monotonic_unaffected():
     start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
     with time_machine.travel(EPOCH + 190.0):

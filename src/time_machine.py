@@ -2,8 +2,8 @@ import datetime as dt
 import functools
 import inspect
 import sys
+import time
 import uuid
-from time import CLOCK_REALTIME
 from types import GeneratorType
 from unittest import TestCase, mock
 
@@ -12,6 +12,8 @@ from dateutil.parser import parse as parse_datetime
 import _time_machine
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
+
+_HAVE_CLOCK_GETTIME = hasattr(time, "clock_gettime")
 
 
 class Coordinates:
@@ -196,19 +198,20 @@ def utcnow():
 
 # time module
 
+if _HAVE_CLOCK_GETTIME:
+    CLOCK_REALTIME = time.CLOCK_REALTIME
 
-def clock_gettime(clk_id):
-    if not coordinates_stack or clk_id != CLOCK_REALTIME:
-        return _time_machine.original_clock_gettime(clk_id)
-    return time()
-
-
-if sys.version_info >= (3, 7):
-
-    def clock_gettime_ns(clk_id):
+    def clock_gettime(clk_id):
         if not coordinates_stack or clk_id != CLOCK_REALTIME:
-            return _time_machine.original_clock_gettime_ns(clk_id)
-        return time_ns()
+            return _time_machine.original_clock_gettime(clk_id)
+        return time()
+
+    if sys.version_info >= (3, 7):
+
+        def clock_gettime_ns(clk_id):
+            if not coordinates_stack or clk_id != CLOCK_REALTIME:
+                return _time_machine.original_clock_gettime_ns(clk_id)
+            return time_ns()
 
 
 def gmtime(secs=None):
