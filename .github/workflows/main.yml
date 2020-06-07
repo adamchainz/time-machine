@@ -8,23 +8,16 @@ on:
 
 jobs:
   tests:
-    name: Python ${{ matrix.python-version }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-18.04
 
     strategy:
-      fail-fast: false
       matrix:
         python-version:
         - 3.6
         - 3.7
         - 3.8
         - 3.9
-        os: 
-        - ubuntu-18.04
-        - macos-10.15
-        exclude:
-          - os: macos-10.15
-            python-version: 3.9
 
     env:
       COVERALLS_REPO_TOKEN: htkNb8R1RkwGsTnH2VDIiuPsFDW4rXVpP
