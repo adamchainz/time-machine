@@ -3,6 +3,7 @@ import datetime as dt
 import sys
 import time
 import uuid
+from importlib.util import module_from_spec, spec_from_file_location
 from unittest import SkipTest, TestCase
 
 import pytest
@@ -19,6 +20,29 @@ LIBRARY_EPOCH_DATETIME = dt.datetime(2020, 4, 29)  # The day this library was ma
 LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
 
 py_3_7_plus = pytest.mark.skipif(sys.version_info < (3, 7), reason="Python 3.7+")
+py_have_clock_gettime = pytest.mark.skipif(
+    not hasattr(time, "clock_gettime"), reason="Doesn't have clock_gettime"
+)
+
+
+@pytest.mark.skipif(
+    not hasattr(time, "CLOCK_REALTIME"), reason="No time.CLOCK_REALTIME"
+)
+def test_import_without_clock_realtime():
+    orig = time.CLOCK_REALTIME
+    del time.CLOCK_REALTIME
+    try:
+        # Recipe for importing from path as documented in importlib
+        spec = spec_from_file_location(
+            f"{__name__}.time_machine_without_clock_realtime", time_machine.__file__
+        )
+        module = module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+    finally:
+        time.CLOCK_REALTIME = orig
+
+    # No assertions - testing for coverage only
 
 
 # datetime module
@@ -85,12 +109,14 @@ def test_date_today():
 # time module
 
 
+@py_have_clock_gettime
 def test_time_clock_gettime_realtime():
     with time_machine.travel(EPOCH + 180.0):
         assert time.clock_gettime(time.CLOCK_REALTIME) == EPOCH + 180.0
     assert time.clock_gettime(time.CLOCK_REALTIME) >= LIBRARY_EPOCH
 
 
+@py_have_clock_gettime
 def test_time_clock_gettime_monotonic_unaffected():
     start = time.clock_gettime(time.CLOCK_MONOTONIC)
     with time_machine.travel(EPOCH + 180.0):
@@ -100,6 +126,7 @@ def test_time_clock_gettime_monotonic_unaffected():
 
 
 @py_3_7_plus
+@py_have_clock_gettime
 def test_time_clock_gettime_ns_realtime():
     with time_machine.travel(EPOCH + 190.0):
         first = time.clock_gettime_ns(time.CLOCK_REALTIME)
@@ -112,6 +139,7 @@ def test_time_clock_gettime_ns_realtime():
 
 
 @py_3_7_plus
+@py_have_clock_gettime
 def test_time_clock_gettime_ns_monotonic_unaffected():
     start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
     with time_machine.travel(EPOCH + 190.0):

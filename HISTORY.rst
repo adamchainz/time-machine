@@ -3,6 +3,12 @@ History
 
 * Add ``shift()`` method to move forward in time by a delta whilst travelling.
   This is based on freezegun's ``tick()`` method.
+* Fix to work when either ``clock_gettime()`` or ``CLOCK_REALTIME`` is not
+  present. This happens on some Unix platforms, for example on macOS with the
+  official Python.org installer, which is compiled against macOS 10.9.
+
+  Thanks to Daniel Crowe for the fix in
+  `PR #30 <https://github.com/adamchainz/time-machine/pull/30>`__.
 
 1.0.1 (2020-05-29)
 ------------------

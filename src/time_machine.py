@@ -3,13 +3,20 @@ import functools
 import inspect
 import sys
 import uuid
-from time import CLOCK_REALTIME
 from types import GeneratorType
 from unittest import TestCase, mock
 
 from dateutil.parser import parse as parse_datetime
 
 import _time_machine
+
+# time.clock_gettime and time.CLOCK_REALTIME not always available
+# e.g. on builds against old macOS = official Python.org installer
+try:
+    from time import CLOCK_REALTIME
+except ImportError:
+    # Dummy value that won't compare equal to any value
+    CLOCK_REALTIME = float("inf")
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
