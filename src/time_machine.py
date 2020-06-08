@@ -204,7 +204,7 @@ def utcnow():
 # time module
 
 def clock_gettime(clk_id):
-    if not coordinates_stack or clk_id != time.CLOCK_REALTIME:
+    if not coordinates_stack or clk_id != CLOCK_REALTIME:
         return _time_machine.original_clock_gettime(clk_id)
     return time()
 
@@ -212,7 +212,7 @@ def clock_gettime(clk_id):
 if sys.version_info >= (3, 7):
 
     def clock_gettime_ns(clk_id):
-        if not coordinates_stack or clk_id != time.CLOCK_REALTIME:
+        if not coordinates_stack or clk_id != CLOCK_REALTIME:
             return _time_machine.original_clock_gettime_ns(clk_id)
         return time_ns()
 
