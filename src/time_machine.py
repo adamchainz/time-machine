@@ -16,7 +16,7 @@ try:
     from time import CLOCK_REALTIME
 except ImportError:
     # Dummy value that won't compare equal to any value
-    CLOCK_REALTIME = float('inf')
+    CLOCK_REALTIME = float("inf")
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
@@ -202,6 +202,7 @@ def utcnow():
 
 
 # time module
+
 
 def clock_gettime(clk_id):
     if not coordinates_stack or clk_id != CLOCK_REALTIME:
