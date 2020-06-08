@@ -3,6 +3,7 @@ import datetime as dt
 import sys
 import time
 import uuid
+from importlib.util import module_from_spec, spec_from_file_location
 from unittest import SkipTest, TestCase
 
 import pytest
@@ -22,6 +23,17 @@ py_3_7_plus = pytest.mark.skipif(sys.version_info < (3, 7), reason="Python 3.7+"
 py_have_clock_gettime = pytest.mark.skipif(
     not hasattr(time, "clock_gettime"), reason="Doesn't have clock_gettime"
 )
+
+
+def test_import_without_clock_realtime():
+    # Recipe for importing from path as documented in importlib
+    spec = spec_from_file_location(
+        f"{__name__}.time_machine_without_clock_realtime", time_machine.__file__
+    )
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # No assertions - testing for coverage only
 
 
 # datetime module
