@@ -121,6 +121,10 @@ Call datetime.datetime.utcnow() after patching.");
 
 /* time.clock_gettime() */
 
+/*
+    time.clock_gettime() is not always available
+    e.g. on builds against old macOS = official Python.org installer
+*/
 #if defined(HAVE_CLOCK_GETTIME)
 
 static PyObject*
