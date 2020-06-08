@@ -14,7 +14,7 @@ import _time_machine
 # e.g. on builds against old macOS = official Python.org installer
 try:
     from time import CLOCK_REALTIME
-except ImportError:
+except ImportError:  # pragma: no cover
     # Dummy value that won't compare equal to any value
     CLOCK_REALTIME = float("inf")
 
