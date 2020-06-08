@@ -25,13 +25,22 @@ py_have_clock_gettime = pytest.mark.skipif(
 )
 
 
+@pytest.mark.skipif(
+    not hasattr(time, "CLOCK_REALTIME"), reason="No time.CLOCK_REALTIME"
+)
 def test_import_without_clock_realtime():
-    # Recipe for importing from path as documented in importlib
-    spec = spec_from_file_location(
-        f"{__name__}.time_machine_without_clock_realtime", time_machine.__file__
-    )
-    module = module_from_spec(spec)
-    spec.loader.exec_module(module)
+    orig = time.CLOCK_REALTIME
+    del time.CLOCK_REALTIME
+    try:
+        # Recipe for importing from path as documented in importlib
+        spec = spec_from_file_location(
+            f"{__name__}.time_machine_without_clock_realtime", time_machine.__file__
+        )
+        module = module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+    finally:
+        time.CLOCK_REALTIME = orig
 
     # No assertions - testing for coverage only
 
