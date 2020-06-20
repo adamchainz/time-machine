@@ -9,7 +9,7 @@ time-machine
   :target: https://coveralls.io/r/adamchainz/time-machine
 
 .. image:: https://img.shields.io/pypi/v/time-machine.svg
-   :target: https://pypi.python.org/pypi/time-machine
+   :target: https://pypi.org/project/time-machine/
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/python/black
