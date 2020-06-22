@@ -1,6 +1,9 @@
 History
 =======
 
+1.1.1 (2020-06-22)
+------------------
+
 * Move C-level ``clock_gettime()`` and ``clock_gettime_ns()`` checks to
   runtime to allow distribution of macOS wheels.
 
