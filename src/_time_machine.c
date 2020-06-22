@@ -121,12 +121,6 @@ Call datetime.datetime.utcnow() after patching.");
 
 /* time.clock_gettime() */
 
-/*
-    time.clock_gettime() is not always available
-    e.g. on builds against old macOS = official Python.org installer
-*/
-#if defined(HAVE_CLOCK_GETTIME)
-
 static PyObject*
 _time_machine_clock_gettime(PyObject *self, PyObject *args)
 {
@@ -182,7 +176,6 @@ PyDoc_STRVAR(original_clock_gettime_ns_doc,
 \n\
 Call time.clock_gettime_ns() after patching.");
 
-#endif
 #endif
 
 /* time.gmtime() */
@@ -356,19 +349,26 @@ _time_machine_patch_if_needed(PyObject *self, PyObject *unused)
 
     PyObject *time_module = PyImport_ImportModule("time");
 
-#if defined(HAVE_CLOCK_GETTIME)
+
+
     PyCFunctionObject *time_clock_gettime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime");
-    original_clock_gettime = time_clock_gettime->m_ml->ml_meth;
-    time_clock_gettime->m_ml->ml_meth = _time_machine_clock_gettime;
-    Py_DECREF(time_clock_gettime);
+    /*
+        time.clock_gettime() is not always available
+        e.g. on builds against old macOS = official Python.org installer
+    */
+    if (time_clock_gettime != NULL) {
+        original_clock_gettime = time_clock_gettime->m_ml->ml_meth;
+        time_clock_gettime->m_ml->ml_meth = _time_machine_clock_gettime;
+        Py_DECREF(time_clock_gettime);
+    }
 
 #if PY_VERSION_HEX >= 0x03070000
     PyCFunctionObject *time_clock_gettime_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime_ns");
-    original_clock_gettime_ns = time_clock_gettime_ns->m_ml->ml_meth;
-    time_clock_gettime_ns->m_ml->ml_meth = _time_machine_clock_gettime_ns;
-    Py_DECREF(time_clock_gettime_ns);
-#endif
-
+    if (time_clock_gettime_ns != NULL) {
+        original_clock_gettime_ns = time_clock_gettime_ns->m_ml->ml_meth;
+        time_clock_gettime_ns->m_ml->ml_meth = _time_machine_clock_gettime_ns;
+        Py_DECREF(time_clock_gettime_ns);
+    }
 #endif
 
     PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
@@ -418,11 +418,9 @@ static PyMethodDef module_methods[] = {
     {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL, original_now_doc},
 #endif
     {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
-#if defined(HAVE_CLOCK_GETTIME)
     {"original_clock_gettime", (PyCFunction)_time_machine_original_clock_gettime, METH_VARARGS, original_clock_gettime_doc},
 #if PY_VERSION_HEX >= 0x03070000
     {"original_clock_gettime_ns", (PyCFunction)_time_machine_original_clock_gettime_ns, METH_VARARGS, original_clock_gettime_ns_doc},
-#endif
 #endif
     {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
