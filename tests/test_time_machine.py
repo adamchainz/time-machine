@@ -456,6 +456,35 @@ def test_shift_when_tick():
         assert EPOCH + 10.0 <= time.time() < EPOCH + 20.0
 
 
+# move_to() tests
+
+
+def test_move_to_datetime():
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        assert time.time() == EPOCH
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+
+
+def test_move_to_datetime_when_tick():
+    with time_machine.travel(EPOCH, tick=True) as traveller:
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
+        assert time.time() == pytest.approx(EPOCH_PLUS_ONE_YEAR)
+
+
+def test_move_to_past_datetime():
+    with time_machine.travel(EPOCH_PLUS_ONE_YEAR, tick=False) as traveller:
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+        traveller.move_to(EPOCH_DATETIME)
+        assert time.time() == EPOCH
+
+
+def test_move_to_past_datetime_when_tick():
+    with time_machine.travel(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=True) as traveller:
+        traveller.move_to(EPOCH)
+        assert time.time() == pytest.approx(EPOCH)
+
+
 # uuid tests
 
 
