@@ -21,6 +21,30 @@ except ImportError:
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
 
+def destination_to_timestamp(destination):
+    if callable(destination):
+        destination = destination()
+    elif isinstance(destination, GeneratorType):
+        destination = next(destination)
+
+    if isinstance(destination, (int, float)):
+        destination_timestamp = destination
+    elif isinstance(destination, dt.datetime):
+        if destination.tzinfo is None:
+            destination = destination.replace(tzinfo=dt.timezone.utc)
+        destination_timestamp = destination.timestamp()
+    elif isinstance(destination, dt.date):
+        destination_timestamp = dt.datetime.combine(
+            destination, dt.time(0, 0), tzinfo=dt.timezone.utc
+        ).timestamp()
+    elif isinstance(destination, str):
+        destination_timestamp = parse_datetime(destination).timestamp()
+    else:
+        raise TypeError(f"Unsupported destination {destination!r}")
+
+    return destination_timestamp
+
+
 class Coordinates:
     def __init__(self, destination_timestamp: float, tick: bool):
         self.destination_timestamp = destination_timestamp
@@ -50,6 +74,9 @@ class Coordinates:
 
         self.destination_timestamp += total_seconds
 
+    def move_to(self, destination):
+        self.destination_timestamp = destination_to_timestamp(destination)
+
 
 coordinates_stack = []
 
@@ -75,25 +102,7 @@ else:
 
 class travel:
     def __init__(self, destination, *, tick=True, tz_offset=None):
-        if callable(destination):
-            destination = destination()
-        elif isinstance(destination, GeneratorType):
-            destination = next(destination)
-
-        if isinstance(destination, (int, float)):
-            destination_timestamp = destination
-        elif isinstance(destination, dt.datetime):
-            if destination.tzinfo is None:
-                destination = destination.replace(tzinfo=dt.timezone.utc)
-            destination_timestamp = destination.timestamp()
-        elif isinstance(destination, dt.date):
-            destination_timestamp = dt.datetime.combine(
-                destination, dt.time(0, 0), tzinfo=dt.timezone.utc
-            ).timestamp()
-        elif isinstance(destination, str):
-            destination_timestamp = parse_datetime(destination).timestamp()
-        else:
-            raise TypeError(f"Unsupported destination {destination!r}")
+        destination_timestamp = destination_to_timestamp(destination)
 
         if tz_offset is not None:
             if isinstance(tz_offset, dt.timedelta):
