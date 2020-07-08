@@ -1,6 +1,9 @@
 History
 =======
 
+1.2.0 (2020-07-08)
+------------------
+
 * Add ``move_to()`` method to move to a different time whilst travelling.
   This is based on freezegun's ``move_to()`` method.
 
