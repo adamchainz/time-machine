@@ -114,26 +114,6 @@ For example:
 ``travel()`` instances are nestable, but you'll need to be careful when manually managing to call their ``stop()`` methods in the correct order, even when exceptions occur.
 It's recommended to use the decorator or context manager forms instead, to take advantage of Python features to do this.
 
-Usage with ``shift()`` method
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``start()`` method and entry of the context manager both return a ``Coordinates`` object that corresponds to the time travel.
-This has a ``shift()`` method that takes one argument, ``delta``, which moves the current time.
-``delta`` may be a ``timedelta`` or a number of seconds, which will be added to destination.
-
-For example:
-
-.. code-block:: python
-
-    import datetime as dt
-    import time_machine
-
-    with time_machine.travel(0, tick=False) as traveller:
-        assert time.time() == 0
-
-        traveller.shift(dt.timedelta(seconds=100))
-        assert time.time() == 100
-
 Function Decorator
 ^^^^^^^^^^^^^^^^^^
 
@@ -191,8 +171,56 @@ When applied as a class decorator to such classes, time is mocked from the start
 
 Note this is different to ``unittest.mock.patch()``\'s behaviour, which is to mock only during the test methods.
 
+``Coordinates``
+---------------
+
+The ``start()`` method and entry of the context manager both return a ``Coordinates`` object that corresponds to the given "trip" in time.
+This has a couple methods that can be used to travel to other times.
+
+``move_to(destination)``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+``move_to()`` moves the current time to a new destination.
+``destination`` may be any of the types supported by ``travel``.
+
+For example:
+
+.. code-block:: python
+
+    import datetime as dt
+    import time_machine
+
+    with time_machine.travel(0, tick=False) as traveller:
+        assert time.time() == 0
+
+        traveller.move_to(234)
+        assert time.time() == 234
+
+``shift(delta)``
+^^^^^^^^^^^^^^^^
+
+``shift()`` takes one argument, ``delta``, which moves the current time by the given offset.
+``delta`` may be a ``timedelta`` or a number of seconds, which will be added to destination.
+It may be negative, in which case time will move to an earlier point.
+
+For example:
+
+.. code-block:: python
+
+    import datetime as dt
+    import time_machine
+
+    with time_machine.travel(0, tick=False) as traveller:
+        assert time.time() == 0
+
+        traveller.shift(dt.timedelta(seconds=100))
+        assert time.time() == 100
+
+        traveller.shift(-dt.timedelta(seconds=10))
+        assert time.time() == 90
+
 Caveats
-^^^^^^^
+=======
 
 Time is a global state.
 Any concurrent threads or asynchronous functions are also be affected.

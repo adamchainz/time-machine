@@ -469,7 +469,7 @@ def test_move_to_datetime():
 def test_move_to_datetime_when_tick():
     with time_machine.travel(EPOCH, tick=True) as traveller:
         traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
-        assert time.time() == pytest.approx(EPOCH_PLUS_ONE_YEAR)
+        assert EPOCH_PLUS_ONE_YEAR <= time.time() < EPOCH_PLUS_ONE_YEAR + 1.0
 
 
 def test_move_to_past_datetime():
@@ -482,7 +482,7 @@ def test_move_to_past_datetime():
 def test_move_to_past_datetime_when_tick():
     with time_machine.travel(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=True) as traveller:
         traveller.move_to(EPOCH)
-        assert time.time() == pytest.approx(EPOCH)
+        assert EPOCH <= time.time() < EPOCH + 1.0
 
 
 # uuid tests
