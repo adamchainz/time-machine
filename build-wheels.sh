@@ -36,5 +36,6 @@ find wheelhouse -iname '*manylinux*manylinux*' -delete
 python3.6 setup.py bdist_wheel --dist-dir wheelhouse
 python3.7 setup.py bdist_wheel --dist-dir wheelhouse
 python3.8 setup.py bdist_wheel --dist-dir wheelhouse
+python3.9 setup.py bdist_wheel --dist-dir wheelhouse
 
 twine check wheelhouse/*.whl wheelhouse/*/*.whl
