@@ -8,6 +8,6 @@ include LICENSE
 include README.rst
 exclude .editorconfig
 exclude build-wheels.sh
-exclude pyproject.toml
+include pyproject.toml
 exclude pytest.ini
 exclude tox.ini
