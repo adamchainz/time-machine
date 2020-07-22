@@ -40,6 +40,14 @@ Use **pip**:
 
 Python 3.6 to 3.8 supported (CPython only).
 
+----
+
+**Testing a Django project?**
+Check out my book `Speed Up Your Django Tests <https://gumroad.com/l/suydt>`__ which covers loads of best practices so you can write faster, more accurate tests.
+I created time-machine whilst writing the book.
+
+----
+
 Usage
 =====
 
