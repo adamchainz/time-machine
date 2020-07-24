@@ -6,9 +6,8 @@ import uuid
 from types import GeneratorType
 from unittest import TestCase, mock
 
-from dateutil.parser import parse as parse_datetime
-
 import _time_machine
+from dateutil.parser import parse as parse_datetime
 
 # time.clock_gettime and time.CLOCK_REALTIME not always available
 # e.g. on builds against old macOS = official Python.org installer
