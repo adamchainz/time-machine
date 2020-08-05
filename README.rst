@@ -156,6 +156,9 @@ When used as a context manager, time is mocked during the ``with`` block:
 
 .. code-block:: python
 
+    import time
+    import time_machine
+
     def test_in_the_deep_past():
         with time_machine.travel(0.0):
             assert 0.0 < time.time() < 1.0
@@ -196,6 +199,7 @@ For example:
 .. code-block:: python
 
     import datetime as dt
+    import time
     import time_machine
 
     with time_machine.travel(0, tick=False) as traveller:
@@ -216,6 +220,7 @@ For example:
 .. code-block:: python
 
     import datetime as dt
+    import time
     import time_machine
 
     with time_machine.travel(0, tick=False) as traveller:
