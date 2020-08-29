@@ -88,6 +88,7 @@ def test_datetime_utcnow():
         assert now.minute == 0
         assert now.second == 0
         assert now.microsecond == 0
+        assert now.tzinfo is None
     assert dt.datetime.utcnow() >= LIBRARY_EPOCH_DATETIME
 
 

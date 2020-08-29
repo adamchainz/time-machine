@@ -206,7 +206,7 @@ def utcnow():
     if not coordinates_stack:
         return _time_machine.original_utcnow()
     else:
-        return dt.datetime.fromtimestamp(time(), dt.timezone.utc)
+        return dt.datetime.utcfromtimestamp(time())
 
 
 # time module

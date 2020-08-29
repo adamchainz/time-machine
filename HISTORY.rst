@@ -1,6 +1,12 @@
 History
 =======
 
+* Correctly return naive datetimes from ``datetime.utcnow()`` whilst time
+  travelling.
+
+  Thanks to Søren Pilgård and Bart Van Loon for the report in
+  `Issue #52 <https://github.com/adamchainz/time-machine/issues/52>`__.
+
 1.2.0 (2020-07-08)
 ------------------
 
