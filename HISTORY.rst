@@ -1,6 +1,9 @@
 History
 =======
 
+1.2.1 (2020-08-29)
+------------------
+
 * Correctly return naive datetimes from ``datetime.utcnow()`` whilst time
   travelling.
 
