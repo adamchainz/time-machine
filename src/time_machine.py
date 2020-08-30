@@ -126,7 +126,8 @@ class travel:
             uuid_uuid_create_patcher.start()
 
         coordinates = Coordinates(
-            destination_timestamp=self.destination_timestamp, tick=self.tick,
+            destination_timestamp=self.destination_timestamp,
+            tick=self.tick,
         )
         coordinates_stack.append(coordinates)
         return coordinates
