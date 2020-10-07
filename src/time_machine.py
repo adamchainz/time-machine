@@ -45,8 +45,14 @@ def destination_to_timestamp(destination):
 
 
 class Coordinates:
-    def __init__(self, destination_timestamp: float, tick: bool):
+    def __init__(
+        self,
+        destination_timestamp: float,
+        tz_offset: float,
+        tick: bool,
+    ):
         self.destination_timestamp = destination_timestamp
+        self.tz_offset = tz_offset
         self._tick = tick
         self.requested = False
 
@@ -62,6 +68,9 @@ class Coordinates:
         return self.destination_timestamp + (
             _time_machine.original_time() - self.real_start_timestamp
         )
+
+    def localtime(self):
+        return self.time() + self.tz_offset
 
     def shift(self, delta):
         if isinstance(delta, dt.timedelta):
@@ -110,9 +119,11 @@ class travel:
             if not isinstance(tz_offset, (float, int)):
                 raise TypeError(f"Unsupported tz_offset {tz_offset!r}")
 
-            destination_timestamp += tz_offset
+        if tz_offset is None:
+            tz_offset = 0
 
         self.destination_timestamp = destination_timestamp
+        self.tz_offset = tz_offset
         self.tick = tick
 
     def start(self):
@@ -127,6 +138,7 @@ class travel:
 
         coordinates = Coordinates(
             destination_timestamp=self.destination_timestamp,
+            tz_offset=self.tz_offset,
             tick=self.tick,
         )
         coordinates_stack.append(coordinates)
@@ -200,7 +212,7 @@ def now(tz=None):
     if not coordinates_stack:
         return _time_machine.original_now(tz)
     else:
-        return dt.datetime.fromtimestamp(time(), tz)
+        return dt.datetime.fromtimestamp(time_with_offset(), tz)
 
 
 def utcnow():
@@ -236,7 +248,7 @@ def gmtime(secs=None):
 def localtime(secs=None):
     if not coordinates_stack or secs is not None:
         return _time_machine.original_localtime(secs)
-    return _time_machine.original_localtime(coordinates_stack[-1].time())
+    return _time_machine.original_localtime(coordinates_stack[-1].localtime())
 
 
 def strftime(format, t=None):
@@ -251,6 +263,12 @@ def time():
     if not coordinates_stack:
         return _time_machine.original_time()
     return coordinates_stack[-1].time()
+
+
+def time_with_offset():
+    if not coordinates_stack:
+        return _time_machine.original_time()
+    return coordinates_stack[-1].localtime()
 
 
 if sys.version_info >= (3, 7):

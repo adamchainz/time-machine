@@ -405,12 +405,24 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
 
 def test_tz_offset_float():
     with time_machine.travel(EPOCH, tz_offset=3600.0):
-        assert time.time() == EPOCH + 3600.0
+        assert time.time() == EPOCH
+
+    with time_machine.travel(EPOCH, tz_offset=3600.0):
+        assert dt.datetime.utcnow() == dt.datetime(1970, 1, 1, 0, 0, 0)
+
+    with time_machine.travel(EPOCH, tz_offset=3600.0):
+        assert dt.datetime.now() == dt.datetime(1970, 1, 1, 1, 0, 0)
 
 
 def test_tz_offset_timedelta():
     with time_machine.travel(EPOCH, tz_offset=dt.timedelta(hours=5.5)):
-        assert time.time() == EPOCH + (5.5 * 3600.0)
+        assert time.time() == EPOCH
+
+    with time_machine.travel(EPOCH, tz_offset=dt.timedelta(hours=5.5)):
+        assert dt.datetime.utcnow() == dt.datetime(1970, 1, 1, 0, 0, 0)
+
+    with time_machine.travel(EPOCH, tz_offset=dt.timedelta(hours=5.5)):
+        assert dt.datetime.now() == dt.datetime(1970, 1, 1, 5, 30, 0)
 
 
 def test_tz_offset_unsupported_type():
