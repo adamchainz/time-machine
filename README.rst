@@ -5,7 +5,7 @@ time-machine
 .. image:: https://img.shields.io/github/workflow/status/adamchainz/time-machine/CI/master?style=for-the-badge
    :target: https://github.com/adamchainz/time-machine/actions?workflow=CI
 
-.. image:: https://coveralls.io/repos/adamchainz/time-machine/badge.svg
+.. image:: https://img.shields.io/coveralls/github/adamchainz/django-mysql/master?style=for-the-badge
   :target: https://coveralls.io/r/adamchainz/time-machine
 
 .. image:: https://img.shields.io/pypi/v/time-machine.svg?style=for-the-badge
