@@ -33,9 +33,13 @@ docker run --rm -e PLAT=manylinux2010_x86_64 -v "$(pwd)":/io quay.io/pypa/manyli
 find wheelhouse -iname '*manylinux*manylinux*' -delete
 
 # macOS wheels
+PIP_REQUIRE_VIRTUALENV='' python3.6 -m pip install -U pip wheel
 python3.6 setup.py bdist_wheel --dist-dir wheelhouse
+PIP_REQUIRE_VIRTUALENV='' python3.7 -m pip install -U pip wheel
 python3.7 setup.py bdist_wheel --dist-dir wheelhouse
+PIP_REQUIRE_VIRTUALENV='' python3.8 -m pip install -U pip wheel
 python3.8 setup.py bdist_wheel --dist-dir wheelhouse
+PIP_REQUIRE_VIRTUALENV='' python3.9 -m pip install -U pip wheel
 python3.9 setup.py bdist_wheel --dist-dir wheelhouse
 
 twine check wheelhouse/*.whl wheelhouse/*/*.whl
