@@ -333,7 +333,7 @@ There are a few differences:
 * freezegun's ``tick()`` method has been implemented as ``shift()``, to avoid confusion with the ``tick`` argument.
   It also requires an explicit delta rather than defaulting to 1 second.
 
-Some features aren't supported like the ``auto_tick_seconds`` argument, or the ``move_to()`` method.
+Some features aren't supported like the ``auto_tick_seconds`` argument.
 These may be added in a future release.
 
 If you are only fairly simple function calls, you should be able to migrate by replacing calls to ``freezegun.freeze_time()`` and ``libfaketime.fake_time()`` with ``time_machine.travel()``.
