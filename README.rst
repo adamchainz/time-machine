@@ -27,9 +27,9 @@ A quick example:
     import datetime as dt
     import time_machine
 
-    @time_machine.travel("1955-11-05 01:22")
+    @time_machine.travel("1985-10-26 01:24")
     def test_delorean():
-        assert dt.date.today().isoformat() == "1955-11-05"
+        assert dt.date.today().isoformat() == "1985-10-26"
 
 For a bit of background, see `the introductory blog post <https://adamj.eu/tech/2020/06/03/introducing-time-machine/>`__.
 
@@ -116,10 +116,10 @@ For example:
     import datetime as dt
     import time_machine
 
-    traveller = time_machine.travel(dt.datetime(1955, 11, 5))
+    traveller = time_machine.travel(dt.datetime(1985, 10, 26))
     traveller.start()
     # It's the past!
-    assert dt.date.today() == dt.date(1955, 11, 5)
+    assert dt.date.today() == dt.date(1985, 10, 26)
     traveller.stop()
     # We've gone back to the future!
     assert dt.date.today() > dt.date(2020, 4, 29)
