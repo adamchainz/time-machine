@@ -113,8 +113,13 @@ def test_date_today():
 @py_have_clock_gettime
 def test_time_clock_gettime_realtime():
     with time_machine.travel(EPOCH + 180.0):
-        assert time.clock_gettime(time.CLOCK_REALTIME) == EPOCH + 180.0
-    assert time.clock_gettime(time.CLOCK_REALTIME) >= LIBRARY_EPOCH
+        now = time.clock_gettime(time.CLOCK_REALTIME)
+        assert isinstance(now, float)
+        assert now == EPOCH + 180.0
+
+    now = time.clock_gettime(time.CLOCK_REALTIME)
+    assert isinstance(now, float)
+    assert now >= LIBRARY_EPOCH
 
 
 @py_have_clock_gettime
@@ -122,8 +127,12 @@ def test_time_clock_gettime_monotonic_unaffected():
     start = time.clock_gettime(time.CLOCK_MONOTONIC)
     with time_machine.travel(EPOCH + 180.0):
         frozen = time.clock_gettime(time.CLOCK_MONOTONIC)
+        assert isinstance(frozen, float)
         assert frozen > start
-    assert time.clock_gettime(time.CLOCK_MONOTONIC) > frozen
+
+    now = time.clock_gettime(time.CLOCK_MONOTONIC)
+    assert isinstance(now, float)
+    assert now > frozen
 
 
 @py_3_7_plus
@@ -131,12 +140,14 @@ def test_time_clock_gettime_monotonic_unaffected():
 def test_time_clock_gettime_ns_realtime():
     with time_machine.travel(EPOCH + 190.0):
         first = time.clock_gettime_ns(time.CLOCK_REALTIME)
+        assert isinstance(first, int)
         assert first == int((EPOCH + 190.0) * NANOSECONDS_PER_SECOND)
         second = time.clock_gettime_ns(time.CLOCK_REALTIME)
         assert first < second < int((EPOCH + 191.0) * NANOSECONDS_PER_SECOND)
-    assert time.clock_gettime_ns(time.CLOCK_REALTIME) >= int(
-        LIBRARY_EPOCH * NANOSECONDS_PER_SECOND
-    )
+
+    now = time.clock_gettime_ns(time.CLOCK_REALTIME)
+    assert isinstance(now, int)
+    assert now >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
 
 
 @py_3_7_plus
@@ -145,8 +156,12 @@ def test_time_clock_gettime_ns_monotonic_unaffected():
     start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
     with time_machine.travel(EPOCH + 190.0):
         frozen = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+        assert isinstance(frozen, int)
         assert frozen > start
-    assert time.clock_gettime_ns(time.CLOCK_MONOTONIC) > frozen
+
+    now = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+    assert isinstance(now, int)
+    assert now > frozen
 
 
 def test_time_gmtime_no_args():
@@ -219,10 +234,14 @@ def test_time_strftime_arg():
 def test_time_time():
     with time_machine.travel(EPOCH):
         first = time.time()
+        assert isinstance(first, float)
         assert first == EPOCH
         second = time.time()
         assert first < second < EPOCH + 1.0
-    assert time.time() >= LIBRARY_EPOCH
+
+    now = time.time()
+    assert isinstance(now, float)
+    assert now >= LIBRARY_EPOCH
 
 
 def test_time_time_no_tick():
@@ -234,10 +253,14 @@ def test_time_time_no_tick():
 def test_time_time_ns():
     with time_machine.travel(EPOCH + 150.0):
         first = time.time_ns()
+        assert isinstance(first, int)
         assert first == int((EPOCH + 150.0) * NANOSECONDS_PER_SECOND)
         second = time.time_ns()
         assert first < second < int((EPOCH + 151.0) * NANOSECONDS_PER_SECOND)
-    assert time.time_ns() >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
+
+    now = time.time_ns()
+    assert isinstance(now, int)
+    assert now >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
 
 
 @py_3_7_plus

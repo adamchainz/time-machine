@@ -46,22 +46,37 @@ def destination_to_timestamp(destination):
 
 class Coordinates:
     def __init__(self, destination_timestamp: float, tick: bool):
-        self.destination_timestamp = destination_timestamp
+        self.destination_timestamp_ns = int(
+            destination_timestamp * NANOSECONDS_PER_SECOND
+        )
         self._tick = tick
         self.requested = False
 
     def time(self):
+        return self.time_ns() / NANOSECONDS_PER_SECOND
+
+    def time_ns(self):
         if not self._tick:
-            return self.destination_timestamp
+            return self.destination_timestamp_ns
+
+        now_ns = self._time_ns()
 
         if not self.requested:
             self.requested = True
-            self.real_start_timestamp = _time_machine.original_time()
-            return self.destination_timestamp
+            self.real_start_timestamp_ns = now_ns
+            return self.destination_timestamp_ns
 
-        return self.destination_timestamp + (
-            _time_machine.original_time() - self.real_start_timestamp
-        )
+        return self.destination_timestamp_ns + (now_ns - self.real_start_timestamp_ns)
+
+    if sys.version_info >= (3, 7):
+
+        def _time_ns(self):
+            return _time_machine.original_time_ns()
+
+    else:
+
+        def _time_ns(self):
+            return _time_machine.original_time() * NANOSECONDS_PER_SECOND
 
     def shift(self, delta):
         if isinstance(delta, dt.timedelta):
@@ -71,10 +86,12 @@ class Coordinates:
         else:
             raise TypeError(f"Unsupported type for delta argument: {delta!r}")
 
-        self.destination_timestamp += total_seconds
+        self.destination_timestamp_ns += total_seconds * NANOSECONDS_PER_SECOND
 
     def move_to(self, destination):
-        self.destination_timestamp = destination_to_timestamp(destination)
+        self.destination_timestamp_ns = (
+            destination_to_timestamp(destination) * NANOSECONDS_PER_SECOND
+        )
 
 
 coordinates_stack = []
@@ -259,4 +276,4 @@ if sys.version_info >= (3, 7):
         if not coordinates_stack:
             return _time_machine.original_time_ns()
         else:
-            return int(coordinates_stack[-1].time() * NANOSECONDS_PER_SECOND)
+            return coordinates_stack[-1].time_ns()
