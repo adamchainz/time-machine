@@ -484,29 +484,30 @@ def test_shift_when_tick():
 
 
 def test_move_to_datetime():
-    with time_machine.travel(EPOCH, tick=False) as traveller:
+    with time_machine.travel(EPOCH) as traveller:
         assert time.time() == EPOCH
+
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
+
+        first = time.time()
+        assert first == EPOCH_PLUS_ONE_YEAR
+
+        second = time.time()
+        assert first < second < first + 1.0
+
+
+def test_move_to_datetime_no_tick():
+    with time_machine.travel(EPOCH, tick=False) as traveller:
         traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
         assert time.time() == EPOCH_PLUS_ONE_YEAR
-
-
-def test_move_to_datetime_when_tick():
-    with time_machine.travel(EPOCH, tick=True) as traveller:
-        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
-        assert EPOCH_PLUS_ONE_YEAR <= time.time() < EPOCH_PLUS_ONE_YEAR + 1.0
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
 
 
 def test_move_to_past_datetime():
-    with time_machine.travel(EPOCH_PLUS_ONE_YEAR, tick=False) as traveller:
+    with time_machine.travel(EPOCH_PLUS_ONE_YEAR) as traveller:
         assert time.time() == EPOCH_PLUS_ONE_YEAR
         traveller.move_to(EPOCH_DATETIME)
         assert time.time() == EPOCH
-
-
-def test_move_to_past_datetime_when_tick():
-    with time_machine.travel(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=True) as traveller:
-        traveller.move_to(EPOCH)
-        assert EPOCH <= time.time() < EPOCH + 1.0
 
 
 # uuid tests
