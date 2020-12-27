@@ -26,6 +26,11 @@ try:
 except ImportError:
     ZoneInfo = None
 
+try:
+    import pytest
+except ImportError:
+    pytest = None
+
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
 
@@ -305,3 +310,28 @@ if sys.version_info >= (3, 7):
             return _time_machine.original_time_ns()
         else:
             return coordinates_stack[-1].time_ns()
+
+
+# pytest plugin
+
+if pytest is not None:
+
+    @pytest.fixture(name="time_machine")
+    def time_machine_fixture():
+        traveller = None
+        coordinates = None
+
+        class _fixture:
+            def move_to(self, destination):
+                nonlocal coordinates, traveller
+                if traveller is None:
+                    traveller = travel(destination)
+                    coordinates = traveller.start()
+                else:
+                    coordinates.move_to(destination)
+
+        try:
+            yield _fixture()
+        finally:
+            if traveller is not None:
+                traveller.stop()

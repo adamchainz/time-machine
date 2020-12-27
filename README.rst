@@ -279,6 +279,28 @@ For example:
         traveller.shift(-dt.timedelta(seconds=10))
         assert time.time() == 90
 
+pytest plugin
+-------------
+
+time-machine also works as a pytest plugin.
+It provides a function-scoped fixture called ``time_machine`` that has one method, ``move_to()``, which has the same signature as ``Coordinates.move_to()``.
+This can be used to mock your test at different points in time and will automatically be un-mock when the test is torn down.
+
+For example:
+
+.. code-block:: python
+
+    import datetime as dt
+
+    def test_delorean(time_machine):
+        time_machine.move_to(dt.datetime(1985, 10, 26))
+
+        assert dt.date.today().isoformat() == "1985-10-26"
+
+        time_machine.move_to(dt.datetime(2015, 10, 21))
+
+        assert dt.date.today().isoformat() == "2015-10-21"
+
 Caveats
 =======
 

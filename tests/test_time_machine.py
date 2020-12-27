@@ -606,3 +606,23 @@ def test_uuid1():
 
     with time_machine.travel(destination, tick=False):
         assert time_from_uuid1(uuid.uuid1()) == destination
+
+
+# pytest plugin tests
+
+
+def test_fixture_unused(time_machine):
+    assert time.time() >= LIBRARY_EPOCH
+
+
+def test_fixture_used(time_machine):
+    time_machine.move_to(EPOCH)
+    assert time.time() == EPOCH
+
+
+def test_fixture_used_twice(time_machine):
+    time_machine.move_to(EPOCH)
+    assert time.time() == EPOCH
+
+    time_machine.move_to(EPOCH_PLUS_ONE_YEAR)
+    assert time.time() == EPOCH_PLUS_ONE_YEAR
