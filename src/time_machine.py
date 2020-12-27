@@ -46,27 +46,27 @@ def destination_to_timestamp(destination):
 
 class Coordinates:
     def __init__(self, destination_timestamp: float, tick: bool):
-        self.destination_timestamp_ns = int(
+        self._destination_timestamp_ns = int(
             destination_timestamp * NANOSECONDS_PER_SECOND
         )
         self._tick = tick
-        self.requested = False
+        self._requested = False
 
     def time(self):
         return self.time_ns() / NANOSECONDS_PER_SECOND
 
     def time_ns(self):
         if not self._tick:
-            return self.destination_timestamp_ns
+            return self._destination_timestamp_ns
 
         now_ns = self._time_ns()
 
-        if not self.requested:
-            self.requested = True
-            self.real_start_timestamp_ns = now_ns
-            return self.destination_timestamp_ns
+        if not self._requested:
+            self._requested = True
+            self._real_start_timestamp_ns = now_ns
+            return self._destination_timestamp_ns
 
-        return self.destination_timestamp_ns + (now_ns - self.real_start_timestamp_ns)
+        return self._destination_timestamp_ns + (now_ns - self._real_start_timestamp_ns)
 
     if sys.version_info >= (3, 7):
 
@@ -86,12 +86,13 @@ class Coordinates:
         else:
             raise TypeError(f"Unsupported type for delta argument: {delta!r}")
 
-        self.destination_timestamp_ns += total_seconds * NANOSECONDS_PER_SECOND
+        self._destination_timestamp_ns += total_seconds * NANOSECONDS_PER_SECOND
 
     def move_to(self, destination):
-        self.destination_timestamp_ns = (
+        self._destination_timestamp_ns = (
             destination_to_timestamp(destination) * NANOSECONDS_PER_SECOND
         )
+        self._requested = False
 
 
 coordinates_stack = []
