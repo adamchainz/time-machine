@@ -2,6 +2,7 @@
 History
 =======
 
+* Release now includes wheels for Windows and macOS.
 * Move internal calculations to use nanoseconds, avoiding a loss of precision.
 * After a call to ``move_to()``, the first function call to retrieve the
   current time will return exactly the destination time, copying the behaviour
