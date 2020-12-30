@@ -18,7 +18,7 @@ jobs:
         - macos-latest
 
     env:
-      CIBW_BUILD: "cp36-*,cp37-*,cp38-*,cp39-*"
+      CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-*"
 
     steps:
       - uses: actions/checkout@v2
