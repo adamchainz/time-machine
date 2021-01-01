@@ -56,8 +56,8 @@ I created time-machine whilst writing the book.
 Usage
 =====
 
-``travel(destination, *, tick=True, tz_offset=None)``
------------------------------------------------------
+``travel(destination, *, tick=True, timezone=None)``
+----------------------------------------------------
 
 ``travel()`` is a class that allows time travel, to the datetime specified by ``destination``.
 It does so by mocking all functions from Python's standard library that return the current date or datetime.
@@ -83,9 +83,13 @@ If ``True``, the default, successive calls to mocked functions return values inc
 So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
 The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
 
-``tz_offset`` allows you to offset the given destination.
-It may be a ``timedelta`` or a number of seconds, which will be added to destination.
-It may be negative.
+``timezone`` specifies the timezone to change to.
+This works on `Unix only <https://docs.python.org/3/library/intro.html#availability>`__.
+It may be:
+
+* A string in the format as described in `the time.tzset documentation <https://docs.python.org/3/library/time.html#time.tzset>`__.
+* A number of hours.
+* A ``timedelta``.
 
 Mocked Functions
 ^^^^^^^^^^^^^^^^
