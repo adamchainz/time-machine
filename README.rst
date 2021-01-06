@@ -6,7 +6,7 @@ time-machine
    :target: https://github.com/adamchainz/time-machine/actions?workflow=CI
 
 .. image:: https://img.shields.io/coveralls/github/adamchainz/django-mysql/master?style=for-the-badge
-  :target: https://coveralls.io/r/adamchainz/time-machine
+  :target: https://app.codecov.io/gh/adamchainz/time-machine
 
 .. image:: https://img.shields.io/pypi/v/time-machine.svg?style=for-the-badge
    :target: https://pypi.org/project/time-machine/
