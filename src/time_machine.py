@@ -118,19 +118,8 @@ else:
 
 
 class travel:
-    def __init__(self, destination, *, tick=True, tz_offset=None):
-        destination_timestamp = destination_to_timestamp(destination)
-
-        if tz_offset is not None:
-            if isinstance(tz_offset, dt.timedelta):
-                tz_offset = tz_offset.total_seconds()
-
-            if not isinstance(tz_offset, (float, int)):
-                raise TypeError(f"Unsupported tz_offset {tz_offset!r}")
-
-            destination_timestamp += tz_offset
-
-        self.destination_timestamp = destination_timestamp
+    def __init__(self, destination, *, tick=True):
+        self.destination_timestamp = destination_to_timestamp(destination)
         self.tick = tick
 
     def start(self):

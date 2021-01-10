@@ -329,7 +329,7 @@ Migrating from libfaketime or freezegun
 =======================================
 
 freezegun has a useful API, and python-libfaketime copies some of it, with a different function name.
-time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, ``tick``, and ``tz_offset`` arguments, and the ``shift()`` method.
+time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, and ``tick`` arguments, and the ``shift()`` method.
 There are a few differences:
 
 * time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses between function calls, and should normally be tested as such.
