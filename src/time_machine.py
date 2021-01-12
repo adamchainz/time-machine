@@ -1,8 +1,10 @@
 import datetime as dt
 import functools
 import inspect
+import os
 import sys
 import uuid
+from time import tzset
 from types import GeneratorType
 from unittest import TestCase, mock
 
@@ -42,6 +44,17 @@ def destination_to_timestamp(destination):
         raise TypeError(f"Unsupported destination {destination!r}")
 
     return destination_timestamp
+
+
+def timezone_to_name(timezone):
+    if timezone is None:
+        return None
+    elif isinstance(timezone, str):
+        name = timezone
+    else:
+        raise TypeError(f"Unsupported timezone {timezone!r}")
+
+    return name
 
 
 class Coordinates:
@@ -118,8 +131,9 @@ else:
 
 
 class travel:
-    def __init__(self, destination, *, tick=True):
+    def __init__(self, destination, *, timezone=None, tick=True):
         self.destination_timestamp = destination_to_timestamp(destination)
+        self.timezone_name = timezone_to_name(timezone)
         self.tick = tick
 
     def start(self):
@@ -137,11 +151,24 @@ class travel:
             tick=self.tick,
         )
         coordinates_stack.append(coordinates)
+
+        if self.timezone_name is not None:
+            self.orig_tz = os.environ.get("TZ")
+            os.environ["TZ"] = self.timezone_name
+            tzset()
+
         return coordinates
 
     def stop(self):
         global coordinates_stack
         coordinates_stack = coordinates_stack[:-1]
+
+        if self.timezone_name is not None:
+            if self.orig_tz is None:
+                del os.environ["TZ"]
+            else:
+                os.environ["TZ"] = self.orig_tz
+            tzset()
 
         if not coordinates_stack:
             uuid_generate_time_patcher.stop()

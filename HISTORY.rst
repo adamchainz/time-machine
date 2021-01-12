@@ -7,8 +7,9 @@ History
 * After a call to ``move_to()``, the first function call to retrieve the
   current time will return exactly the destination time, copying the behaviour
   of the first call to ``travel()``.
+* Added the ``timezone`` argument. This can mock the current timezone on Unix.
 * Remove ``tz_offset`` argument. This was incorrectly copied from
-  ``freezegun``.
+  ``freezegun``. Use the new ``timezone`` argument instead.
 
 1.3.0 (2020-12-12)
 ------------------

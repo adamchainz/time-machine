@@ -423,6 +423,48 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
         pass
 
 
+# timezone tests
+
+
+def test_timezone_string():
+    orig_timezone = time.timezone
+    orig_altzone = time.altzone
+    orig_tzname = time.tzname
+    orig_daylight = time.daylight
+
+    with time_machine.travel(LIBRARY_EPOCH, timezone="Africa/Addis_Ababa"):
+        assert time.timezone == -3 * 3600
+        assert time.altzone == -3 * 3600
+        assert time.tzname == ("EAT", "EAT")
+        assert time.daylight == 0
+
+        assert time.localtime() == time.struct_time(
+            (
+                2020,
+                4,
+                29,
+                2,
+                0,
+                0,
+                2,
+                120,
+                0,
+            )
+        )
+
+    assert time.timezone == orig_timezone
+    assert time.altzone == orig_altzone
+    assert time.tzname == orig_tzname
+    assert time.daylight == orig_daylight
+
+
+def test_timezone_unsupported_type():
+    with pytest.raises(TypeError) as excinfo:
+        time_machine.travel(LIBRARY_EPOCH, timezone=[])
+
+    assert excinfo.value.args == ("Unsupported timezone []",)
+
+
 # shift() tests
 
 

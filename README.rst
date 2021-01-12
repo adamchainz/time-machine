@@ -83,13 +83,9 @@ If ``True``, the default, successive calls to mocked functions return values inc
 So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
 The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
 
-``timezone`` specifies the timezone to change to.
-This works on `Unix only <https://docs.python.org/3/library/intro.html#availability>`__.
-It may be:
-
-* A string in the format as described in `the time.tzset documentation <https://docs.python.org/3/library/time.html#time.tzset>`__.
-* A number of hours.
-* A ``timedelta``.
+``timezone`` specifies the timezone to change to, via ``time.tzset()`` (only available on Unix).
+This should be a string in one of the formats described in `the time.tzset documentation <https://docs.python.org/3/library/time.html#time.tzset>`__
+It’s normally most convenient to use a timezone name, such as ``'Africa/Addis_Ababa'``.
 
 Mocked Functions
 ^^^^^^^^^^^^^^^^
