@@ -270,7 +270,7 @@ It's also impossible to mock certain references, such as function default argume
         for book in books:
             ...
 
-Although this is rare, it's often used to optimize repeat loops.
+Although such references are rare, they are occasionally used to optimize highly repeated loops.
 
 freezegun
 ---------
@@ -301,10 +301,9 @@ This is a mechanism to replace system libraries for a program as it loads (`expl
 This causes two issues in particular when you use python-libfaketime.
 
 First, ``LD_PRELOAD`` is only available on Unix platforms, which prevents you from using it on Windows.
-This can be a complete blocker for many teams.
 
 Second, you have to help manage ``LD_PRELOAD``.
-You either use python-libfaketime's `reexec_if_needed()` function, which restarts (re-execs) your test process while loading, or manually manage the ``LD_PRELOAD`` environment variable.
+You either use python-libfaketime's ``reexec_if_needed()`` function, which restarts (*re-execs*) your test process while loading, or manually manage the ``LD_PRELOAD`` environment variable.
 Neither is ideal.
 Re-execing breaks anything that might wrap your test process, such as profilers, debuggers, and IDE test runners.
 Manually managing the environment variable is a bit of overhead, and must be done for each environment you run your tests in, including each developer's machine.
