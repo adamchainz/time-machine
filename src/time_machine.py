@@ -4,6 +4,7 @@ import inspect
 import os
 import sys
 import uuid
+from time import gmtime as orig_gmtime
 from time import tzset
 from types import GeneratorType
 from typing import Optional
@@ -32,6 +33,22 @@ except ImportError:  # pragma: no cover
     pytest = None
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
+
+# Windows' time epoch is not unix epoch but in 1601. This constant helps us
+# translate to it.
+_system_epoch = orig_gmtime(0)
+SYSTEM_EPOCH_TIMESTAMP_NS = int(
+    dt.datetime(
+        _system_epoch.tm_year,
+        _system_epoch.tm_mon,
+        _system_epoch.tm_mday,
+        _system_epoch.tm_hour,
+        _system_epoch.tm_min,
+        _system_epoch.tm_sec,
+        tzinfo=dt.timezone.utc,
+    ).timestamp()
+    * NANOSECONDS_PER_SECOND
+)
 
 
 def extract_timestamp_tzname(destination):
@@ -82,14 +99,15 @@ class Coordinates:
         if not self._tick:
             return self._destination_timestamp_ns
 
+        base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
         now_ns = self._time_ns()
 
         if not self._requested:
             self._requested = True
             self._real_start_timestamp_ns = now_ns
-            return self._destination_timestamp_ns
+            return base
 
-        return self._destination_timestamp_ns + (now_ns - self._real_start_timestamp_ns)
+        return base + (now_ns - self._real_start_timestamp_ns)
 
     if sys.version_info >= (3, 7):
 

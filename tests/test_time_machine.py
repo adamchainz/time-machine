@@ -4,7 +4,7 @@ import sys
 import time
 import uuid
 from importlib.util import module_from_spec, spec_from_file_location
-from unittest import SkipTest, TestCase
+from unittest import SkipTest, TestCase, mock
 
 import pytest
 from dateutil import tz
@@ -247,6 +247,25 @@ def test_time_time():
     now = time.time()
     assert isinstance(now, float)
     assert now >= LIBRARY_EPOCH
+
+
+windows_epoch_in_posix = -11_644_445_222
+
+
+@mock.patch.object(
+    time_machine,
+    "SYSTEM_EPOCH_TIMESTAMP_NS",
+    (windows_epoch_in_posix * NANOSECONDS_PER_SECOND),
+)
+def test_time_time_windows():
+    with time_machine.travel(EPOCH):
+        first = time.time()
+        assert isinstance(first, float)
+        assert first == windows_epoch_in_posix
+
+        second = time.time()
+        assert isinstance(second, float)
+        assert windows_epoch_in_posix < second < windows_epoch_in_posix + 1.0
 
 
 def test_time_time_no_tick():
