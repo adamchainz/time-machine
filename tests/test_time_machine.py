@@ -343,6 +343,23 @@ def test_destination_datetime_tzinfo_zoneinfo():
     assert time.daylight == orig_daylight
 
 
+@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+def test_destination_datetime_tzinfo_zoneinfo_nested():
+    orig_tzname = time.tzname
+
+    dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+    with time_machine.travel(dest):
+        assert time.tzname == ("EAT", "EAT")
+
+        dest2 = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Pacific/Auckland"))
+        with time_machine.travel(dest2):
+            assert time.tzname == ("NZST", "NZDT")
+
+        assert time.tzname == ("EAT", "EAT")
+
+    assert time.tzname == orig_tzname
+
+
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
 def test_destination_datetime_naive():
     assert time.time() == EPOCH + 120.0
