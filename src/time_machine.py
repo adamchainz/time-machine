@@ -28,7 +28,7 @@ except ImportError:
 
 try:
     import pytest
-except ImportError:
+except ImportError:  # pragma: no cover
     pytest = None
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
@@ -314,7 +314,7 @@ if sys.version_info >= (3, 7):
 
 # pytest plugin
 
-if pytest is not None:
+if pytest is not None:  # pragma: no branch
 
     @pytest.fixture(name="time_machine")
     def time_machine_fixture():
