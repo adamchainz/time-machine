@@ -11,6 +11,11 @@ from dateutil import tz
 
 import time_machine
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
 EPOCH = EPOCH_DATETIME.timestamp()
@@ -300,8 +305,59 @@ def test_destination_datetime():
 
 
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=tz.gettz("America/Chicago")))
-def test_destination_datetime_timezone():
+def test_destination_datetime_tzinfo_non_zoneinfo():
     assert time.time() == EPOCH + 21600.0
+
+
+@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+def test_destination_datetime_tzinfo_zoneinfo():
+    orig_timezone = time.timezone
+    orig_altzone = time.altzone
+    orig_tzname = time.tzname
+    orig_daylight = time.daylight
+
+    dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+    with time_machine.travel(dest):
+        assert time.timezone == -3 * 3600
+        assert time.altzone == -3 * 3600
+        assert time.tzname == ("EAT", "EAT")
+        assert time.daylight == 0
+
+        assert time.localtime() == time.struct_time(
+            (
+                2020,
+                4,
+                29,
+                0,
+                0,
+                0,
+                2,
+                120,
+                0,
+            )
+        )
+
+    assert time.timezone == orig_timezone
+    assert time.altzone == orig_altzone
+    assert time.tzname == orig_tzname
+    assert time.daylight == orig_daylight
+
+
+@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+def test_destination_datetime_tzinfo_zoneinfo_nested():
+    orig_tzname = time.tzname
+
+    dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+    with time_machine.travel(dest):
+        assert time.tzname == ("EAT", "EAT")
+
+        dest2 = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Pacific/Auckland"))
+        with time_machine.travel(dest2):
+            assert time.tzname == ("NZST", "NZDT")
+
+        assert time.tzname == ("EAT", "EAT")
+
+    assert time.tzname == orig_tzname
 
 
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
@@ -423,27 +479,6 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
         pass
 
 
-# tz_offset tests
-
-
-def test_tz_offset_float():
-    with time_machine.travel(EPOCH, tz_offset=3600.0):
-        assert time.time() == EPOCH + 3600.0
-
-
-def test_tz_offset_timedelta():
-    with time_machine.travel(EPOCH, tz_offset=dt.timedelta(hours=5.5)):
-        assert time.time() == EPOCH + (5.5 * 3600.0)
-
-
-def test_tz_offset_unsupported_type():
-    with pytest.raises(TypeError) as excinfo:
-        with time_machine.travel(EPOCH, tz_offset="something"):
-            pass
-
-    assert excinfo.value.args == ("Unsupported tz_offset 'something'",)
-
-
 # shift() tests
 
 
@@ -508,6 +543,50 @@ def test_move_to_past_datetime():
         assert time.time() == EPOCH_PLUS_ONE_YEAR
         traveller.move_to(EPOCH_DATETIME)
         assert time.time() == EPOCH
+
+
+@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+def test_move_to_datetime_with_tzinfo_zoneinfo():
+    orig_timezone = time.timezone
+    orig_altzone = time.altzone
+    orig_tzname = time.tzname
+    orig_daylight = time.daylight
+
+    with time_machine.travel(EPOCH) as traveller:
+        assert time.time() == EPOCH
+        assert time.timezone == orig_timezone
+        assert time.altzone == orig_altzone
+        assert time.tzname == orig_tzname
+        assert time.daylight == orig_daylight
+
+        dest = EPOCH_PLUS_ONE_YEAR_DATETIME.replace(
+            tzinfo=ZoneInfo("Africa/Addis_Ababa")
+        )
+        traveller.move_to(dest)
+
+        assert time.timezone == -3 * 3600
+        assert time.altzone == -3 * 3600
+        assert time.tzname == ("EAT", "EAT")
+        assert time.daylight == 0
+
+        assert time.localtime() == time.struct_time(
+            (
+                1971,
+                1,
+                1,
+                0,
+                0,
+                0,
+                4,
+                1,
+                0,
+            )
+        )
+
+    assert time.timezone == orig_timezone
+    assert time.altzone == orig_altzone
+    assert time.tzname == orig_tzname
+    assert time.daylight == orig_daylight
 
 
 # uuid tests

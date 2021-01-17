@@ -1,9 +1,12 @@
 import datetime as dt
 import functools
 import inspect
+import os
 import sys
 import uuid
+from time import tzset
 from types import GeneratorType
+from typing import Optional
 from unittest import TestCase, mock
 
 import _time_machine
@@ -17,38 +20,53 @@ except ImportError:
     # Dummy value that won't compare equal to any value
     CLOCK_REALTIME = float("inf")
 
+try:
+    # Python 3.8+ or have installed backports.zoneinfo
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
 
-def destination_to_timestamp(destination):
+def extract_timestamp_tzname(destination):
     if callable(destination):
         destination = destination()
     elif isinstance(destination, GeneratorType):
         destination = next(destination)
 
+    tzname = None
     if isinstance(destination, (int, float)):
-        destination_timestamp = destination
+        timestamp = destination
     elif isinstance(destination, dt.datetime):
+        if ZoneInfo is not None and isinstance(destination.tzinfo, ZoneInfo):
+            tzname = destination.tzinfo.key
         if destination.tzinfo is None:
             destination = destination.replace(tzinfo=dt.timezone.utc)
-        destination_timestamp = destination.timestamp()
+        timestamp = destination.timestamp()
     elif isinstance(destination, dt.date):
-        destination_timestamp = dt.datetime.combine(
+        timestamp = dt.datetime.combine(
             destination, dt.time(0, 0), tzinfo=dt.timezone.utc
         ).timestamp()
     elif isinstance(destination, str):
-        destination_timestamp = parse_datetime(destination).timestamp()
+        timestamp = parse_datetime(destination).timestamp()
     else:
         raise TypeError(f"Unsupported destination {destination!r}")
 
-    return destination_timestamp
+    return timestamp, tzname
 
 
 class Coordinates:
-    def __init__(self, destination_timestamp: float, tick: bool):
+    def __init__(
+        self,
+        destination_timestamp: float,
+        destination_tzname: Optional[str],
+        tick: bool,
+    ):
         self._destination_timestamp_ns = int(
             destination_timestamp * NANOSECONDS_PER_SECOND
         )
+        self._destination_tzname = destination_tzname
         self._tick = tick
         self._requested = False
 
@@ -89,10 +107,25 @@ class Coordinates:
         self._destination_timestamp_ns += total_seconds * NANOSECONDS_PER_SECOND
 
     def move_to(self, destination):
-        self._destination_timestamp_ns = (
-            destination_to_timestamp(destination) * NANOSECONDS_PER_SECOND
-        )
+        self._stop()
+        timestamp, self._destination_tzname = extract_timestamp_tzname(destination)
+        self._destination_timestamp_ns = timestamp * NANOSECONDS_PER_SECOND
         self._requested = False
+        self._start()
+
+    def _start(self):
+        if self._destination_tzname is not None:
+            self._orig_tz = os.environ.get("TZ")
+            os.environ["TZ"] = self._destination_tzname
+            tzset()
+
+    def _stop(self):
+        if self._destination_tzname is not None:
+            if self._orig_tz is None:
+                del os.environ["TZ"]
+            else:
+                os.environ["TZ"] = self._orig_tz
+            tzset()
 
 
 coordinates_stack = []
@@ -118,19 +151,10 @@ else:
 
 
 class travel:
-    def __init__(self, destination, *, tick=True, tz_offset=None):
-        destination_timestamp = destination_to_timestamp(destination)
-
-        if tz_offset is not None:
-            if isinstance(tz_offset, dt.timedelta):
-                tz_offset = tz_offset.total_seconds()
-
-            if not isinstance(tz_offset, (float, int)):
-                raise TypeError(f"Unsupported tz_offset {tz_offset!r}")
-
-            destination_timestamp += tz_offset
-
-        self.destination_timestamp = destination_timestamp
+    def __init__(self, destination, *, tick=True):
+        self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
+            destination
+        )
         self.tick = tick
 
     def start(self):
@@ -145,14 +169,17 @@ class travel:
 
         coordinates = Coordinates(
             destination_timestamp=self.destination_timestamp,
+            destination_tzname=self.destination_tzname,
             tick=self.tick,
         )
         coordinates_stack.append(coordinates)
+        coordinates._start()
+
         return coordinates
 
     def stop(self):
         global coordinates_stack
-        coordinates_stack = coordinates_stack[:-1]
+        coordinates_stack.pop()._stop()
 
         if not coordinates_stack:
             uuid_generate_time_patcher.stop()

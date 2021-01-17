@@ -7,6 +7,9 @@ History
 * After a call to ``move_to()``, the first function call to retrieve the
   current time will return exactly the destination time, copying the behaviour
   of the first call to ``travel()``.
+* Add the ability to shift timezone by passing in a ``ZoneInfo`` timezone.
+* Remove ``tz_offset`` argument. This was incorrectly copied from
+  ``freezegun``. Use the new timezone mocking with ``ZoneInfo`` instead.
 
 1.3.0 (2020-12-12)
 ------------------

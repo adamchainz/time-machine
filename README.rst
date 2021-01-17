@@ -25,9 +25,12 @@ A quick example:
 .. code-block:: python
 
     import datetime as dt
+    from zoneinfo import ZoneInfo
     import time_machine
 
-    @time_machine.travel("1985-10-26 01:24")
+    hill_valley_tz = ZoneInfo("America/Los_Angeles")
+
+    @time_machine.travel(dt.datetime(1985, 10, 26, 1, 24, tzinfo=hill_valley_tz))
     def test_delorean():
         assert dt.date.today().isoformat() == "1985-10-26"
 
@@ -56,8 +59,8 @@ I created time-machine whilst writing the book.
 Usage
 =====
 
-``travel(destination, *, tick=True, tz_offset=None)``
------------------------------------------------------
+``travel(destination, *, tick=True)``
+-------------------------------------
 
 ``travel()`` is a class that allows time travel, to the datetime specified by ``destination``.
 It does so by mocking all functions from Python's standard library that return the current date or datetime.
@@ -68,10 +71,14 @@ It may be:
 
 * A ``datetime.datetime``.
   If it is naive, it will be assumed to have the UTC timezone.
+  If it has ``tzinfo`` set to a |zoneinfo-instance|_, the current timezone will also be mocked.
 * A ``datetime.date``.
   This will be converted to a UTC datetime with the time 00:00:00.
 * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
 * A string, which will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
+
+.. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance
+.. _zoneinfo-instance: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
 
 Additionally, you can provide some more complex types:
 
@@ -82,10 +89,6 @@ Additionally, you can provide some more complex types:
 If ``True``, the default, successive calls to mocked functions return values increasing by the elapsed real time *since the first call.*
 So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
 The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
-
-``tz_offset`` allows you to offset the given destination.
-It may be a ``timedelta`` or a number of seconds, which will be added to destination.
-It may be negative.
 
 Mocked Functions
 ^^^^^^^^^^^^^^^^
@@ -186,6 +189,45 @@ When applied as a class decorator to such classes, time is mocked from the start
             assert 0.0 < time.time() < 1.0
 
 Note this is different to ``unittest.mock.patch()``\'s behaviour, which is to mock only during the test methods.
+
+Timezone mocking
+^^^^^^^^^^^^^^^^
+
+If the ``destination`` passed to ``time_machine.travel()`` or ``Coordinates.move_to()`` has its ``tzinfo`` set to a |zoneinfo-instance2|_, the current timezone will be mocked.
+This will be done by calling |time-tzset|_, so it is only available on Unix.
+The ``zoneinfo`` module is new in Python 3.8 - on older Python versions use the |backports-zoneinfo-package|_, by the original ``zoneinfo`` author.
+
+.. |zoneinfo-instance2| replace:: ``zoneinfo.ZoneInfo`` instance
+.. _zoneinfo-instance2: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
+
+.. |time-tzset| replace:: ``time.tzset()``
+.. _time-tzset: https://docs.python.org/3/library/time.html#time.tzset
+
+.. |backports-zoneinfo-package| replace:: ``backports.zoneinfo`` package
+.. _backports-zoneinfo-package: https://pypi.org/project/backports.zoneinfo/
+
+``time.tzset()`` changes the ``time`` module’s `timezone constants <https://docs.python.org/3/library/time.html#timezone-constants>`__ and features that rely on those, such as ``time.localtime()``.
+It won’t affect other concepts of “the current timezone”, such as Django’s (which can be changed with its |timezone-override|_).
+
+.. |timezone-override| replace:: ``time.override()``
+.. _timezone-override: https://docs.djangoproject.com/en/stable/ref/utils/#django.utils.timezone.override
+
+Here’s a worked example changing the current timezone:
+
+.. code-block:: python
+
+    import datetime as dt
+    import time
+    from zoneinfo import ZoneInfo
+    import time_machine
+
+    hill_valley_tz = ZoneInfo("America/Los_Angeles")
+
+    @time_machine.travel(dt.datetime(2015, 10, 21, 16, 29, tzinfo=hill_valley_tz))
+    def test_hoverboard_era():
+        assert time.tzname == ("PST", "PDT")
+        now = dt.datetime.now()
+        assert (now.hour, now.minute) == (16, 29)
 
 ``Coordinates``
 ---------------
@@ -324,13 +366,16 @@ Migrating from libfaketime or freezegun
 =======================================
 
 freezegun has a useful API, and python-libfaketime copies some of it, with a different function name.
-time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, ``tick``, and ``tz_offset`` arguments, and the ``shift()`` method.
+time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, and ``tick`` arguments, and the ``shift()`` method.
 There are a few differences:
 
 * time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses between function calls, and should normally be tested as such.
   Testing with time frozen can make it easy to write complete assertions, but it's quite artificial.
 * freezegun's ``tick()`` method has been implemented as ``shift()``, to avoid confusion with the ``tick`` argument.
   It also requires an explicit delta rather than defaulting to 1 second.
+* freezegun's ``tz_offset`` argument only partially mocks the current time zone.
+  Time zones are more complicated than a single offset from UTC, and freezegun only uses the offset in ``time.localtime()``.
+  Instead, time-machine will mock the current time zone if you give it a ``datetime`` with a ``ZoneInfo`` timezone.
 
 Some features aren't supported like the ``auto_tick_seconds`` argument.
 These may be added in a future release.
