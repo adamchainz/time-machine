@@ -10,6 +10,7 @@ History
 * Add the ability to shift timezone by passing in a ``ZoneInfo`` timezone.
 * Remove ``tz_offset`` argument. This was incorrectly copied from
   ``freezegun``. Use the new timezone mocking with ``ZoneInfo`` instead.
+* Add pytest plugin and fixture ``time_machine``.
 
 1.3.0 (2020-12-12)
 ------------------
