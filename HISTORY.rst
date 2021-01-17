@@ -2,6 +2,9 @@
 History
 =======
 
+2.0.0 (2021-01-17)
+------------------
+
 * Release now includes wheels for Windows and macOS.
 * Move internal calculations to use nanoseconds, avoiding a loss of precision.
 * After a call to ``move_to()``, the first function call to retrieve the
