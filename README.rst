@@ -194,7 +194,8 @@ Timezone mocking
 ^^^^^^^^^^^^^^^^
 
 If the ``destination`` passed to ``time_machine.travel()`` or ``Coordinates.move_to()`` has its ``tzinfo`` set to a |zoneinfo-instance2|_, the current timezone will be mocked.
-This will be done by calling |time-tzset|_ (only available on Unix) and thus affects the ``time`` module’s `timezone constants <https://docs.python.org/3/library/time.html#timezone-constants>`__ and features that rely on those, such as ``time.localtime()``.
+This will be done by calling |time-tzset|_, so it is only available on Unix.
+The ``zoneinfo`` module is new in Python 3.8 - on older Python versions use the |backports-zoneinfo-package|_, by the original ``zoneinfo`` author.
 
 .. |zoneinfo-instance2| replace:: ``zoneinfo.ZoneInfo`` instance
 .. _zoneinfo-instance2: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
@@ -202,7 +203,11 @@ This will be done by calling |time-tzset|_ (only available on Unix) and thus aff
 .. |time-tzset| replace:: ``time.tzset()``
 .. _time-tzset: https://docs.python.org/3/library/time.html#time.tzset
 
-time-machine won’t affect other concepts of “the current timezone”, such as Django’s (which can be changed with its |timezone-override|_).
+.. |backports-zoneinfo-package| replace:: ``backports.zoneinfo`` package
+.. _backports-zoneinfo-package: https://pypi.org/project/backports.zoneinfo/
+
+``time.tzset()`` changes the ``time`` module’s `timezone constants <https://docs.python.org/3/library/time.html#timezone-constants>`__ and features that rely on those, such as ``time.localtime()``.
+It won’t affect other concepts of “the current timezone”, such as Django’s (which can be changed with its |timezone-override|_).
 
 .. |timezone-override| replace:: ``time.override()``
 .. _timezone-override: https://docs.djangoproject.com/en/stable/ref/utils/#django.utils.timezone.override
