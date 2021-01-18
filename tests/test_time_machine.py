@@ -379,6 +379,17 @@ def test_destination_datetime_tzinfo_zoneinfo_nested():
     assert time.tzname == orig_tzname
 
 
+@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+def test_destination_datetime_tzinfo_zoneinfo_windows():
+    orig_timezone = time.timezone
+
+    pretend_windows_no_tzset = mock.patch.object(time_machine, "tzset", new=None)
+
+    dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+    with pretend_windows_no_tzset, time_machine.travel(dest):
+        assert time.timezone == orig_timezone
+
+
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
 def test_destination_datetime_naive():
     assert time.time() == EPOCH + 120.0

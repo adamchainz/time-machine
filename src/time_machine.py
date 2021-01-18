@@ -5,7 +5,6 @@ import os
 import sys
 import uuid
 from time import gmtime as orig_gmtime
-from time import tzset
 from types import GeneratorType
 from typing import Optional
 from unittest import TestCase, mock
@@ -20,6 +19,12 @@ try:
 except ImportError:
     # Dummy value that won't compare equal to any value
     CLOCK_REALTIME = float("inf")
+
+try:
+    from time import tzset
+except ImportError:  # pragma: no cover
+    # Windows
+    tzset = None
 
 try:
     # Python 3.8+ or have installed backports.zoneinfo
@@ -137,13 +142,13 @@ class Coordinates:
         self._start()
 
     def _start(self):
-        if self._destination_tzname is not None:
+        if tzset is not None and self._destination_tzname is not None:
             self._orig_tz = os.environ.get("TZ")
             os.environ["TZ"] = self._destination_tzname
             tzset()
 
     def _stop(self):
-        if self._destination_tzname is not None:
+        if tzset is not None and self._destination_tzname is not None:
             if self._orig_tz is None:
                 del os.environ["TZ"]
             else:
