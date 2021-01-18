@@ -2,6 +2,8 @@
 History
 =======
 
+* Prevent ``ImportError`` on Windows where ``time.tzset()`` is unavailable.
+
 2.0.0 (2021-01-17)
 ------------------
 
