@@ -346,6 +346,34 @@ Call time.time_ns() after patching.");
 
 #endif
 
+/* time.monotonic() */
+
+static PyObject*
+_time_machine_monotonic(PyObject *self, PyObject *args)
+{
+    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    PyObject *time_machine_monotonic = PyObject_GetAttrString(time_machine_module, "monotonic");
+
+    PyObject* result = PyObject_CallObject(time_machine_monotonic, args);
+
+    Py_DECREF(time_machine_monotonic);
+    Py_DECREF(time_machine_module);
+
+    return result;
+}
+
+PyCFunction original_monotonic = NULL;
+
+static PyObject*
+_time_machine_original_monotonic(PyObject *self, PyObject *args)
+{
+    return original_monotonic(self, args);
+}
+PyDoc_STRVAR(original_monotonic_doc,
+"original_monotonic() -> floating point number\n\
+\n\
+Call time.monotonic() after patching.");
+
 static PyObject*
 _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
 {
@@ -427,6 +455,11 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     time_time_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_time_ns);
 #endif
+
+    PyCFunctionObject *time_monotonic = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "monotonic");
+    original_monotonic = time_monotonic->m_ml->ml_meth;
+    time_monotonic->m_ml->ml_meth = _time_machine_monotonic;
+    Py_DECREF(time_monotonic);
 
     Py_DECREF(time_module);
 

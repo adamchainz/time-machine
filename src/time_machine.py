@@ -335,6 +335,13 @@ if sys.version_info >= (3, 7):
             return coordinates_stack[-1].time_ns()
 
 
+def monotonic():
+    return 0.0
+    # if not coordinates_stack:
+    #     return _time_machine.original_time()
+    # return coordinates_stack[-1].time()
+
+
 # pytest plugin
 
 if pytest is not None:  # pragma: no branch

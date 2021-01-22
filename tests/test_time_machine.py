@@ -656,3 +656,11 @@ def test_fixture_used_twice(time_machine):
 
     time_machine.move_to(EPOCH_PLUS_ONE_YEAR)
     assert time.time() == EPOCH_PLUS_ONE_YEAR
+
+
+def test_monotonic_manual_tick():
+    destination = dt.datetime(2017, 2, 6, 14, 8, 21)
+
+    with time_machine.travel(destination, tick=False):
+        assert time.monotonic() == 0
+        # TODO: run a tick here and check
