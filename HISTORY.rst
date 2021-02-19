@@ -2,6 +2,8 @@
 History
 =======
 
+* Release now includes wheels for ARM on Linux.
+
 2.0.1 (2021-01-18)
 ------------------
 
