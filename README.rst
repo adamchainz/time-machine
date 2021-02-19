@@ -34,7 +34,7 @@ A quick example:
     def test_delorean():
         assert dt.date.today().isoformat() == "1985-10-26"
 
-For a bit of background, see `the introductory blog post <https://adamj.eu/tech/2020/06/03/introducing-time-machine/>`__.
+For a bit of background, see `the introductory blog post <https://adamj.eu/tech/2020/06/03/introducing-time-machine/>`__ and `the benchmark blog post <https://adamj.eu/tech/2021/02/19/freezegun-versus-time-machine/>`__.
 
 Installation
 ============
