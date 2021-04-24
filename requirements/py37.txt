@@ -62,9 +62,9 @@ coverage==5.5 \
     --hash=sha256:f0b278ce10936db1a37e6954e15a3730bea96a0997c26d7fee88e6c396c2086d \
     --hash=sha256:f11642dddbb0253cc8853254301b51390ba0081750a8ac03f20ea8103f0c56b6
     # via -r requirements.in
-importlib-metadata==4.0.0 \
-    --hash=sha256:19192b88d959336bfa6bdaaaef99aeafec179eca19c47c804e555703ee5f07ef \
-    --hash=sha256:2e881981c9748d7282b374b68e759c87745c25427b67ecf0cc67fb6637a1bff9
+importlib-metadata==4.0.1 \
+    --hash=sha256:8c501196e49fb9df5df43833bdb1e4328f64847763ec8a50703148b73784d581 \
+    --hash=sha256:d7eb1dea6d6a6086f8be21784cc9e3bcfa55872b52309bc5fad53a8ea444465d
     # via
     #   pluggy
     #   pytest
