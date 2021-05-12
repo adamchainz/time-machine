@@ -164,8 +164,14 @@ static PyObject*
 _time_machine_original_clock_gettime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *time_module = PyImport_ImportModule("time");
-    return state->original_clock_gettime(time_module, args);
+
+    PyObject* result = state->original_clock_gettime(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
 }
 PyDoc_STRVAR(original_clock_gettime_doc,
 "original_clock_gettime() -> floating point number\n\
@@ -193,8 +199,14 @@ static PyObject*
 _time_machine_original_clock_gettime_ns(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *time_module = PyImport_ImportModule("time");
-    return state->original_clock_gettime_ns(time_module, args);
+
+    PyObject* result = state->original_clock_gettime_ns(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
 }
 PyDoc_STRVAR(original_clock_gettime_ns_doc,
 "original_clock_gettime_ns() -> floating point number\n\
@@ -223,8 +235,14 @@ static PyObject*
 _time_machine_original_gmtime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *time_module = PyImport_ImportModule("time");
-    return state->original_gmtime(time_module, args);
+
+    PyObject* result = state->original_gmtime(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
 }
 PyDoc_STRVAR(original_gmtime_doc,
 "original_gmtime() -> floating point number\n\
@@ -251,8 +269,14 @@ static PyObject*
 _time_machine_original_localtime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *time_module = PyImport_ImportModule("time");
-    return state->original_localtime(time_module, args);
+
+    PyObject* result = state->original_localtime(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
 }
 PyDoc_STRVAR(original_localtime_doc,
 "original_localtime() -> floating point number\n\
@@ -279,8 +303,14 @@ static PyObject*
 _time_machine_original_strftime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *time_module = PyImport_ImportModule("time");
-    return state->original_strftime(time_module, args);
+
+    PyObject* result = state->original_strftime(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
 }
 PyDoc_STRVAR(original_strftime_doc,
 "original_strftime() -> floating point number\n\
@@ -307,8 +337,14 @@ static PyObject*
 _time_machine_original_time(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *time_module = PyImport_ImportModule("time");
-    return state->original_time(time_module, args);
+
+    PyObject* result = state->original_time(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
 }
 PyDoc_STRVAR(original_time_doc,
 "original_time() -> floating point number\n\
@@ -336,8 +372,14 @@ static PyObject*
 _time_machine_original_time_ns(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *time_module = PyImport_ImportModule("time");
-    return state->original_time_ns(time_module, args);
+
+    PyObject* result = state->original_time_ns(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
 }
 PyDoc_STRVAR(original_time_ns_doc,
 "original_time_ns() -> floating point number\n\
