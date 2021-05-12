@@ -2,6 +2,9 @@
 History
 =======
 
+* Convert C module to use PEP 489 multi-phase extension module initialization.
+  This makes the module ready for Python sub-interpreters.
+
 * Stop distributing tests to reduce package size. Tests are not intended to be
   run outside of the tox setup in the repository. Repackagers can use GitHub's
   tarballs per tag.
