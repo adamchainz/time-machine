@@ -2,6 +2,35 @@
 #include <stdlib.h>
 #include <limits.h>
 
+// Module state
+typedef struct {
+#if PY_VERSION_HEX >= 0x03070000
+    _PyCFunctionFastWithKeywords original_now;
+#else
+    _PyCFunctionFast original_now;
+#endif
+    PyCFunction original_utcnow;
+    PyCFunction original_clock_gettime;
+#if PY_VERSION_HEX >= 0x03070000
+    PyCFunction original_clock_gettime_ns;
+#endif
+    PyCFunction original_gmtime;
+    PyCFunction original_localtime;
+    PyCFunction original_strftime;
+    PyCFunction original_time;
+#if PY_VERSION_HEX >= 0x03070000
+    PyCFunction original_time_ns;
+#endif
+} _time_machine_state;
+
+static inline _time_machine_state*
+get_time_machine_state(PyObject *module)
+{
+    void *state = PyModule_GetState(module);
+    assert(state != NULL);
+    return (_time_machine_state *)state;
+}
+
 /* datetime.datetime.now() */
 
 /*
@@ -55,23 +84,19 @@ exit:
     return result;
 }
 
-#if PY_VERSION_HEX >= 0x03070000
-_PyCFunctionFastWithKeywords original_now = NULL;
-#else
-_PyCFunctionFast original_now = NULL;
-#endif
-
 static PyObject*
 #if PY_VERSION_HEX >= 0x03070000
-_time_machine_original_now(PyTypeObject *type, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+_time_machine_original_now(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 #else
-_time_machine_original_now(PyTypeObject *type, PyObject **args, Py_ssize_t nargs, PyObject *kwnames)
+_time_machine_original_now(PyObject *module, PyObject **args, Py_ssize_t nargs, PyObject *kwnames)
 #endif
 {
+    _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *datetime_module = PyImport_ImportModule("datetime");
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
 
-    PyObject* result = original_now(datetime_class, args, nargs, kwnames);
+    PyObject* result = state->original_now(datetime_class, args, nargs, kwnames);
 
     Py_DECREF(datetime_class);
     Py_DECREF(datetime_module);
@@ -99,15 +124,15 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
     return result;
 }
 
-PyCFunction original_utcnow = NULL;
-
 static PyObject*
-_time_machine_original_utcnow(PyObject *cls, PyObject *args)
+_time_machine_original_utcnow(PyObject *module, PyObject *args)
 {
+    _time_machine_state *state = get_time_machine_state(module);
+
     PyObject *datetime_module = PyImport_ImportModule("datetime");
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
 
-    PyObject* result = original_utcnow(datetime_class, args);
+    PyObject* result = state->original_utcnow(datetime_class, args);
 
     Py_DECREF(datetime_class);
     Py_DECREF(datetime_module);
@@ -135,12 +160,12 @@ _time_machine_clock_gettime(PyObject *self, PyObject *args)
     return result;
 }
 
-PyCFunction original_clock_gettime = NULL;
-
 static PyObject*
-_time_machine_original_clock_gettime(PyObject *self, PyObject *args)
+_time_machine_original_clock_gettime(PyObject *module, PyObject *args)
 {
-    return original_clock_gettime(self, args);
+    _time_machine_state *state = get_time_machine_state(module);
+    PyObject *time_module = PyImport_ImportModule("time");
+    return state->original_clock_gettime(time_module, args);
 }
 PyDoc_STRVAR(original_clock_gettime_doc,
 "original_clock_gettime() -> floating point number\n\
@@ -164,12 +189,12 @@ _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
     return result;
 }
 
-PyCFunction original_clock_gettime_ns = NULL;
-
 static PyObject*
-_time_machine_original_clock_gettime_ns(PyObject *self, PyObject *args)
+_time_machine_original_clock_gettime_ns(PyObject *module, PyObject *args)
 {
-    return original_clock_gettime_ns(self, args);
+    _time_machine_state *state = get_time_machine_state(module);
+    PyObject *time_module = PyImport_ImportModule("time");
+    return state->original_clock_gettime_ns(time_module, args);
 }
 PyDoc_STRVAR(original_clock_gettime_ns_doc,
 "original_clock_gettime_ns() -> floating point number\n\
@@ -194,12 +219,12 @@ _time_machine_gmtime(PyObject *self, PyObject *args)
     return result;
 }
 
-PyCFunction original_gmtime = NULL;
-
 static PyObject*
-_time_machine_original_gmtime(PyObject *self, PyObject *args)
+_time_machine_original_gmtime(PyObject *module, PyObject *args)
 {
-    return original_gmtime(self, args);
+    _time_machine_state *state = get_time_machine_state(module);
+    PyObject *time_module = PyImport_ImportModule("time");
+    return state->original_gmtime(time_module, args);
 }
 PyDoc_STRVAR(original_gmtime_doc,
 "original_gmtime() -> floating point number\n\
@@ -222,12 +247,12 @@ _time_machine_localtime(PyObject *self, PyObject *args)
     return result;
 }
 
-PyCFunction original_localtime = NULL;
-
 static PyObject*
-_time_machine_original_localtime(PyObject *self, PyObject *args)
+_time_machine_original_localtime(PyObject *module, PyObject *args)
 {
-    return original_localtime(self, args);
+    _time_machine_state *state = get_time_machine_state(module);
+    PyObject *time_module = PyImport_ImportModule("time");
+    return state->original_localtime(time_module, args);
 }
 PyDoc_STRVAR(original_localtime_doc,
 "original_localtime() -> floating point number\n\
@@ -250,12 +275,12 @@ _time_machine_strftime(PyObject *self, PyObject *args)
     return result;
 }
 
-PyCFunction original_strftime = NULL;
-
 static PyObject*
-_time_machine_original_strftime(PyObject *self, PyObject *args)
+_time_machine_original_strftime(PyObject *module, PyObject *args)
 {
-    return original_strftime(self, args);
+    _time_machine_state *state = get_time_machine_state(module);
+    PyObject *time_module = PyImport_ImportModule("time");
+    return state->original_strftime(time_module, args);
 }
 PyDoc_STRVAR(original_strftime_doc,
 "original_strftime() -> floating point number\n\
@@ -278,12 +303,12 @@ _time_machine_time(PyObject *self, PyObject *args)
     return result;
 }
 
-PyCFunction original_time = NULL;
-
 static PyObject*
-_time_machine_original_time(PyObject *self, PyObject *args)
+_time_machine_original_time(PyObject *module, PyObject *args)
 {
-    return original_time(self, args);
+    _time_machine_state *state = get_time_machine_state(module);
+    PyObject *time_module = PyImport_ImportModule("time");
+    return state->original_time(time_module, args);
 }
 PyDoc_STRVAR(original_time_doc,
 "original_time() -> floating point number\n\
@@ -307,12 +332,12 @@ _time_machine_time_ns(PyObject *self, PyObject *args)
     return result;
 }
 
-PyCFunction original_time_ns = NULL;
-
 static PyObject*
-_time_machine_original_time_ns(PyObject *self, PyObject *args)
+_time_machine_original_time_ns(PyObject *module, PyObject *args)
 {
-    return original_time_ns(self, args);
+    _time_machine_state *state = get_time_machine_state(module);
+    PyObject *time_module = PyImport_ImportModule("time");
+    return state->original_time_ns(time_module, args);
 }
 PyDoc_STRVAR(original_time_ns_doc,
 "original_time_ns() -> floating point number\n\
@@ -322,9 +347,14 @@ Call time.time_ns() after patching.");
 #endif
 
 static PyObject*
-_time_machine_patch_if_needed(PyObject *self, PyObject *unused)
+_time_machine_patch_if_needed(PyObject *module, PyObject *unused)
 {
-    if (original_time)
+    _time_machine_state *state = PyModule_GetState(module);
+    if (state == NULL) {
+        return NULL;
+    }
+
+    if (state->original_time)
         Py_RETURN_NONE;
 
     PyObject *datetime_module = PyImport_ImportModule("datetime");
@@ -332,15 +362,15 @@ _time_machine_patch_if_needed(PyObject *self, PyObject *unused)
 
     PyCFunctionObject *datetime_datetime_now = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "now");
 #if PY_VERSION_HEX >= 0x03070000
-    original_now = (_PyCFunctionFastWithKeywords) datetime_datetime_now->m_ml->ml_meth;
+    state->original_now = (_PyCFunctionFastWithKeywords) datetime_datetime_now->m_ml->ml_meth;
 #else
-    original_now = (_PyCFunctionFast) datetime_datetime_now->m_ml->ml_meth;
+    state->original_now = (_PyCFunctionFast) datetime_datetime_now->m_ml->ml_meth;
 #endif
     datetime_datetime_now->m_ml->ml_meth = (PyCFunction) _time_machine_now;
     Py_DECREF(datetime_datetime_now);
 
     PyCFunctionObject *datetime_datetime_utcnow = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "utcnow");
-    original_utcnow = datetime_datetime_utcnow->m_ml->ml_meth;
+    state->original_utcnow = datetime_datetime_utcnow->m_ml->ml_meth;
     datetime_datetime_utcnow->m_ml->ml_meth = _time_machine_utcnow;
     Py_DECREF(datetime_datetime_utcnow);
 
@@ -357,7 +387,7 @@ _time_machine_patch_if_needed(PyObject *self, PyObject *unused)
         e.g. on builds against old macOS = official Python.org installer
     */
     if (time_clock_gettime != NULL) {
-        original_clock_gettime = time_clock_gettime->m_ml->ml_meth;
+        state->original_clock_gettime = time_clock_gettime->m_ml->ml_meth;
         time_clock_gettime->m_ml->ml_meth = _time_machine_clock_gettime;
         Py_DECREF(time_clock_gettime);
     }
@@ -365,35 +395,35 @@ _time_machine_patch_if_needed(PyObject *self, PyObject *unused)
 #if PY_VERSION_HEX >= 0x03070000
     PyCFunctionObject *time_clock_gettime_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime_ns");
     if (time_clock_gettime_ns != NULL) {
-        original_clock_gettime_ns = time_clock_gettime_ns->m_ml->ml_meth;
+        state->original_clock_gettime_ns = time_clock_gettime_ns->m_ml->ml_meth;
         time_clock_gettime_ns->m_ml->ml_meth = _time_machine_clock_gettime_ns;
         Py_DECREF(time_clock_gettime_ns);
     }
 #endif
 
     PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
-    original_gmtime = time_gmtime->m_ml->ml_meth;
+    state->original_gmtime = time_gmtime->m_ml->ml_meth;
     time_gmtime->m_ml->ml_meth = _time_machine_gmtime;
     Py_DECREF(time_gmtime);
 
     PyCFunctionObject *time_localtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "localtime");
-    original_localtime = time_localtime->m_ml->ml_meth;
+    state->original_localtime = time_localtime->m_ml->ml_meth;
     time_localtime->m_ml->ml_meth = _time_machine_localtime;
     Py_DECREF(time_localtime);
 
     PyCFunctionObject *time_strftime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "strftime");
-    original_strftime = time_strftime->m_ml->ml_meth;
+    state->original_strftime = time_strftime->m_ml->ml_meth;
     time_strftime->m_ml->ml_meth = _time_machine_strftime;
     Py_DECREF(time_strftime);
 
     PyCFunctionObject *time_time = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "time");
-    original_time = time_time->m_ml->ml_meth;
+    state->original_time = time_time->m_ml->ml_meth;
     time_time->m_ml->ml_meth = _time_machine_time;
     Py_DECREF(time_time);
 
 #if PY_VERSION_HEX >= 0x03070000
     PyCFunctionObject *time_time_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "time_ns");
-    original_time_ns = time_time_ns->m_ml->ml_meth;
+    state->original_time_ns = time_time_ns->m_ml->ml_meth;
     time_time_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_time_ns);
 #endif
@@ -411,7 +441,7 @@ Swap in helpers.");
 
 PyDoc_STRVAR(module_doc, "_time_machine module");
 
-static PyMethodDef module_methods[] = {
+static PyMethodDef module_functions[] = {
 #if PY_VERSION_HEX >= 0x03070000
     {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL|METH_KEYWORDS, original_now_doc},
 #else
@@ -433,26 +463,24 @@ static PyMethodDef module_methods[] = {
     {NULL, NULL}  /* sentinel */
 };
 
-static struct PyModuleDef _time_machine_def = {
+static PyModuleDef_Slot _time_machine_slots[] = {
+    {0, NULL}
+};
+
+static struct PyModuleDef _time_machine_module = {
     PyModuleDef_HEAD_INIT,
-    "_time_machine",
-    module_doc,
-    -1,
-    module_methods,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    .m_name = "_time_machine",
+    .m_doc = module_doc,
+    .m_size = sizeof(_time_machine_state),
+    .m_methods = module_functions,
+    .m_slots = _time_machine_slots,
+    .m_traverse = NULL,
+    .m_clear = NULL,
+    .m_free = NULL
 };
 
 PyMODINIT_FUNC
 PyInit__time_machine(void)
 {
-    PyObject *m;
-
-    m = PyModule_Create(&_time_machine_def);
-    if (m == NULL)
-        return NULL;
-
-    return m;
+    return PyModuleDef_Init(&_time_machine_module);
 }
