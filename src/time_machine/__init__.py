@@ -13,8 +13,9 @@ from typing import Generator as TypingGenerator
 from typing import List, Optional, Tuple, Type, Union, overload
 from unittest import TestCase, mock
 
-import _time_machine
 from dateutil.parser import parse as parse_datetime
+
+import _time_machine
 
 # time.clock_gettime and time.CLOCK_REALTIME not always available
 # e.g. on builds against old macOS = official Python.org installer
@@ -384,16 +385,6 @@ def localtime(secs: Optional[float] = None) -> struct_time:
 
 # copied from typeshed:
 _TimeTuple = Tuple[int, int, int, int, int, int, int, int, int]
-
-
-@overload
-def strftime(format: str) -> str:
-    ...
-
-
-@overload
-def strftime(format: str, t: Union[_TimeTuple, struct_time]) -> str:
-    ...
 
 
 def strftime(format: str, t: Union[_TimeTuple, struct_time, None] = None) -> str:
