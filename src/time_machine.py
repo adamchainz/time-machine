@@ -307,7 +307,9 @@ class travel:
                 orig_tearDownClass()
                 self.__exit__(None, None, None)
 
-            wrapped.tearDownClass = classmethod(tearDownClass)  # type: ignore[assignment]
+            wrapped.tearDownClass = classmethod(  # type: ignore[assignment]
+                tearDownClass
+            )
             return wrapped
         elif inspect.iscoroutinefunction(wrapped):
 
@@ -315,7 +317,10 @@ class travel:
             async def wrapper(*args: Any, **kwargs: Any) -> Any:
                 with self:
                     # mypy has not narrowed 'wrapped' to a coroutine function
-                    return await wrapped(*args, **kwargs)  # type: ignore [misc,operator]
+                    return await wrapped(
+                        *args,
+                        **kwargs,
+                    )  # type: ignore [misc,operator]
 
             return wrapper
         else:
@@ -437,7 +442,7 @@ if pytest is not None:  # pragma: no branch
                 self.traveller.stop()
 
     @pytest.fixture(name="time_machine")
-    def time_machine_fixture() -> Generator[TimeMachineFixture, None, None]:
+    def time_machine_fixture() -> TypingGenerator[TimeMachineFixture, None, None]:
         fixture = TimeMachineFixture()
         try:
             yield fixture
