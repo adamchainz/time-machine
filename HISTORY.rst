@@ -2,6 +2,9 @@
 History
 =======
 
+2.2.0 (2021-07-02)
+------------------
+
 * Include type hints.
 
 * Convert C module to use PEP 489 multi-phase extension module initialization.
