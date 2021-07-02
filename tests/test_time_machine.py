@@ -397,6 +397,11 @@ def test_destination_datetime_tzinfo_zoneinfo_windows():
         assert time.timezone == orig_timezone
 
 
+@time_machine.travel(int(EPOCH + 77))
+def test_destination_int():
+    assert time.time() == int(EPOCH + 77)
+
+
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
 def test_destination_datetime_naive():
     assert time.time() == EPOCH + 120.0
