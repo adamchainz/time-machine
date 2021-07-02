@@ -13,8 +13,10 @@ import time_machine
 
 try:
     from zoneinfo import ZoneInfo
+
+    HAVE_ZONEINFO = True
 except ImportError:
-    ZoneInfo = None
+    HAVE_ZONEINFO = False
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
@@ -41,8 +43,10 @@ def test_import_without_clock_realtime():
         spec = spec_from_file_location(
             f"{__name__}.time_machine_without_clock_realtime", time_machine.__file__
         )
+        assert spec is not None
         module = module_from_spec(spec)
-        spec.loader.exec_module(module)
+        # typeshed says exec_module does not always exist:
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
 
     finally:
         time.CLOCK_REALTIME = orig
@@ -305,7 +309,7 @@ def test_nestable():
 
 def test_unsupported_type():
     with pytest.raises(TypeError) as excinfo:
-        with time_machine.travel([]):
+        with time_machine.travel([]):  # type: ignore[arg-type]
             pass
 
     assert excinfo.value.args == ("Unsupported destination []",)
@@ -314,7 +318,9 @@ def test_unsupported_type():
 def test_exceptions_dont_break_it():
     with pytest.raises(ValueError), time_machine.travel(0.0):
         raise ValueError("Hi")
-    with time_machine.travel(0.0):
+    # Unreachable code analysis doesn’t work with raises being caught by
+    # context manager
+    with time_machine.travel(0.0):  # type: ignore[unreachable]
         pass
 
 
@@ -328,7 +334,7 @@ def test_destination_datetime_tzinfo_non_zoneinfo():
     assert time.time() == EPOCH + 21600.0
 
 
-@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_destination_datetime_tzinfo_zoneinfo():
     orig_timezone = time.timezone
     orig_altzone = time.altzone
@@ -362,7 +368,7 @@ def test_destination_datetime_tzinfo_zoneinfo():
     assert time.daylight == orig_daylight
 
 
-@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_destination_datetime_tzinfo_zoneinfo_nested():
     orig_tzname = time.tzname
 
@@ -379,15 +385,21 @@ def test_destination_datetime_tzinfo_zoneinfo_nested():
     assert time.tzname == orig_tzname
 
 
-@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_destination_datetime_tzinfo_zoneinfo_windows():
     orig_timezone = time.timezone
 
     pretend_windows_no_tzset = mock.patch.object(time_machine, "tzset", new=None)
+    mock_have_tzset_false = mock.patch.object(time_machine, "HAVE_TZSET", new=False)
 
     dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
-    with pretend_windows_no_tzset, time_machine.travel(dest):
+    with pretend_windows_no_tzset, mock_have_tzset_false, time_machine.travel(dest):
         assert time.timezone == orig_timezone
+
+
+@time_machine.travel(int(EPOCH + 77))
+def test_destination_int():
+    assert time.time() == int(EPOCH + 77)
 
 
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
@@ -488,6 +500,8 @@ class UnitTestClassTests(TestCase):
 
 @time_machine.travel(EPOCH + 95.0)
 class UnitTestClassCustomSetUpClassTests(TestCase):
+    custom_setupclass_ran: bool
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -534,7 +548,7 @@ def test_shift_negative_delta():
 def test_shift_wrong_delta():
     with time_machine.travel(EPOCH, tick=False) as traveller:
         with pytest.raises(TypeError) as excinfo:
-            traveller.shift(delta="1.1")
+            traveller.shift(delta="1.1")  # type: ignore[arg-type]
 
     assert excinfo.value.args == ("Unsupported type for delta argument: '1.1'",)
 
@@ -575,7 +589,7 @@ def test_move_to_past_datetime():
         assert time.time() == EPOCH
 
 
-@pytest.mark.skipif(ZoneInfo is None, reason="Requires ZoneInfo")
+@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_move_to_datetime_with_tzinfo_zoneinfo():
     orig_timezone = time.timezone
     orig_altzone = time.altzone

@@ -4,9 +4,13 @@ import inspect
 import os
 import sys
 import uuid
+from collections.abc import Generator
 from time import gmtime as orig_gmtime
-from types import GeneratorType
-from typing import Optional
+from time import struct_time
+from types import TracebackType
+from typing import Any, Callable, Coroutine
+from typing import Generator as TypingGenerator
+from typing import List, Optional, Tuple, Type, Union, overload
 from unittest import TestCase, mock
 
 import _time_machine
@@ -18,19 +22,23 @@ try:
     from time import CLOCK_REALTIME
 except ImportError:
     # Dummy value that won't compare equal to any value
-    CLOCK_REALTIME = float("inf")
+    CLOCK_REALTIME = sys.maxsize
 
 try:
     from time import tzset
+
+    HAVE_TZSET = True
 except ImportError:  # pragma: no cover
     # Windows
-    tzset = None
+    HAVE_TZSET = False
 
 try:
     # Python 3.8+ or have installed backports.zoneinfo
     from zoneinfo import ZoneInfo
+
+    HAVE_ZONEINFO = True
 except ImportError:
-    ZoneInfo = None
+    HAVE_ZONEINFO = False
 
 try:
     import pytest
@@ -55,30 +63,51 @@ SYSTEM_EPOCH_TIMESTAMP_NS = int(
     * NANOSECONDS_PER_SECOND
 )
 
+DestinationBaseType = Union[
+    int,
+    float,
+    dt.datetime,
+    dt.date,
+    str,
+]
+DestinationType = Union[
+    DestinationBaseType,
+    Callable[[], DestinationBaseType],
+    TypingGenerator[DestinationBaseType, None, None],
+]
 
-def extract_timestamp_tzname(destination):
-    if callable(destination):
-        destination = destination()
-    elif isinstance(destination, GeneratorType):
-        destination = next(destination)
 
-    tzname = None
-    if isinstance(destination, (int, float)):
-        timestamp = destination
-    elif isinstance(destination, dt.datetime):
-        if ZoneInfo is not None and isinstance(destination.tzinfo, ZoneInfo):
-            tzname = destination.tzinfo.key
-        if destination.tzinfo is None:
-            destination = destination.replace(tzinfo=dt.timezone.utc)
-        timestamp = destination.timestamp()
-    elif isinstance(destination, dt.date):
-        timestamp = dt.datetime.combine(
-            destination, dt.time(0, 0), tzinfo=dt.timezone.utc
-        ).timestamp()
-    elif isinstance(destination, str):
-        timestamp = parse_datetime(destination).timestamp()
+def extract_timestamp_tzname(
+    destination: DestinationType,
+) -> Tuple[float, Union[str, None]]:
+    dest: DestinationBaseType
+    if isinstance(destination, Generator):
+        dest = next(destination)
+    elif callable(destination):
+        dest = destination()
     else:
-        raise TypeError(f"Unsupported destination {destination!r}")
+        dest = destination
+
+    timestamp: float
+    tzname: Optional[str] = None
+    if isinstance(dest, int):
+        timestamp = float(dest)
+    elif isinstance(dest, float):
+        timestamp = dest
+    elif isinstance(dest, dt.datetime):
+        if HAVE_ZONEINFO and isinstance(dest.tzinfo, ZoneInfo):
+            tzname = dest.tzinfo.key
+        if dest.tzinfo is None:
+            dest = dest.replace(tzinfo=dt.timezone.utc)
+        timestamp = dest.timestamp()
+    elif isinstance(dest, dt.date):
+        timestamp = dt.datetime.combine(
+            dest, dt.time(0, 0), tzinfo=dt.timezone.utc
+        ).timestamp()
+    elif isinstance(dest, str):
+        timestamp = parse_datetime(dest).timestamp()
+    else:
+        raise TypeError(f"Unsupported destination {dest!r}")
 
     return timestamp, tzname
 
@@ -89,7 +118,7 @@ class Coordinates:
         destination_timestamp: float,
         destination_tzname: Optional[str],
         tick: bool,
-    ):
+    ) -> None:
         self._destination_timestamp_ns = int(
             destination_timestamp * NANOSECONDS_PER_SECOND
         )
@@ -97,10 +126,10 @@ class Coordinates:
         self._tick = tick
         self._requested = False
 
-    def time(self):
+    def time(self) -> float:
         return self.time_ns() / NANOSECONDS_PER_SECOND
 
-    def time_ns(self):
+    def time_ns(self) -> int:
         if not self._tick:
             return self._destination_timestamp_ns
 
@@ -116,15 +145,15 @@ class Coordinates:
 
     if sys.version_info >= (3, 7):
 
-        def _time_ns(self):
+        def _time_ns(self) -> int:
             return _time_machine.original_time_ns()
 
     else:
 
-        def _time_ns(self):
+        def _time_ns(self) -> int:
             return _time_machine.original_time() * NANOSECONDS_PER_SECOND
 
-    def shift(self, delta):
+    def shift(self, delta: Union[dt.timedelta, int, float]) -> None:
         if isinstance(delta, dt.timedelta):
             total_seconds = delta.total_seconds()
         elif isinstance(delta, (int, float)):
@@ -132,23 +161,23 @@ class Coordinates:
         else:
             raise TypeError(f"Unsupported type for delta argument: {delta!r}")
 
-        self._destination_timestamp_ns += total_seconds * NANOSECONDS_PER_SECOND
+        self._destination_timestamp_ns += int(total_seconds * NANOSECONDS_PER_SECOND)
 
-    def move_to(self, destination):
+    def move_to(self, destination: DestinationType) -> None:
         self._stop()
         timestamp, self._destination_tzname = extract_timestamp_tzname(destination)
-        self._destination_timestamp_ns = timestamp * NANOSECONDS_PER_SECOND
+        self._destination_timestamp_ns = int(timestamp * NANOSECONDS_PER_SECOND)
         self._requested = False
         self._start()
 
-    def _start(self):
-        if tzset is not None and self._destination_tzname is not None:
+    def _start(self) -> None:
+        if HAVE_TZSET and self._destination_tzname is not None:
             self._orig_tz = os.environ.get("TZ")
             os.environ["TZ"] = self._destination_tzname
             tzset()
 
-    def _stop(self):
-        if tzset is not None and self._destination_tzname is not None:
+    def _stop(self) -> None:
+        if HAVE_TZSET and self._destination_tzname is not None:
             if self._orig_tz is None:
                 del os.environ["TZ"]
             else:
@@ -156,7 +185,7 @@ class Coordinates:
             tzset()
 
 
-coordinates_stack = []
+coordinates_stack: List[Coordinates] = []
 
 # During time travel, patch the uuid module's time-based generation function to
 # None, which makes it use time.time(). Otherwise it makes a system call to
@@ -171,7 +200,9 @@ uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
 # We need to cause the functions to be loaded before we try patch them out,
 # which is done by this internal function in Python 3.7+
 if sys.version_info >= (3, 7):
-    uuid_idempotent_load_system_functions = uuid._load_system_functions
+    uuid_idempotent_load_system_functions = (
+        uuid._load_system_functions  # type: ignore[attr-defined]
+    )
 else:
 
     def uuid_idempotent_load_system_functions():
@@ -179,13 +210,13 @@ else:
 
 
 class travel:
-    def __init__(self, destination, *, tick=True):
+    def __init__(self, destination: DestinationType, *, tick: bool = True) -> None:
         self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
             destination
         )
         self.tick = tick
 
-    def start(self):
+    def start(self) -> Coordinates:
         global coordinates_stack
 
         _time_machine.patch_if_needed()
@@ -205,7 +236,7 @@ class travel:
 
         return coordinates
 
-    def stop(self):
+    def stop(self) -> None:
         global coordinates_stack
         coordinates_stack.pop()._stop()
 
@@ -213,14 +244,46 @@ class travel:
             uuid_generate_time_patcher.stop()
             uuid_uuid_create_patcher.stop()
 
-    def __enter__(self):
+    def __enter__(self) -> Coordinates:
         return self.start()
 
-    def __exit__(self, *exc_info):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         self.stop()
 
-    def __call__(self, wrapped):
-        if inspect.isclass(wrapped):
+    @overload
+    def __call__(self, wrapped: Type[TestCase]) -> Type[TestCase]:  # pragma: no cover
+        ...
+
+    @overload
+    def __call__(
+        self, wrapped: Callable[..., Coroutine[Any, Any, Any]]
+    ) -> Callable[..., Coroutine[Any, Any, Any]]:  # pragma: no cover
+        ...
+
+    @overload
+    def __call__(
+        self, wrapped: Callable[..., Any]
+    ) -> Callable[..., Any]:  # pragma: no cover
+        ...
+
+    def __call__(
+        self,
+        wrapped: Union[
+            Type[TestCase],
+            Callable[..., Coroutine[Any, Any, Any]],
+            Callable[..., Any],
+        ],
+    ) -> Union[
+        Type[TestCase],
+        Callable[..., Coroutine[Any, Any, Any]],
+        Callable[..., Any],
+    ]:
+        if isinstance(wrapped, type):
             # Class decorator
             if not issubclass(wrapped, TestCase):
                 raise TypeError("Can only decorate unittest.TestCase subclasses.")
@@ -229,7 +292,7 @@ class travel:
             orig_setUpClass = wrapped.setUpClass
 
             @functools.wraps(orig_setUpClass)
-            def setUpClass(cls):
+            def setUpClass(cls: Type[TestCase]) -> None:
                 self.__enter__()
                 try:
                     orig_setUpClass()
@@ -237,29 +300,36 @@ class travel:
                     self.__exit__(*sys.exc_info())
                     raise
 
-            wrapped.setUpClass = classmethod(setUpClass)
+            wrapped.setUpClass = classmethod(setUpClass)  # type: ignore[assignment]
 
             orig_tearDownClass = wrapped.tearDownClass
 
             @functools.wraps(orig_tearDownClass)
-            def tearDownClass(cls):
+            def tearDownClass(cls: Type[TestCase]) -> None:
                 orig_tearDownClass()
                 self.__exit__(None, None, None)
 
-            wrapped.tearDownClass = classmethod(tearDownClass)
+            wrapped.tearDownClass = classmethod(  # type: ignore[assignment]
+                tearDownClass
+            )
             return wrapped
         elif inspect.iscoroutinefunction(wrapped):
 
             @functools.wraps(wrapped)
-            async def wrapper(*args, **kwargs):
+            async def wrapper(*args: Any, **kwargs: Any) -> Any:
                 with self:
-                    return await wrapped(*args, **kwargs)
+                    # mypy has not narrowed 'wrapped' to a coroutine function
+                    return await wrapped(
+                        *args,
+                        **kwargs,
+                    )  # type: ignore [misc,operator]
 
             return wrapper
         else:
+            assert callable(wrapped)
 
             @functools.wraps(wrapped)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 with self:
                     return wrapped(*args, **kwargs)
 
@@ -269,14 +339,14 @@ class travel:
 # datetime module
 
 
-def now(tz=None):
+def now(tz: Optional[dt.tzinfo] = None) -> dt.datetime:
     if not coordinates_stack:
         return _time_machine.original_now(tz)
     else:
         return dt.datetime.fromtimestamp(time(), tz)
 
 
-def utcnow():
+def utcnow() -> dt.datetime:
     if not coordinates_stack:
         return _time_machine.original_utcnow()
     else:
@@ -286,7 +356,7 @@ def utcnow():
 # time module
 
 
-def clock_gettime(clk_id):
+def clock_gettime(clk_id: int) -> float:
     if not coordinates_stack or clk_id != CLOCK_REALTIME:
         return _time_machine.original_clock_gettime(clk_id)
     return time()
@@ -294,25 +364,29 @@ def clock_gettime(clk_id):
 
 if sys.version_info >= (3, 7):
 
-    def clock_gettime_ns(clk_id):
+    def clock_gettime_ns(clk_id: int) -> int:
         if not coordinates_stack or clk_id != CLOCK_REALTIME:
             return _time_machine.original_clock_gettime_ns(clk_id)
         return time_ns()
 
 
-def gmtime(secs=None):
+def gmtime(secs: Optional[float] = None) -> struct_time:
     if not coordinates_stack or secs is not None:
         return _time_machine.original_gmtime(secs)
     return _time_machine.original_gmtime(coordinates_stack[-1].time())
 
 
-def localtime(secs=None):
+def localtime(secs: Optional[float] = None) -> struct_time:
     if not coordinates_stack or secs is not None:
         return _time_machine.original_localtime(secs)
     return _time_machine.original_localtime(coordinates_stack[-1].time())
 
 
-def strftime(format, t=None):
+# copied from typeshed:
+_TimeTuple = Tuple[int, int, int, int, int, int, int, int, int]
+
+
+def strftime(format: str, t: Union[_TimeTuple, struct_time, None] = None) -> str:
     if t is not None:
         return _time_machine.original_strftime(format, t)
     elif not coordinates_stack:
@@ -320,7 +394,7 @@ def strftime(format, t=None):
     return _time_machine.original_strftime(format, localtime())
 
 
-def time():
+def time() -> float:
     if not coordinates_stack:
         return _time_machine.original_time()
     return coordinates_stack[-1].time()
@@ -328,7 +402,7 @@ def time():
 
 if sys.version_info >= (3, 7):
 
-    def time_ns():
+    def time_ns() -> int:
         if not coordinates_stack:
             return _time_machine.original_time_ns()
         else:
@@ -339,22 +413,30 @@ if sys.version_info >= (3, 7):
 
 if pytest is not None:  # pragma: no branch
 
+    class TimeMachineFixture:
+        traveller: Optional[travel]
+        coordinates: Optional[Coordinates]
+
+        def __init__(self) -> None:
+            self.traveller = None
+            self.coordinates = None
+
+        def move_to(self, destination: DestinationType) -> None:
+            if self.traveller is None:
+                self.traveller = travel(destination)
+                self.coordinates = self.traveller.start()
+            else:
+                assert self.coordinates is not None
+                self.coordinates.move_to(destination)
+
+        def stop(self) -> None:
+            if self.traveller is not None:
+                self.traveller.stop()
+
     @pytest.fixture(name="time_machine")
-    def time_machine_fixture():
-        traveller = None
-        coordinates = None
-
-        class _fixture:
-            def move_to(self, destination):
-                nonlocal coordinates, traveller
-                if traveller is None:
-                    traveller = travel(destination)
-                    coordinates = traveller.start()
-                else:
-                    coordinates.move_to(destination)
-
+    def time_machine_fixture() -> TypingGenerator[TimeMachineFixture, None, None]:
+        fixture = TimeMachineFixture()
         try:
-            yield _fixture()
+            yield fixture
         finally:
-            if traveller is not None:
-                traveller.stop()
+            fixture.stop()
