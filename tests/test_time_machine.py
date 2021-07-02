@@ -390,9 +390,10 @@ def test_destination_datetime_tzinfo_zoneinfo_windows():
     orig_timezone = time.timezone
 
     pretend_windows_no_tzset = mock.patch.object(time_machine, "tzset", new=None)
+    mock_have_tzset_false = mock.patch.object(time_machine, "HAVE_TZSET", new=False)
 
     dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
-    with pretend_windows_no_tzset, time_machine.travel(dest):
+    with pretend_windows_no_tzset, mock_have_tzset_false, time_machine.travel(dest):
         assert time.timezone == orig_timezone
 
 
