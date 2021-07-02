@@ -256,17 +256,19 @@ class travel:
         self.stop()
 
     @overload
-    def __call__(self, wrapped: Type[TestCase]) -> Type[TestCase]:
+    def __call__(self, wrapped: Type[TestCase]) -> Type[TestCase]:  # pragma: no cover
         ...
 
     @overload
     def __call__(
         self, wrapped: Callable[..., Coroutine[Any, Any, Any]]
-    ) -> Callable[..., Coroutine[Any, Any, Any]]:
+    ) -> Callable[..., Coroutine[Any, Any, Any]]:  # pragma: no cover
         ...
 
     @overload
-    def __call__(self, wrapped: Callable[..., Any]) -> Callable[..., Any]:
+    def __call__(
+        self, wrapped: Callable[..., Any]
+    ) -> Callable[..., Any]:  # pragma: no cover
         ...
 
     def __call__(
