@@ -2,6 +2,9 @@
 History
 =======
 
+2.3.0 (2021-07-05)
+------------------
+
 * Allow passing ``tick`` to ``Coordinates.move_to()`` and the pytest fixture’s
   ``time_machine.move_to()``. This allows freezing or unfreezing of time when
   travelling.
