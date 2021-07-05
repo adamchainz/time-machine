@@ -163,12 +163,18 @@ class Coordinates:
 
         self._destination_timestamp_ns += int(total_seconds * NANOSECONDS_PER_SECOND)
 
-    def move_to(self, destination: DestinationType) -> None:
+    def move_to(
+        self,
+        destination: DestinationType,
+        tick: Optional[bool] = None,
+    ) -> None:
         self._stop()
         timestamp, self._destination_tzname = extract_timestamp_tzname(destination)
         self._destination_timestamp_ns = int(timestamp * NANOSECONDS_PER_SECOND)
         self._requested = False
         self._start()
+        if tick is not None:
+            self._tick = tick
 
     def _start(self) -> None:
         if HAVE_TZSET and self._destination_tzname is not None:
@@ -421,13 +427,19 @@ if pytest is not None:  # pragma: no branch
             self.traveller = None
             self.coordinates = None
 
-        def move_to(self, destination: DestinationType) -> None:
+        def move_to(
+            self,
+            destination: DestinationType,
+            tick: Optional[bool] = None,
+        ) -> None:
             if self.traveller is None:
-                self.traveller = travel(destination)
+                if tick is None:
+                    tick = True
+                self.traveller = travel(destination, tick=tick)
                 self.coordinates = self.traveller.start()
             else:
                 assert self.coordinates is not None
-                self.coordinates.move_to(destination)
+                self.coordinates.move_to(destination, tick=tick)
 
         def stop(self) -> None:
             if self.traveller is not None:

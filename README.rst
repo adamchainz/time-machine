@@ -235,11 +235,13 @@ Here’s a worked example changing the current timezone:
 The ``start()`` method and entry of the context manager both return a ``Coordinates`` object that corresponds to the given "trip" in time.
 This has a couple methods that can be used to travel to other times.
 
-``move_to(destination)``
-^^^^^^^^^^^^^^^^^^^^^^^^
+``move_to(destination, tick=None)``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``move_to()`` moves the current time to a new destination.
 ``destination`` may be any of the types supported by ``travel``.
+
+``tick`` may be set to a boolean, to change the ``tick`` flag of ``travel``.
 
 For example:
 

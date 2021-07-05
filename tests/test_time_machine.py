@@ -633,6 +633,20 @@ def test_move_to_datetime_with_tzinfo_zoneinfo():
     assert time.daylight == orig_daylight
 
 
+def test_move_to_datetime_change_tick_on():
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=True)
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+        assert time.time() > EPOCH_PLUS_ONE_YEAR
+
+
+def test_move_to_datetime_change_tick_off():
+    with time_machine.travel(EPOCH, tick=True) as traveller:
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=False)
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+
+
 # uuid tests
 
 
@@ -662,6 +676,19 @@ def test_fixture_unused(time_machine):
 def test_fixture_used(time_machine):
     time_machine.move_to(EPOCH)
     assert time.time() == EPOCH
+
+
+def test_fixture_used_tick_false(time_machine):
+    time_machine.move_to(EPOCH, tick=False)
+    assert time.time() == EPOCH
+    assert time.time() == EPOCH
+
+
+def test_fixture_used_tick_true(time_machine):
+    time_machine.move_to(EPOCH, tick=True)
+    original = time.time()
+    assert original == EPOCH
+    assert original < time.time() < EPOCH + 10.0
 
 
 def test_fixture_used_twice(time_machine):
