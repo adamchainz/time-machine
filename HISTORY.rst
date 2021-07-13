@@ -2,6 +2,9 @@
 History
 =======
 
+2.3.1 (2021-07-13)
+------------------
+
 * Build universal2 wheels for Python 3.8 on macOS.
 
 2.3.0 (2021-07-05)
