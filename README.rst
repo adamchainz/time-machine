@@ -30,6 +30,7 @@ A quick example:
 
     hill_valley_tz = ZoneInfo("America/Los_Angeles")
 
+
     @time_machine.travel(dt.datetime(1985, 10, 26, 1, 24, tzinfo=hill_valley_tz))
     def test_delorean():
         assert dt.date.today().isoformat() == "1985-10-26"
@@ -140,6 +141,7 @@ When used as a function decorator, time is mocked during the wrapped function's 
     import time
     import time_machine
 
+
     @time_machine.travel("1970-01-01 00:00 +0000")
     def test_in_the_deep_past():
         assert 0.0 < time.time() < 1.0
@@ -150,6 +152,7 @@ You can also decorate asynchronous functions (coroutines):
 
     import time
     import time_machine
+
 
     @time_machine.travel("1970-01-01 00:00 +0000")
     async def test_in_the_deep_past():
@@ -167,6 +170,7 @@ When used as a context manager, time is mocked during the ``with`` block:
     import time
     import time_machine
 
+
     def test_in_the_deep_past():
         with time_machine.travel(0.0):
             assert 0.0 < time.time() < 1.0
@@ -182,6 +186,7 @@ When applied as a class decorator to such classes, time is mocked from the start
     import time
     import time_machine
     import unittest
+
 
     @time_machine.travel(0.0)
     class DeepPastTests(TestCase):
@@ -222,6 +227,7 @@ Here’s a worked example changing the current timezone:
     import time_machine
 
     hill_valley_tz = ZoneInfo("America/Los_Angeles")
+
 
     @time_machine.travel(dt.datetime(2015, 10, 21, 16, 29, tzinfo=hill_valley_tz))
     def test_hoverboard_era():
@@ -293,6 +299,7 @@ For example:
 .. code-block:: python
 
     import datetime as dt
+
 
     def test_delorean(time_machine):
         time_machine.move_to(dt.datetime(1985, 10, 26))
