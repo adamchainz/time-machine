@@ -21,5 +21,5 @@ warn_unreachable = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = "test_time_machine"
+module = "tests.*"
 allow_untyped_defs = true
