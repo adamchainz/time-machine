@@ -10,6 +10,14 @@ body:
   validations:
     required: false
 - type: input
+  id: pytest_version
+  attributes:
+    label: pytest Version
+    description: Which version of pytest were you using (if any)?
+    placeholder: 6.2.4
+  validations:
+    required: false
+- type: input
   id: package_version
   attributes:
     label: Package Version
