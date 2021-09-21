@@ -60,12 +60,8 @@ def test_import_without_clock_realtime():
 def test_datetime_now_no_args():
     with time_machine.travel(EPOCH):
         now = dt.datetime.now()
-        assert now.year == 1970
-        assert now.month == 1
-        assert now.day == 1
-        # Not asserting on hour/minute because local timezone could shift it
-        assert now.second == 0
-        assert now.microsecond == 0
+        now = now.astimezone()
+        assert now == EPOCH_DATETIME
     assert dt.datetime.now() >= LIBRARY_EPOCH_DATETIME
 
 
@@ -108,11 +104,13 @@ def test_datetime_utcnow_no_tick():
 
 
 def test_date_today():
+    local_epoch = dt.datetime.fromtimestamp(EPOCH)
+    local_epoch_date = local_epoch.date()
     with time_machine.travel(EPOCH):
         today = dt.date.today()
-        assert today.year == 1970
-        assert today.month == 1
-        assert today.day == 1
+        assert today.year == local_epoch_date.year
+        assert today.month == local_epoch_date.month
+        assert today.day == local_epoch_date.day
     assert dt.datetime.today() >= LIBRARY_EPOCH_DATETIME
 
 
@@ -198,11 +196,13 @@ def test_time_gmtime_arg():
 
 
 def test_time_localtime():
+    local_epoch = time.localtime(EPOCH)
+    assert 1969 <= local_epoch.tm_year <= 1971  # Sanity check
     with time_machine.travel(EPOCH):
         local_time = time.localtime()
-        assert local_time.tm_year == 1970
-        assert local_time.tm_mon == 1
-        assert local_time.tm_mday == 1
+        assert local_time.tm_year == local_epoch.tm_year
+        assert local_time.tm_mon == local_epoch.tm_mon
+        assert local_time.tm_mday == local_epoch.tm_mday
     now_time = time.localtime()
     assert now_time.tm_year >= 2020
 
@@ -214,16 +214,18 @@ def test_time_localtime_no_tick():
 
 
 def test_time_localtime_arg():
+    jan_1_1971_timestamp = dt.datetime(1971, 1, 1).timestamp()
     with time_machine.travel(EPOCH):
-        local_time = time.localtime(EPOCH_PLUS_ONE_YEAR)
+        local_time = time.localtime(jan_1_1971_timestamp)
         assert local_time.tm_year == 1971
         assert local_time.tm_mon == 1
         assert local_time.tm_mday == 1
 
 
 def test_time_strftime_no_args():
+    expected_str = time.strftime("%Y-%m-%d", time.localtime(EPOCH))
     with time_machine.travel(EPOCH):
-        assert time.strftime("%Y-%m-%d") == "1970-01-01"
+        assert time.strftime("%Y-%m-%d") == expected_str
     assert int(time.strftime("%Y")) >= 2020
 
 
@@ -233,9 +235,10 @@ def test_time_strftime_no_args_no_tick():
 
 
 def test_time_strftime_arg():
+    jan_1_1971_timestamp = dt.datetime(1971, 1, 1).timestamp()
     with time_machine.travel(EPOCH):
         assert (
-            time.strftime("%Y-%m-%d", time.localtime(EPOCH_PLUS_ONE_YEAR))
+            time.strftime("%Y-%m-%d", time.localtime(jan_1_1971_timestamp))
             == "1971-01-01"
         )
 
