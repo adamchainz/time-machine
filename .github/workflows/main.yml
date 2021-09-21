@@ -8,17 +8,26 @@ on:
 
 jobs:
   tests:
-    name: Python ${{ matrix.python-version }}
+    name: Python ${{ matrix.python-version }} (TZ = ${{ matrix.env.TZ }})
     runs-on: ubuntu-20.04
 
     strategy:
       matrix:
         python-version:
-        - 3.6
-        - 3.7
-        - 3.8
-        - 3.9
-        - 3.10-dev
+          - 3.6
+          - 3.7
+          - 3.8
+          - 3.9
+          - 3.10-dev
+        env:
+          - TZ: "UTC"
+        include:
+          - python-version: 3.9
+            env:
+              TZ: "America/New_York"
+          - python-version: 3.9
+            env:
+              TZ: "Australia/Sydney"
 
     steps:
     - uses: actions/checkout@v2
@@ -33,6 +42,10 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
+
+    - name: Set time zone
+      run: |
+        sudo timedatectl set-timezone ${{ matrix.env.TZ }}
 
     - name: Install dependencies
       run: |
