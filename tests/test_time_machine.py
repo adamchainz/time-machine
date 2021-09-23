@@ -1,5 +1,6 @@
 import asyncio
 import datetime as dt
+import os
 import sys
 import time
 import uuid
@@ -383,6 +384,26 @@ def test_destination_datetime_tzinfo_zoneinfo_nested():
         assert time.tzname == ("EAT", "EAT")
 
     assert time.tzname == orig_tzname
+
+
+@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
+def test_destination_datetime_tzinfo_zoneinfo_no_orig_tz():
+    orig_tz = os.environ["TZ"]
+    del os.environ["TZ"]
+    time.tzset()
+    orig_tzname = time.tzname
+
+    try:
+
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+        with time_machine.travel(dest):
+            assert time.tzname == ("EAT", "EAT")
+
+        assert time.tzname == orig_tzname
+
+    finally:
+        os.environ["TZ"] = orig_tz
+        time.tzset()
 
 
 @pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
