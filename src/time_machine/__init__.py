@@ -291,56 +291,61 @@ class travel:
         Callable[..., Any],
     ]:
         if isinstance(wrapped, type):
-            # Class decorator
-            if not issubclass(wrapped, TestCase):
-                raise TypeError("Can only decorate unittest.TestCase subclasses.")
-
-            # Modify the setUpClass method
-            orig_setUpClass = wrapped.setUpClass
-
-            @functools.wraps(orig_setUpClass)
-            def setUpClass(cls: Type[TestCase]) -> None:
-                self.__enter__()
-                try:
-                    orig_setUpClass()
-                except Exception:
-                    self.__exit__(*sys.exc_info())
-                    raise
-
-            wrapped.setUpClass = classmethod(setUpClass)  # type: ignore[assignment]
-
-            orig_tearDownClass = wrapped.tearDownClass
-
-            @functools.wraps(orig_tearDownClass)
-            def tearDownClass(cls: Type[TestCase]) -> None:
-                orig_tearDownClass()
-                self.__exit__(None, None, None)
-
-            wrapped.tearDownClass = classmethod(  # type: ignore[assignment]
-                tearDownClass
-            )
-            return wrapped
+            return self._decorate_class(wrapped)
         elif inspect.iscoroutinefunction(wrapped):
-
-            @functools.wraps(wrapped)
-            async def wrapper(*args: Any, **kwargs: Any) -> Any:
-                with self:
-                    # mypy has not narrowed 'wrapped' to a coroutine function
-                    return await wrapped(
-                        *args,
-                        **kwargs,
-                    )  # type: ignore [misc,operator]
-
-            return wrapper
+            return self._decorate_coroutine(wrapped)
         else:
             assert callable(wrapped)
+            return self._decorate_callable(wrapped)
 
-            @functools.wraps(wrapped)
-            def wrapper(*args: Any, **kwargs: Any) -> Any:
-                with self:
-                    return wrapped(*args, **kwargs)
+    def _decorate_class(self, wrapped: Type[TestCase]) -> Type[TestCase]:
+        if not issubclass(wrapped, TestCase):
+            raise TypeError("Can only decorate unittest.TestCase subclasses.")
 
-            return wrapper
+        # Modify the setUpClass method
+        orig_setUpClass = wrapped.setUpClass
+
+        @functools.wraps(orig_setUpClass)
+        def setUpClass(cls: Type[TestCase]) -> None:
+            self.__enter__()
+            try:
+                orig_setUpClass()
+            except Exception:
+                self.__exit__(*sys.exc_info())
+                raise
+
+        wrapped.setUpClass = classmethod(setUpClass)  # type: ignore[assignment]
+
+        orig_tearDownClass = wrapped.tearDownClass
+
+        @functools.wraps(orig_tearDownClass)
+        def tearDownClass(cls: Type[TestCase]) -> None:
+            orig_tearDownClass()
+            self.__exit__(None, None, None)
+
+        wrapped.tearDownClass = classmethod(tearDownClass)  # type: ignore[assignment]
+        return wrapped
+
+    def _decorate_coroutine(
+        self, wrapped: Callable[..., Coroutine[Any, Any, Any]]
+    ) -> Callable[..., Coroutine[Any, Any, Any]]:
+        @functools.wraps(wrapped)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            with self:
+                return await wrapped(
+                    *args,
+                    **kwargs,
+                )
+
+        return wrapper
+
+    def _decorate_callable(self, wrapped: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(wrapped)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            with self:
+                return wrapped(*args, **kwargs)
+
+        return wrapper
 
 
 # datetime module
