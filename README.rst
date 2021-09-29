@@ -178,8 +178,7 @@ When used as a context manager, time is mocked during the ``with`` block:
 Class Decorator
 ^^^^^^^^^^^^^^^
 
-Only ``unittest.TestCase`` subclasses are supported.
-When applied as a class decorator to such classes, time is mocked from the start of ``setUpClass()`` to the end of ``tearDownClass()``:
+Decorating a ``unittest.TestCase`` subclass will mock time from the start of ``setUpClass()`` to the end of ``tearDownClass()``:
 
 .. code-block:: python
 
@@ -194,6 +193,22 @@ When applied as a class decorator to such classes, time is mocked from the start
             assert 0.0 < time.time() < 1.0
 
 Note this is different to ``unittest.mock.patch()``\'s behaviour, which is to mock only during the test methods.
+
+Any other class can also be decorated - time will be mocked for each method with a name starting with ``test``:
+
+.. code-block:: python
+
+    import time
+    import time_machine
+
+
+    @time_machine.travel(0.0)
+    class TestDeepPast:
+        def test_in_the_deep_past(self):
+            assert 0.0 < time.time() < 1.0
+
+        def not_a_test(self):
+            assert not 0.0 < time.time() < 1.0
 
 Timezone mocking
 ^^^^^^^^^^^^^^^^

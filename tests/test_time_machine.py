@@ -487,14 +487,35 @@ def test_coroutine_decorator():
     assert recorded_time == EPOCH + 140.0
 
 
-def test_class_decorator_fails_non_testcase():
-    with pytest.raises(TypeError) as excinfo:
+@time_machine.travel(EPOCH)
+def test_non_unittest_class_decorator():
+    @time_machine.travel(EPOCH + 25.0)
+    class NonUnitTestClassTests:
+        def test_class_decorator(self):
+            assert time.time() == EPOCH + 25.0
 
-        @time_machine.travel(EPOCH)
-        class Something:
-            pass
+    NonUnitTestClassTests().test_class_decorator()
 
-    assert excinfo.value.args == ("Can only decorate unittest.TestCase subclasses.",)
+
+@time_machine.travel(EPOCH)
+def test_non_unittest_class_decorator_ignores_non_tests():
+    @time_machine.travel(EPOCH + 25.0)
+    class NonUnitTestClassTests:
+        def not_a_test(self):
+            assert time.time() == EPOCH
+
+    NonUnitTestClassTests().not_a_test()
+
+
+@time_machine.travel(EPOCH)
+def test_non_unittest_class_decorator_ignores_nested_classes():
+    @time_machine.travel(EPOCH + 25.0)
+    class NonUnitTestClassTests:
+        class test_class:
+            def test(self):
+                assert time.time() == EPOCH
+
+    NonUnitTestClassTests().test_class().test()
 
 
 class MethodDecoratorTests:

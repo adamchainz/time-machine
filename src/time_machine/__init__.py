@@ -263,7 +263,7 @@ class travel:
         self.stop()
 
     @overload
-    def __call__(self, wrapped: Type[TestCase]) -> Type[TestCase]:  # pragma: no cover
+    def __call__(self, wrapped: type) -> type:  # pragma: no cover
         ...
 
     @overload
@@ -281,15 +281,11 @@ class travel:
     def __call__(
         self,
         wrapped: Union[
-            Type[TestCase],
+            type,
             Callable[..., Coroutine[Any, Any, Any]],
             Callable[..., Any],
         ],
-    ) -> Union[
-        Type[TestCase],
-        Callable[..., Coroutine[Any, Any, Any]],
-        Callable[..., Any],
-    ]:
+    ) -> Union[type, Callable[..., Coroutine[Any, Any, Any]], Callable[..., Any]]:
         if isinstance(wrapped, type):
             return self._decorate_class(wrapped)
         elif inspect.iscoroutinefunction(wrapped):
@@ -298,32 +294,44 @@ class travel:
             assert callable(wrapped)
             return self._decorate_callable(wrapped)
 
-    def _decorate_class(self, wrapped: Type[TestCase]) -> Type[TestCase]:
-        if not issubclass(wrapped, TestCase):
-            raise TypeError("Can only decorate unittest.TestCase subclasses.")
+    def _decorate_class(self, wrapped: type) -> type:
+        if issubclass(wrapped, TestCase):
+            # Modify the setUpClass method
+            orig_setUpClass = wrapped.setUpClass
 
-        # Modify the setUpClass method
-        orig_setUpClass = wrapped.setUpClass
+            @functools.wraps(orig_setUpClass)
+            def setUpClass(cls: Type[TestCase]) -> None:
+                self.__enter__()
+                try:
+                    orig_setUpClass()
+                except Exception:
+                    self.__exit__(*sys.exc_info())
+                    raise
 
-        @functools.wraps(orig_setUpClass)
-        def setUpClass(cls: Type[TestCase]) -> None:
-            self.__enter__()
-            try:
-                orig_setUpClass()
-            except Exception:
-                self.__exit__(*sys.exc_info())
-                raise
+            wrapped.setUpClass = classmethod(setUpClass)  # type: ignore[assignment]
 
-        wrapped.setUpClass = classmethod(setUpClass)  # type: ignore[assignment]
+            orig_tearDownClass = wrapped.tearDownClass
 
-        orig_tearDownClass = wrapped.tearDownClass
+            @functools.wraps(orig_tearDownClass)
+            def tearDownClass(cls: Type[TestCase]) -> None:
+                orig_tearDownClass()
+                self.__exit__(None, None, None)
 
-        @functools.wraps(orig_tearDownClass)
-        def tearDownClass(cls: Type[TestCase]) -> None:
-            orig_tearDownClass()
-            self.__exit__(None, None, None)
+            wrapped.tearDownClass = classmethod(  # type: ignore[assignment]
+                tearDownClass
+            )
+        else:
+            # Wrap all methods starting with "test", intended for pytest-like classes
+            for (attribute, value) in wrapped.__dict__.items():
+                if not attribute.startswith("test"):
+                    continue
 
-        wrapped.tearDownClass = classmethod(tearDownClass)  # type: ignore[assignment]
+                if not callable(value) or inspect.isclass(value):
+                    continue
+
+                wrapped_method = self._decorate_callable(value)
+                setattr(wrapped, attribute, wrapped_method)
+
         return wrapped
 
     def _decorate_coroutine(
