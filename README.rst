@@ -5,8 +5,8 @@ time-machine
 .. image:: https://img.shields.io/github/workflow/status/adamchainz/time-machine/CI/main?style=for-the-badge
    :target: https://github.com/adamchainz/time-machine/actions?workflow=CI
 
-.. image:: https://img.shields.io/codecov/c/github/adamchainz/time-machine/main?style=for-the-badge
-  :target: https://app.codecov.io/gh/adamchainz/time-machine
+.. image:: image:: https://img.shields.io/badge/Coverage-100%25-success?style=for-the-badge
+   :target: https://github.com/adamchainz/time-machine/actions?workflow=CI
 
 .. image:: https://img.shields.io/pypi/v/time-machine.svg?style=for-the-badge
    :target: https://pypi.org/project/time-machine/
