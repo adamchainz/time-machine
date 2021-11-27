@@ -2,6 +2,8 @@
 History
 =======
 
+* Build musllinux wheels.
+
 2.4.0 (2021-09-01)
 ------------------
 
