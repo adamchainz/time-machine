@@ -77,6 +77,9 @@ DestinationType = Union[
     TypingGenerator[DestinationBaseType, None, None],
 ]
 
+# copied from typeshed:
+_TimeTuple = Tuple[int, int, int, int, int, int, int, int, int]
+
 
 def extract_timestamp_tzname(
     destination: DestinationType,
@@ -389,10 +392,6 @@ def localtime(secs: Optional[float] = None) -> struct_time:
     return _time_machine.original_localtime(coordinates_stack[-1].time())
 
 
-# copied from typeshed:
-_TimeTuple = Tuple[int, int, int, int, int, int, int, int, int]
-
-
 def strftime(format: str, t: Union[_TimeTuple, struct_time, None] = None) -> str:
     if t is not None:
         return _time_machine.original_strftime(format, t)
@@ -453,3 +452,63 @@ if pytest is not None:  # pragma: no branch
             yield fixture
         finally:
             fixture.stop()
+
+
+# escape hatch
+
+
+class _EscapeHatchDatetimeDatetime:
+    def now(self, tz: Optional[dt.tzinfo] = None) -> dt.datetime:
+        return _time_machine.original_now(tz)
+
+    def utcnow(self) -> dt.datetime:
+        return _time_machine.original_utcnow()
+
+
+class _EscapeHatchDatetime:
+    def __init__(self) -> None:
+        self.datetime = _EscapeHatchDatetimeDatetime()
+
+
+class _EscapeHatchTime:
+    def clock_gettime(self, clk_id: int) -> float:
+        return _time_machine.original_clock_gettime(clk_id)
+
+    if sys.version_info >= (3, 7):
+
+        def clock_gettime_ns(self, clk_id: int) -> int:
+            return _time_machine.original_clock_gettime_ns(clk_id)
+
+    def gmtime(self, secs: Optional[float] = None) -> struct_time:
+        return _time_machine.original_gmtime(secs)
+
+    def localtime(self, secs: Optional[float] = None) -> struct_time:
+        return _time_machine.original_localtime(secs)
+
+    def strftime(
+        self, format: str, t: Union[_TimeTuple, struct_time, None] = None
+    ) -> str:
+        if t is not None:
+            return _time_machine.original_strftime(format, t)
+        else:
+            return _time_machine.original_strftime(format)
+
+    def time(self) -> float:
+        return _time_machine.original_time()
+
+    if sys.version_info >= (3, 7):
+
+        def time_ns(self) -> int:
+            return _time_machine.original_time_ns()
+
+
+class _EscapeHatch:
+    def __init__(self) -> None:
+        self.datetime = _EscapeHatchDatetime()
+        self.time = _EscapeHatchTime()
+
+    def is_travelling(self) -> bool:
+        return bool(coordinates_stack)
+
+
+escape_hatch = _EscapeHatch()
