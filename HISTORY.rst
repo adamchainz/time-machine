@@ -2,6 +2,9 @@
 History
 =======
 
+2.5.0 (2021-12-14)
+------------------
+
 * Add ``time_machine.escape_hatch``, which provides functions to bypass time-machine.
 
   Thanks to Matt Pegler for the feature request in `Issue #206 <https://github.com/adamchainz/time-machine/issues/206>`__.
