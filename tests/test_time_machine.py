@@ -222,18 +222,18 @@ def test_time_localtime_arg():
         assert local_time.tm_mday == 1
 
 
-def test_time_strftime_no_args():
+def test_time_strftime_format():
     with time_machine.travel(EPOCH):
         assert time.strftime("%Y-%m-%d") == "1970-01-01"
     assert int(time.strftime("%Y")) >= 2020
 
 
-def test_time_strftime_no_args_no_tick():
+def test_time_strftime_format_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         assert time.strftime("%S") == "00"
 
 
-def test_time_strftime_arg():
+def test_time_strftime_format_t():
     with time_machine.travel(EPOCH):
         assert (
             time.strftime("%Y-%m-%d", time.localtime(EPOCH_PLUS_ONE_YEAR))
@@ -718,3 +718,100 @@ def test_fixture_used_twice(time_machine):
 
     time_machine.move_to(EPOCH_PLUS_ONE_YEAR)
     assert time.time() == EPOCH_PLUS_ONE_YEAR
+
+
+# escape hatch tests
+
+
+class TestEscapeHatch:
+    def test_is_travelling_false(self):
+        assert time_machine.escape_hatch.is_travelling() is False
+
+    def test_is_travelling_true(self):
+        with time_machine.travel(EPOCH):
+            assert time_machine.escape_hatch.is_travelling() is True
+
+    def test_datetime_now(self):
+        real_now = dt.datetime.now()
+
+        with time_machine.travel(EPOCH):
+            eh_now = time_machine.escape_hatch.datetime.datetime.now()
+            assert eh_now >= real_now
+
+    def test_datetime_now_tz(self):
+        real_now = dt.datetime.now(tz=dt.timezone.utc)
+
+        with time_machine.travel(EPOCH):
+            eh_now = time_machine.escape_hatch.datetime.datetime.now(tz=dt.timezone.utc)
+            assert eh_now >= real_now
+
+    def test_datetime_utcnow(self):
+        real_now = dt.datetime.utcnow()
+
+        with time_machine.travel(EPOCH):
+            eh_now = time_machine.escape_hatch.datetime.datetime.utcnow()
+            assert eh_now >= real_now
+
+    @py_have_clock_gettime
+    def test_time_clock_gettime(self):
+        now = time.clock_gettime(time.CLOCK_REALTIME)
+
+        with time_machine.travel(EPOCH + 180.0):
+            eh_now = time_machine.escape_hatch.time.clock_gettime(time.CLOCK_REALTIME)
+            assert eh_now >= now
+
+    @py_3_7_plus
+    @py_have_clock_gettime
+    def test_time_clock_gettime_ns(self):
+        now = time.clock_gettime_ns(time.CLOCK_REALTIME)
+
+        with time_machine.travel(EPOCH + 190.0):
+            eh_now = time_machine.escape_hatch.time.clock_gettime_ns(
+                time.CLOCK_REALTIME
+            )
+            assert eh_now >= now
+
+    def test_time_gmtime(self):
+        now = time.gmtime()
+
+        with time_machine.travel(EPOCH):
+            eh_now = time_machine.escape_hatch.time.gmtime()
+            assert eh_now >= now
+
+    def test_time_localtime(self):
+        now = time.localtime()
+
+        with time_machine.travel(EPOCH):
+            eh_now = time_machine.escape_hatch.time.localtime()
+            assert eh_now >= now
+
+    def test_time_strftime_no_arg(self):
+        today = dt.date.today()
+
+        with time_machine.travel(EPOCH):
+            eh_formatted = time_machine.escape_hatch.time.strftime("%Y-%m-%d")
+            eh_today = dt.datetime.strptime(eh_formatted, "%Y-%m-%d").date()
+            assert eh_today >= today
+
+    def test_time_strftime_arg(self):
+        with time_machine.travel(EPOCH):
+            formatted = time_machine.escape_hatch.time.strftime(
+                "%Y-%m-%d",
+                time.localtime(EPOCH_PLUS_ONE_YEAR),
+            )
+            assert formatted == "1971-01-01"
+
+    def test_time_time(self):
+        now = time.time()
+
+        with time_machine.travel(EPOCH):
+            eh_now = time_machine.escape_hatch.time.time()
+            assert eh_now >= now
+
+    @py_3_7_plus
+    def test_time_time_ns(self):
+        now = time.time_ns()
+
+        with time_machine.travel(EPOCH):
+            eh_now = time_machine.escape_hatch.time.time_ns()
+            assert eh_now >= now

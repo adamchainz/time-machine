@@ -310,6 +310,52 @@ For example:
 
         assert dt.date.today().isoformat() == "2015-10-21"
 
+``escape_hatch``
+----------------
+
+The ``escape_hatch`` object provides functions to bypass time-machine.
+These allow you to call the real datetime functions, without any mocking.
+It also provides a way to check if time-machine is currently time travelling.
+
+These capabilities are useful in rare circumstances.
+For example, if you need to authenticate with an external service during time travel, you may need the real value of ``datetime.now()``.
+
+The functions are:
+
+* ``escape_hatch.is_travelling() -> bool`` - returns ``True`` if ``time_machine.travel()`` is active, ``False`` otherwise.
+
+* ``escape_hatch.datetime.datetime.now()`` - wraps the real ``datetime.datetime.now()``.
+
+* ``escape_hatch.datetime.datetime.utcnow()`` - wraps the real ``datetime.datetime.utcnow()``.
+
+* ``escape_hatch.time.clock_gettime()`` - wraps the real ``time.clock_gettime()``.
+
+* ``escape_hatch.time.clock_gettime_ns()`` - wraps the real ``time.clock_gettime_ns()``.
+
+* ``escape_hatch.time.gmtime()`` - wraps the real ``time.gmtime()``.
+
+* ``escape_hatch.time.localtime()`` - wraps the real ``time.localtime()``.
+
+* ``escape_hatch.time.strftime()`` - wraps the real ``time.strftime()``.
+
+* ``escape_hatch.time.time()`` - wraps the real ``time.time()``.
+
+* ``escape_hatch.time.time_ns()`` - wraps the real ``time.time_ns()``.
+
+For example:
+
+.. code-block:: python
+
+    import time_machine
+
+
+    with time_machine.travel(...):
+        if time_machine.escape_hatch.is_travelling():
+            print("We need to go back to the future!")
+
+        real_now = time_machine.escape_hatch.datetime.datetime.now()
+        external_authenticate(now=real_now)
+
 Caveats
 =======
 
