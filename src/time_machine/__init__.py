@@ -332,7 +332,7 @@ class travel:
                     return await wrapped(
                         *args,
                         **kwargs,
-                    )  # type: ignore [misc,operator]
+                    )  # type: ignore [misc]
 
             return wrapper
         else:
