@@ -158,7 +158,7 @@ You can also decorate asynchronous functions (coroutines):
     async def test_in_the_deep_past():
         assert 0.0 < time.time() < 1.0
 
-Beware: time is a *global* state - see below.
+Beware: time is a *global* state - `see below <#caveats>`__.
 
 Context Manager
 ^^^^^^^^^^^^^^^
@@ -194,6 +194,7 @@ When applied as a class decorator to such classes, time is mocked from the start
             assert 0.0 < time.time() < 1.0
 
 Note this is different to ``unittest.mock.patch()``\'s behaviour, which is to mock only during the test methods.
+For pytest-style test classes, see the pattern `documented below <#pytest-plugin>`__.
 
 Timezone mocking
 ^^^^^^^^^^^^^^^^
@@ -309,6 +310,29 @@ For example:
         time_machine.move_to(dt.datetime(2015, 10, 21))
 
         assert dt.date.today().isoformat() == "2015-10-21"
+
+If you are using pytest test classes, you can apply the fixture to all test methods in a class by adding an autouse fixture:
+
+.. code-block:: python
+
+    import time
+
+    import pytest
+
+
+    class TestSomething:
+        @pytest.fixture(autouse=True)
+        def set_time(self, time_machine):
+            time_machine.move_to(1000.0)
+            yield
+
+        def test_one(self):
+            assert int(time.time()) == 1000.0
+
+        def test_two(self, time_machine):
+            assert int(time.time()) == 1000.0
+            time_machine.move_to(2000.0)
+            assert int(time.time()) == 2000.0
 
 ``escape_hatch``
 ----------------
