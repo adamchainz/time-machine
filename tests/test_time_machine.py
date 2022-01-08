@@ -752,6 +752,36 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.datetime.datetime.utcnow()
             assert eh_now >= real_now
 
+    def test_real_datetime_now(self):
+        real_now = dt.datetime.now()
+
+        with time_machine.travel(EPOCH):
+            with time_machine.escape_hatch.datetime.datetime.real_datetime():
+                eh_now = dt.datetime.now()
+                assert eh_now >= real_now
+
+    def test_real_datetime_utcnow(self):
+        real_now = dt.datetime.now()
+
+        with time_machine.travel(EPOCH):
+            with time_machine.escape_hatch.datetime.datetime.real_datetime():
+                eh_now = dt.datetime.utcnow()
+                assert eh_now >= real_now
+
+    def test_real_datetime_instancectype(self):
+        real_now = dt.datetime.now()
+
+        mocked_real_datetime = time_machine._FakeDateTimeMeta(
+            "datetime", (time_machine._MockedDateTimeClass,), {}
+        )
+        assert isinstance(real_now, mocked_real_datetime)
+
+    def test_real_datetime_subclass(self):
+        mocked_real_datetime = time_machine._FakeDateTimeMeta(
+            "datetime", (time_machine._MockedDateTimeClass,), {}
+        )
+        assert issubclass(dt.datetime, mocked_real_datetime)
+
     @py_have_clock_gettime
     def test_time_clock_gettime(self):
         now = time.clock_gettime(time.CLOCK_REALTIME)
