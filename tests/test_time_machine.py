@@ -442,7 +442,7 @@ def test_destination_callable_lambda_string():
     assert time.time() == EPOCH + 120.0
 
 
-@time_machine.travel(EPOCH + 13.0 for _ in range(1))
+@time_machine.travel(EPOCH + 13.0 for _ in range(1))  # pragma: no branch
 def test_destination_generator():
     assert time.time() == EPOCH + 13.0
 
