@@ -442,7 +442,7 @@ def test_destination_callable_lambda_string():
     assert time.time() == EPOCH + 120.0
 
 
-@time_machine.travel(EPOCH + 13.0 for _ in range(1))
+@time_machine.travel(EPOCH + 13.0 for _ in range(1))  # pragma: no branch
 def test_destination_generator():
     assert time.time() == EPOCH + 13.0
 
@@ -486,10 +486,10 @@ def test_class_decorator_fails_non_testcase():
     assert excinfo.value.args == ("Can only decorate unittest.TestCase subclasses.",)
 
 
-class MethodDecoratorTests:
+class TestMethodDecorator:
     @time_machine.travel(EPOCH + 95.0)
     def test_method_decorator(self):
-        assert time.time() == EPOCH + 25.0
+        assert time.time() == EPOCH + 95.0
 
 
 class UnitTestMethodTests(TestCase):
@@ -529,7 +529,7 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
         raise SkipTest("Not today")
         # Other tests would fail if the travel() wasn't stopped
 
-    def test_thats_always_skipped(self):
+    def test_thats_always_skipped(self):  # pragma: no cover
         pass
 
 
