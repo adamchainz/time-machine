@@ -477,12 +477,7 @@ def test_coroutine_decorator():
         nonlocal recorded_time
         recorded_time = time.time()
 
-    if sys.version_info < (3, 7):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(record_time())
-        loop.close()
-    else:
-        asyncio.run(record_time())
+    asyncio.run(record_time())
 
     assert recorded_time == EPOCH + 140.0
 
