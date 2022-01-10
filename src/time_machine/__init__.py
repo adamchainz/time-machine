@@ -138,7 +138,7 @@ class Coordinates:
             return self._destination_timestamp_ns
 
         base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
-        now_ns = self._time_ns()
+        now_ns = _time_machine.original_time_ns()
 
         if not self._requested:
             self._requested = True
@@ -146,9 +146,6 @@ class Coordinates:
             return base
 
         return base + (now_ns - self._real_start_timestamp_ns)
-
-    def _time_ns(self) -> int:
-        return _time_machine.original_time_ns()
 
     def shift(self, delta: Union[dt.timedelta, int, float]) -> None:
         if isinstance(delta, dt.timedelta):
