@@ -1,7 +1,6 @@
 import asyncio
 import datetime as dt
 import os
-import sys
 import time
 import uuid
 from importlib.util import module_from_spec, spec_from_file_location
@@ -27,7 +26,6 @@ EPOCH_PLUS_ONE_YEAR = EPOCH_PLUS_ONE_YEAR_DATETIME.timestamp()
 LIBRARY_EPOCH_DATETIME = dt.datetime(2020, 4, 29)  # The day this library was made
 LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
 
-py_3_7_plus = pytest.mark.skipif(sys.version_info < (3, 7), reason="Python 3.7+")
 py_have_clock_gettime = pytest.mark.skipif(
     not hasattr(time, "clock_gettime"), reason="Doesn't have clock_gettime"
 )
@@ -145,7 +143,6 @@ def test_time_clock_gettime_monotonic_unaffected():
     assert now > frozen
 
 
-@py_3_7_plus
 @py_have_clock_gettime
 def test_time_clock_gettime_ns_realtime():
     with time_machine.travel(EPOCH + 190.0):
@@ -160,7 +157,6 @@ def test_time_clock_gettime_ns_realtime():
     assert now >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
 
 
-@py_3_7_plus
 @py_have_clock_gettime
 def test_time_clock_gettime_ns_monotonic_unaffected():
     start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
@@ -278,7 +274,6 @@ def test_time_time_no_tick():
         assert time.time() == EPOCH
 
 
-@py_3_7_plus
 def test_time_time_ns():
     with time_machine.travel(EPOCH + 150.0):
         first = time.time_ns()
@@ -292,7 +287,6 @@ def test_time_time_ns():
     assert now >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
 
 
-@py_3_7_plus
 def test_time_time_ns_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         assert time.time_ns() == int(EPOCH * NANOSECONDS_PER_SECOND)
@@ -755,7 +749,6 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.time.clock_gettime(time.CLOCK_REALTIME)
             assert eh_now >= now
 
-    @py_3_7_plus
     @py_have_clock_gettime
     def test_time_clock_gettime_ns(self):
         now = time.clock_gettime_ns(time.CLOCK_REALTIME)
@@ -803,7 +796,6 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.time.time()
             assert eh_now >= now
 
-    @py_3_7_plus
     def test_time_time_ns(self):
         now = time.time_ns()
 
