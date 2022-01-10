@@ -195,7 +195,7 @@ uuid_generate_time_attr = "_generate_time_safe"
 uuid_generate_time_patcher = mock.patch.object(uuid, uuid_generate_time_attr, new=None)
 uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
 # We need to cause the functions to be loaded before we try patch them out,
-# which is done by this internal function in Python 3.7+
+# which is done by this internal function
 uuid_idempotent_load_system_functions = (
     uuid._load_system_functions  # type: ignore[attr-defined]
 )
