@@ -489,7 +489,7 @@ def test_class_decorator_fails_non_testcase():
 class TestMethodDecorator:
     @time_machine.travel(EPOCH + 95.0)
     def test_method_decorator(self):
-        assert time.time() == EPOCH + 25.0
+        assert time.time() == EPOCH + 95.0
 
 
 class UnitTestMethodTests(TestCase):
