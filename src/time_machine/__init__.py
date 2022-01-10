@@ -138,7 +138,7 @@ class Coordinates:
             return self._destination_timestamp_ns
 
         base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
-        now_ns = self._time_ns()
+        now_ns = _time_machine.original_time_ns()
 
         if not self._requested:
             self._requested = True
@@ -146,16 +146,6 @@ class Coordinates:
             return base
 
         return base + (now_ns - self._real_start_timestamp_ns)
-
-    if sys.version_info >= (3, 7):
-
-        def _time_ns(self) -> int:
-            return _time_machine.original_time_ns()
-
-    else:
-
-        def _time_ns(self) -> int:
-            return _time_machine.original_time() * NANOSECONDS_PER_SECOND
 
     def shift(self, delta: Union[dt.timedelta, int, float]) -> None:
         if isinstance(delta, dt.timedelta):
@@ -201,22 +191,14 @@ coordinates_stack: List[Coordinates] = []
 # None, which makes it use time.time(). Otherwise it makes a system call to
 # find the current datetime. The time it finds is stored in generated UUID1
 # values.
-if sys.version_info >= (3, 7):
-    uuid_generate_time_attr = "_generate_time_safe"
-else:
-    uuid_generate_time_attr = "_uuid_generate_time"
+uuid_generate_time_attr = "_generate_time_safe"
 uuid_generate_time_patcher = mock.patch.object(uuid, uuid_generate_time_attr, new=None)
 uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
 # We need to cause the functions to be loaded before we try patch them out,
 # which is done by this internal function in Python 3.7+
-if sys.version_info >= (3, 7):
-    uuid_idempotent_load_system_functions = (
-        uuid._load_system_functions  # type: ignore[attr-defined]
-    )
-else:
-
-    def uuid_idempotent_load_system_functions():
-        pass
+uuid_idempotent_load_system_functions = (
+    uuid._load_system_functions  # type: ignore[attr-defined]
+)
 
 
 class travel:
@@ -372,12 +354,10 @@ def clock_gettime(clk_id: int) -> float:
     return time()
 
 
-if sys.version_info >= (3, 7):
-
-    def clock_gettime_ns(clk_id: int) -> int:
-        if not coordinates_stack or clk_id != CLOCK_REALTIME:
-            return _time_machine.original_clock_gettime_ns(clk_id)
-        return time_ns()
+def clock_gettime_ns(clk_id: int) -> int:
+    if not coordinates_stack or clk_id != CLOCK_REALTIME:
+        return _time_machine.original_clock_gettime_ns(clk_id)
+    return time_ns()
 
 
 def gmtime(secs: Optional[float] = None) -> struct_time:
@@ -406,13 +386,11 @@ def time() -> float:
     return coordinates_stack[-1].time()
 
 
-if sys.version_info >= (3, 7):
-
-    def time_ns() -> int:
-        if not coordinates_stack:
-            return _time_machine.original_time_ns()
-        else:
-            return coordinates_stack[-1].time_ns()
+def time_ns() -> int:
+    if not coordinates_stack:
+        return _time_machine.original_time_ns()
+    else:
+        return coordinates_stack[-1].time_ns()
 
 
 # pytest plugin
@@ -474,10 +452,8 @@ class _EscapeHatchTime:
     def clock_gettime(self, clk_id: int) -> float:
         return _time_machine.original_clock_gettime(clk_id)
 
-    if sys.version_info >= (3, 7):
-
-        def clock_gettime_ns(self, clk_id: int) -> int:
-            return _time_machine.original_clock_gettime_ns(clk_id)
+    def clock_gettime_ns(self, clk_id: int) -> int:
+        return _time_machine.original_clock_gettime_ns(clk_id)
 
     def gmtime(self, secs: Optional[float] = None) -> struct_time:
         return _time_machine.original_gmtime(secs)
@@ -496,10 +472,8 @@ class _EscapeHatchTime:
     def time(self) -> float:
         return _time_machine.original_time()
 
-    if sys.version_info >= (3, 7):
-
-        def time_ns(self) -> int:
-            return _time_machine.original_time_ns()
+    def time_ns(self) -> int:
+        return _time_machine.original_time_ns()
 
 
 class _EscapeHatch:

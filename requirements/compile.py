@@ -16,11 +16,6 @@ if __name__ == "__main__":
         "--allow-unsafe",
     ] + sys.argv[1:]
     subprocess.run(
-        ["python3.6", *common_args, "-o", "py36.txt"],
-        check=True,
-        capture_output=True,
-    )
-    subprocess.run(
         ["python3.7", *common_args, "-o", "py37.txt"],
         check=True,
         capture_output=True,

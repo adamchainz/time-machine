@@ -4,23 +4,15 @@
 
 // Module state
 typedef struct {
-#if PY_VERSION_HEX >= 0x03070000
     _PyCFunctionFastWithKeywords original_now;
-#else
-    _PyCFunctionFast original_now;
-#endif
     PyCFunction original_utcnow;
     PyCFunction original_clock_gettime;
-#if PY_VERSION_HEX >= 0x03070000
     PyCFunction original_clock_gettime_ns;
-#endif
     PyCFunction original_gmtime;
     PyCFunction original_localtime;
     PyCFunction original_strftime;
     PyCFunction original_time;
-#if PY_VERSION_HEX >= 0x03070000
     PyCFunction original_time_ns;
-#endif
 } _time_machine_state;
 
 static inline _time_machine_state*
@@ -34,15 +26,12 @@ get_time_machine_state(PyObject *module)
 /* datetime.datetime.now() */
 
 /*
-    This one is the only function using 'vectorcall' on Python 3.8.
+    This one is the only function using 'vectorcall' on Python 3.8+
 */
 
 static PyObject*
-#if PY_VERSION_HEX >= 0x03070000
 _time_machine_now(PyTypeObject *type, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-#else
-_time_machine_now(PyTypeObject *type, PyObject **args, Py_ssize_t nargs, PyObject *kwnames)
-#endif
+
 {
     PyObject *result = NULL;
 
@@ -60,15 +49,9 @@ _time_machine_now(PyTypeObject *type, PyObject **args, Py_ssize_t nargs, PyObjec
     static _PyArg_Parser _parser = {"|O:now", _keywords, 0};
     PyObject *tz = Py_None;
 
-#if PY_VERSION_HEX >= 0x03070000
     if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser, &tz)) {
         goto exit;
     }
-#else
-    if (!_PyArg_ParseStack(args, nargs, kwnames, &_parser, &tz)) {
-        goto exit;
-    }
-#endif
 
     /* Call with a new tuple */
     PyObject* now_args = PyTuple_Pack(1, tz);
@@ -85,11 +68,7 @@ exit:
 }
 
 static PyObject*
-#if PY_VERSION_HEX >= 0x03070000
 _time_machine_original_now(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
-#else
-_time_machine_original_now(PyObject *module, PyObject **args, Py_ssize_t nargs, PyObject *kwnames)
-#endif
 {
     _time_machine_state *state = get_time_machine_state(module);
 
@@ -179,7 +158,6 @@ PyDoc_STRVAR(original_clock_gettime_doc,
 Call time.clock_gettime() after patching.");
 
 /* time.clock_gettime_ns() */
-#if PY_VERSION_HEX >= 0x03070000
 
 static PyObject*
 _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
@@ -212,8 +190,6 @@ PyDoc_STRVAR(original_clock_gettime_ns_doc,
 "original_clock_gettime_ns() -> floating point number\n\
 \n\
 Call time.clock_gettime_ns() after patching.");
-
-#endif
 
 /* time.gmtime() */
 
@@ -352,7 +328,6 @@ PyDoc_STRVAR(original_time_doc,
 Call time.time() after patching.");
 
 /* time.time_ns() */
-#if PY_VERSION_HEX >= 0x03070000
 
 static PyObject*
 _time_machine_time_ns(PyObject *self, PyObject *args)
@@ -386,8 +361,6 @@ PyDoc_STRVAR(original_time_ns_doc,
 \n\
 Call time.time_ns() after patching.");
 
-#endif
-
 static PyObject*
 _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
 {
@@ -403,11 +376,7 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
 
     PyCFunctionObject *datetime_datetime_now = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "now");
-#if PY_VERSION_HEX >= 0x03070000
     state->original_now = (_PyCFunctionFastWithKeywords) datetime_datetime_now->m_ml->ml_meth;
-#else
-    state->original_now = (_PyCFunctionFast) datetime_datetime_now->m_ml->ml_meth;
-#endif
     datetime_datetime_now->m_ml->ml_meth = (PyCFunction) _time_machine_now;
     Py_DECREF(datetime_datetime_now);
 
@@ -434,14 +403,12 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
         Py_DECREF(time_clock_gettime);
     }
 
-#if PY_VERSION_HEX >= 0x03070000
     PyCFunctionObject *time_clock_gettime_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime_ns");
     if (time_clock_gettime_ns != NULL) {
         state->original_clock_gettime_ns = time_clock_gettime_ns->m_ml->ml_meth;
         time_clock_gettime_ns->m_ml->ml_meth = _time_machine_clock_gettime_ns;
         Py_DECREF(time_clock_gettime_ns);
     }
-#endif
 
     PyCFunctionObject *time_gmtime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "gmtime");
     state->original_gmtime = time_gmtime->m_ml->ml_meth;
@@ -463,12 +430,10 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     time_time->m_ml->ml_meth = _time_machine_time;
     Py_DECREF(time_time);
 
-#if PY_VERSION_HEX >= 0x03070000
     PyCFunctionObject *time_time_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "time_ns");
     state->original_time_ns = time_time_ns->m_ml->ml_meth;
     time_time_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_time_ns);
-#endif
 
     Py_DECREF(time_module);
 
@@ -484,23 +449,15 @@ Swap in helpers.");
 PyDoc_STRVAR(module_doc, "_time_machine module");
 
 static PyMethodDef module_functions[] = {
-#if PY_VERSION_HEX >= 0x03070000
     {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL|METH_KEYWORDS, original_now_doc},
-#else
-    {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL, original_now_doc},
-#endif
     {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
     {"original_clock_gettime", (PyCFunction)_time_machine_original_clock_gettime, METH_VARARGS, original_clock_gettime_doc},
-#if PY_VERSION_HEX >= 0x03070000
     {"original_clock_gettime_ns", (PyCFunction)_time_machine_original_clock_gettime_ns, METH_VARARGS, original_clock_gettime_ns_doc},
-#endif
     {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
     {"original_strftime", (PyCFunction)_time_machine_original_strftime, METH_VARARGS, original_strftime_doc},
     {"original_time", (PyCFunction)_time_machine_original_time, METH_NOARGS, original_time_doc},
-#if PY_VERSION_HEX >= 0x03070000
     {"original_time_ns", (PyCFunction)_time_machine_original_time_ns, METH_NOARGS, original_time_ns_doc},
-#endif
     {"patch_if_needed", (PyCFunction)_time_machine_patch_if_needed, METH_NOARGS, patch_if_needed_doc},
     {NULL, NULL}  /* sentinel */
 };
