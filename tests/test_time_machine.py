@@ -486,7 +486,7 @@ def test_class_decorator_fails_non_testcase():
     assert excinfo.value.args == ("Can only decorate unittest.TestCase subclasses.",)
 
 
-class MethodDecoratorTests:
+class TestMethodDecorator:
     @time_machine.travel(EPOCH + 95.0)
     def test_method_decorator(self):
         assert time.time() == EPOCH + 25.0
@@ -529,7 +529,7 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
         raise SkipTest("Not today")
         # Other tests would fail if the travel() wasn't stopped
 
-    def test_thats_always_skipped(self):
+    def test_thats_always_skipped(self):  # pragma: no cover
         pass
 
 
