@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime as dt
 import functools
 import inspect
@@ -10,7 +12,7 @@ from time import struct_time
 from types import TracebackType
 from typing import Any, Callable, Coroutine
 from typing import Generator as TypingGenerator
-from typing import List, Optional, Tuple, Type, Union, overload
+from typing import Tuple, Union, overload
 from unittest import TestCase, mock
 
 from dateutil.parser import parse as parse_datetime
@@ -83,7 +85,7 @@ _TimeTuple = Tuple[int, int, int, int, int, int, int, int, int]
 
 def extract_timestamp_tzname(
     destination: DestinationType,
-) -> Tuple[float, Union[str, None]]:
+) -> tuple[float, str | None]:
     dest: DestinationBaseType
     if isinstance(destination, Generator):
         dest = next(destination)
@@ -93,7 +95,7 @@ def extract_timestamp_tzname(
         dest = destination
 
     timestamp: float
-    tzname: Optional[str] = None
+    tzname: str | None = None
     if isinstance(dest, int):
         timestamp = float(dest)
     elif isinstance(dest, float):
@@ -120,7 +122,7 @@ class Coordinates:
     def __init__(
         self,
         destination_timestamp: float,
-        destination_tzname: Optional[str],
+        destination_tzname: str | None,
         tick: bool,
     ) -> None:
         self._destination_timestamp_ns = int(
@@ -147,7 +149,7 @@ class Coordinates:
 
         return base + (now_ns - self._real_start_timestamp_ns)
 
-    def shift(self, delta: Union[dt.timedelta, int, float]) -> None:
+    def shift(self, delta: dt.timedelta | int | float) -> None:
         if isinstance(delta, dt.timedelta):
             total_seconds = delta.total_seconds()
         elif isinstance(delta, (int, float)):
@@ -160,7 +162,7 @@ class Coordinates:
     def move_to(
         self,
         destination: DestinationType,
-        tick: Optional[bool] = None,
+        tick: bool | None = None,
     ) -> None:
         self._stop()
         timestamp, self._destination_tzname = extract_timestamp_tzname(destination)
@@ -185,7 +187,7 @@ class Coordinates:
             tzset()
 
 
-coordinates_stack: List[Coordinates] = []
+coordinates_stack: list[Coordinates] = []
 
 # During time travel, patch the uuid module's time-based generation function to
 # None, which makes it use time.time(). Otherwise it makes a system call to
@@ -241,14 +243,14 @@ class travel:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         self.stop()
 
     @overload
-    def __call__(self, wrapped: Type[TestCase]) -> Type[TestCase]:  # pragma: no cover
+    def __call__(self, wrapped: type[TestCase]) -> type[TestCase]:  # pragma: no cover
         ...
 
     @overload
@@ -265,16 +267,14 @@ class travel:
 
     def __call__(
         self,
-        wrapped: Union[
-            Type[TestCase],
-            Callable[..., Coroutine[Any, Any, Any]],
-            Callable[..., Any],
-        ],
-    ) -> Union[
-        Type[TestCase],
-        Callable[..., Coroutine[Any, Any, Any]],
-        Callable[..., Any],
-    ]:
+        wrapped: (
+            type[TestCase]
+            | Callable[..., Coroutine[Any, Any, Any]]
+            | Callable[..., Any]
+        ),
+    ) -> (
+        type[TestCase] | Callable[..., Coroutine[Any, Any, Any]] | Callable[..., Any]
+    ):
         if isinstance(wrapped, type):
             # Class decorator
             if not issubclass(wrapped, TestCase):
@@ -284,7 +284,7 @@ class travel:
             orig_setUpClass = wrapped.setUpClass
 
             @functools.wraps(orig_setUpClass)
-            def setUpClass(cls: Type[TestCase]) -> None:
+            def setUpClass(cls: type[TestCase]) -> None:
                 self.__enter__()
                 try:
                     orig_setUpClass()
@@ -297,7 +297,7 @@ class travel:
             orig_tearDownClass = wrapped.tearDownClass
 
             @functools.wraps(orig_tearDownClass)
-            def tearDownClass(cls: Type[TestCase]) -> None:
+            def tearDownClass(cls: type[TestCase]) -> None:
                 orig_tearDownClass()
                 self.__exit__(None, None, None)
 
@@ -331,7 +331,7 @@ class travel:
 # datetime module
 
 
-def now(tz: Optional[dt.tzinfo] = None) -> dt.datetime:
+def now(tz: dt.tzinfo | None = None) -> dt.datetime:
     if not coordinates_stack:
         return _time_machine.original_now(tz)
     else:
@@ -360,19 +360,19 @@ def clock_gettime_ns(clk_id: int) -> int:
     return time_ns()
 
 
-def gmtime(secs: Optional[float] = None) -> struct_time:
+def gmtime(secs: float | None = None) -> struct_time:
     if not coordinates_stack or secs is not None:
         return _time_machine.original_gmtime(secs)
     return _time_machine.original_gmtime(coordinates_stack[-1].time())
 
 
-def localtime(secs: Optional[float] = None) -> struct_time:
+def localtime(secs: float | None = None) -> struct_time:
     if not coordinates_stack or secs is not None:
         return _time_machine.original_localtime(secs)
     return _time_machine.original_localtime(coordinates_stack[-1].time())
 
 
-def strftime(format: str, t: Union[_TimeTuple, struct_time, None] = None) -> str:
+def strftime(format: str, t: _TimeTuple | struct_time | None = None) -> str:
     if t is not None:
         return _time_machine.original_strftime(format, t)
     elif not coordinates_stack:
@@ -398,8 +398,8 @@ def time_ns() -> int:
 if pytest is not None:  # pragma: no branch
 
     class TimeMachineFixture:
-        traveller: Optional[travel]
-        coordinates: Optional[Coordinates]
+        traveller: travel | None
+        coordinates: Coordinates | None
 
         def __init__(self) -> None:
             self.traveller = None
@@ -408,7 +408,7 @@ if pytest is not None:  # pragma: no branch
         def move_to(
             self,
             destination: DestinationType,
-            tick: Optional[bool] = None,
+            tick: bool | None = None,
         ) -> None:
             if self.traveller is None:
                 if tick is None:
@@ -436,7 +436,7 @@ if pytest is not None:  # pragma: no branch
 
 
 class _EscapeHatchDatetimeDatetime:
-    def now(self, tz: Optional[dt.tzinfo] = None) -> dt.datetime:
+    def now(self, tz: dt.tzinfo | None = None) -> dt.datetime:
         return _time_machine.original_now(tz)
 
     def utcnow(self) -> dt.datetime:
@@ -455,15 +455,13 @@ class _EscapeHatchTime:
     def clock_gettime_ns(self, clk_id: int) -> int:
         return _time_machine.original_clock_gettime_ns(clk_id)
 
-    def gmtime(self, secs: Optional[float] = None) -> struct_time:
+    def gmtime(self, secs: float | None = None) -> struct_time:
         return _time_machine.original_gmtime(secs)
 
-    def localtime(self, secs: Optional[float] = None) -> struct_time:
+    def localtime(self, secs: float | None = None) -> struct_time:
         return _time_machine.original_localtime(secs)
 
-    def strftime(
-        self, format: str, t: Union[_TimeTuple, struct_time, None] = None
-    ) -> str:
+    def strftime(self, format: str, t: _TimeTuple | struct_time | None = None) -> str:
         if t is not None:
             return _time_machine.original_strftime(format, t)
         else:
