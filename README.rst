@@ -112,7 +112,7 @@ Therefore, it automatically affects everywhere those functions have been importe
 Usage with ``start()`` / ``stop()``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To use independently, create and instance, use ``start()`` to move to the destination time, and ``stop()`` to move back.
+To use independently, create an instance, use ``start()`` to move to the destination time, and ``stop()`` to move back.
 For example:
 
 .. code-block:: python
