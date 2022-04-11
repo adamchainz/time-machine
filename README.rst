@@ -77,6 +77,7 @@ It may be:
   This will be converted to a UTC datetime with the time 00:00:00.
 * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
 * A string, which will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
+  Again, if the result is naive, it will be assumed to have the UTC time zone.
 
 .. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance
 .. _zoneinfo-instance: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
@@ -470,11 +471,19 @@ freezegun has a useful API, and python-libfaketime copies some of it, with a dif
 time-machine also copies some of freezegun's API, in ``travel()``\'s ``destination``, and ``tick`` arguments, and the ``shift()`` method.
 There are a few differences:
 
-* time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses between function calls, and should normally be tested as such.
+* time-machine's ``tick`` argument defaults to ``True``, because code tends to make the (reasonable) assumption that time progresses whilst running, and should normally be tested as such.
   Testing with time frozen can make it easy to write complete assertions, but it's quite artificial.
+  Write assertions against time ranges, rather than against exact values.
+
+* freezegun interprets dates and naive datetimes in the local time zone (including those parsed from strings with ``dateutil``).
+  This means tests can pass when run in one time zone and fail in another.
+  time-machine instead interprets dates and naive datetimes in UTC so they are fixed points in time.
+  Provide time zones where required.
+
 * freezegun's ``tick()`` method has been implemented as ``shift()``, to avoid confusion with the ``tick`` argument.
   It also requires an explicit delta rather than defaulting to 1 second.
-* freezegun's ``tz_offset`` argument only partially mocks the current time zone.
+
+* freezegun's ``tz_offset`` argument is not supported, since it only partially mocks the current time zone.
   Time zones are more complicated than a single offset from UTC, and freezegun only uses the offset in ``time.localtime()``.
   Instead, time-machine will mock the current time zone if you give it a ``datetime`` with a ``ZoneInfo`` timezone.
 
