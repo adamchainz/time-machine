@@ -2,6 +2,9 @@
 History
 =======
 
+2.7.0 (2022-05-11)
+------------------
+
 * Support Python 3.11 (no wheels yet, they will only be available when Python 3.11 is RC when the ABI is stable).
 
 2.6.0 (2022-01-10)
