@@ -23,9 +23,9 @@ jobs:
       CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-*"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         with:
           python-version: '3.10'
 
@@ -35,7 +35,7 @@ jobs:
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
         with:
           platforms: all
 
@@ -43,6 +43,6 @@ jobs:
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
