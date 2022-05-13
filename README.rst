@@ -216,7 +216,7 @@ The ``zoneinfo`` module is new in Python 3.8 - on older Python versions use the 
 ``time.tzset()`` changes the ``time`` module’s `timezone constants <https://docs.python.org/3/library/time.html#timezone-constants>`__ and features that rely on those, such as ``time.localtime()``.
 It won’t affect other concepts of “the current timezone”, such as Django’s (which can be changed with its |timezone-override|_).
 
-.. |timezone-override| replace:: ``time.override()``
+.. |timezone-override| replace:: ``timezone.override()``
 .. _timezone-override: https://docs.djangoproject.com/en/stable/ref/utils/#django.utils.timezone.override
 
 Here’s a worked example changing the current timezone:
