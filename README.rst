@@ -60,6 +60,8 @@ I created time-machine whilst writing the book.
 Usage
 =====
 
+If you’re coming from freezegun or libfaketime, see also the below section on migrating.
+
 ``travel(destination, *, tick=True)``
 -------------------------------------
 
