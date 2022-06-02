@@ -19,6 +19,8 @@ from dateutil.parser import parse as parse_datetime
 
 import _time_machine
 
+real_datetime = dt.datetime
+
 # time.clock_gettime and time.CLOCK_REALTIME not always available
 # e.g. on builds against old macOS = official Python.org installer
 try:
@@ -435,12 +437,48 @@ if pytest is not None:  # pragma: no branch
 # escape hatch
 
 
+class _FakeDateTimeMeta(type):
+    """
+    Inheriting off type makes this a meta class.
+    A meta class's job is to create new classes.
+    """
+
+    @classmethod
+    def __instancecheck__(self, obj: Any) -> bool:
+        return isinstance(obj, real_datetime)
+
+    @classmethod
+    def __subclasscheck__(cls, subclass: Any) -> bool:
+        return issubclass(subclass, real_datetime)
+
+
+class _MockedDateTimeClass(real_datetime):
+    """
+    This code aims to replicate freezegun's freezegun.api.real_datetime.
+    https://github.com/spulec/freezegun/blob/master/freezegun/api.py
+    """
+
+    # mypy doesn't play well with metaclasses
+    # https://mypy.readthedocs.io/en/stable/metaclasses.html#gotchas-and-limitations-of-metaclass-support
+    @classmethod
+    def now(cls, tz: Optional[dt.tzinfo] = None) -> dt.datetime:  # type: ignore
+        return _time_machine.original_now(tz)
+
+    @classmethod
+    def utcnow(cls) -> dt.datetime:  # type: ignore[override]
+        return _time_machine.original_utcnow()
+
+
 class _EscapeHatchDatetimeDatetime:
     def now(self, tz: dt.tzinfo | None = None) -> dt.datetime:
         return _time_machine.original_now(tz)
 
     def utcnow(self) -> dt.datetime:
         return _time_machine.original_utcnow()
+
+    def real_datetime(self):  # type: ignore
+        MockedDatetime = _FakeDateTimeMeta("datetime", (_MockedDateTimeClass,), {})
+        return mock.patch.object(dt, "datetime", MockedDatetime)
 
 
 class _EscapeHatchDatetime:
