@@ -44,7 +44,7 @@ else:
         from backports.zoneinfo import ZoneInfo
 
         HAVE_ZONEINFO = True
-    except ImportError:
+    except ImportError:  # pragma: no cover
         HAVE_ZONEINFO = False
 
 
