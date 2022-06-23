@@ -2,6 +2,9 @@
 History
 =======
 
+* Fix usage of ``ZoneInfo`` from the ``backports.zoneinfo`` package.
+  This makes ``ZoneInfo`` support work for Python < 3.9.
+
 2.7.0 (2022-05-11)
 ------------------
 
