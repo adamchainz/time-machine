@@ -35,13 +35,18 @@ except ImportError:  # pragma: no cover
     # Windows
     HAVE_TZSET = False
 
-try:
-    # Python 3.8+ or have installed backports.zoneinfo
+if sys.version_info >= (3, 9):
     from zoneinfo import ZoneInfo
 
     HAVE_ZONEINFO = True
-except ImportError:
-    HAVE_ZONEINFO = False
+else:
+    try:
+        from backports.zoneinfo import ZoneInfo
+
+        HAVE_ZONEINFO = True
+    except ImportError:  # pragma: no cover
+        HAVE_ZONEINFO = False
+
 
 try:
     import pytest

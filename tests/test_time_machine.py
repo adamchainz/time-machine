@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import os
+import sys
 import time
 import uuid
 from importlib.util import module_from_spec, spec_from_file_location
@@ -13,12 +14,11 @@ from dateutil import tz
 
 import time_machine
 
-try:
+if sys.version_info >= (3, 9):
     from zoneinfo import ZoneInfo
+else:
+    from backports.zoneinfo import ZoneInfo
 
-    HAVE_ZONEINFO = True
-except ImportError:
-    HAVE_ZONEINFO = False
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
@@ -331,7 +331,6 @@ def test_destination_datetime_tzinfo_non_zoneinfo():
     assert time.time() == EPOCH + 21600.0
 
 
-@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_destination_datetime_tzinfo_zoneinfo():
     orig_timezone = time.timezone
     orig_altzone = time.altzone
@@ -365,7 +364,6 @@ def test_destination_datetime_tzinfo_zoneinfo():
     assert time.daylight == orig_daylight
 
 
-@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_destination_datetime_tzinfo_zoneinfo_nested():
     orig_tzname = time.tzname
 
@@ -382,7 +380,6 @@ def test_destination_datetime_tzinfo_zoneinfo_nested():
     assert time.tzname == orig_tzname
 
 
-@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_destination_datetime_tzinfo_zoneinfo_no_orig_tz():
     orig_tz = os.environ["TZ"]
     del os.environ["TZ"]
@@ -402,7 +399,6 @@ def test_destination_datetime_tzinfo_zoneinfo_no_orig_tz():
         time.tzset()
 
 
-@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_destination_datetime_tzinfo_zoneinfo_windows():
     orig_timezone = time.timezone
 
@@ -601,7 +597,6 @@ def test_move_to_past_datetime():
         assert time.time() == EPOCH
 
 
-@pytest.mark.skipif(not HAVE_ZONEINFO, reason="Requires ZoneInfo")
 def test_move_to_datetime_with_tzinfo_zoneinfo():
     orig_timezone = time.timezone
     orig_altzone = time.altzone
