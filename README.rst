@@ -327,7 +327,6 @@ If you are using pytest test classes, you can apply the fixture to all test meth
         @pytest.fixture(autouse=True)
         def set_time(self, time_machine):
             time_machine.move_to(1000.0)
-            yield
 
         def test_one(self):
             assert int(time.time()) == 1000.0
