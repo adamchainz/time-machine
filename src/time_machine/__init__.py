@@ -51,9 +51,9 @@ else:
 try:
     import pytest
 except ImportError:  # pragma: no cover
-    HAVE_PYTEST = True
-else:
     HAVE_PYTEST = False
+else:
+    HAVE_PYTEST = True
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
