@@ -46,4 +46,5 @@ repos:
   hooks:
   - id: mypy
     additional_dependencies:
+    - pytest==7.1.2
     - types-python-dateutil

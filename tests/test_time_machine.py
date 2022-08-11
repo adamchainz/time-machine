@@ -317,7 +317,7 @@ def test_exceptions_dont_break_it():
         raise ValueError("Hi")
     # Unreachable code analysis doesn’t work with raises being caught by
     # context manager
-    with time_machine.travel(0.0):  # type: ignore[unreachable]
+    with time_machine.travel(0.0):
         pass
 
 
@@ -465,7 +465,7 @@ def test_coroutine_decorator():
     recorded_time = None
 
     @time_machine.travel(EPOCH + 140.0)
-    async def record_time():
+    async def record_time() -> None:
         nonlocal recorded_time
         recorded_time = time.time()
 
@@ -657,7 +657,7 @@ def test_move_to_datetime_change_tick_off():
 # uuid tests
 
 
-def time_from_uuid1(value):
+def time_from_uuid1(value: uuid.UUID) -> dt.datetime:
     return dt.datetime(1582, 10, 15) + dt.timedelta(microseconds=value.time // 10)
 
 

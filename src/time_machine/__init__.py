@@ -51,7 +51,9 @@ else:
 try:
     import pytest
 except ImportError:  # pragma: no cover
-    pytest = None
+    HAVE_PYTEST = True
+else:
+    HAVE_PYTEST = False
 
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
@@ -145,7 +147,7 @@ class Coordinates:
             return self._destination_timestamp_ns
 
         base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
-        now_ns = _time_machine.original_time_ns()
+        now_ns: int = _time_machine.original_time_ns()
 
         if not self._requested:
             self._requested = True
@@ -338,16 +340,16 @@ class travel:
 
 def now(tz: dt.tzinfo | None = None) -> dt.datetime:
     if not coordinates_stack:
-        return _time_machine.original_now(tz)
-    else:
-        return dt.datetime.fromtimestamp(time(), tz)
+        result: dt.datetime = _time_machine.original_now(tz)
+        return result
+    return dt.datetime.fromtimestamp(time(), tz)
 
 
 def utcnow() -> dt.datetime:
     if not coordinates_stack:
-        return _time_machine.original_utcnow()
-    else:
-        return dt.datetime.utcfromtimestamp(time())
+        result: dt.datetime = _time_machine.original_utcnow()
+        return result
+    return dt.datetime.utcfromtimestamp(time())
 
 
 # time module
@@ -355,52 +357,64 @@ def utcnow() -> dt.datetime:
 
 def clock_gettime(clk_id: int) -> float:
     if not coordinates_stack or clk_id != CLOCK_REALTIME:
-        return _time_machine.original_clock_gettime(clk_id)
+        result: float = _time_machine.original_clock_gettime(clk_id)
+        return result
     return time()
 
 
 def clock_gettime_ns(clk_id: int) -> int:
     if not coordinates_stack or clk_id != CLOCK_REALTIME:
-        return _time_machine.original_clock_gettime_ns(clk_id)
+        result: int = _time_machine.original_clock_gettime_ns(clk_id)
+        return result
     return time_ns()
 
 
 def gmtime(secs: float | None = None) -> struct_time:
+    result: struct_time
     if not coordinates_stack or secs is not None:
-        return _time_machine.original_gmtime(secs)
-    return _time_machine.original_gmtime(coordinates_stack[-1].time())
+        result = _time_machine.original_gmtime(secs)
+    else:
+        result = _time_machine.original_gmtime(coordinates_stack[-1].time())
+    return result
 
 
 def localtime(secs: float | None = None) -> struct_time:
+    result: struct_time
     if not coordinates_stack or secs is not None:
-        return _time_machine.original_localtime(secs)
-    return _time_machine.original_localtime(coordinates_stack[-1].time())
+        result = _time_machine.original_localtime(secs)
+    else:
+        result = _time_machine.original_localtime(coordinates_stack[-1].time())
+    return result
 
 
 def strftime(format: str, t: _TimeTuple | struct_time | None = None) -> str:
+    result: str
     if t is not None:
-        return _time_machine.original_strftime(format, t)
+        result = _time_machine.original_strftime(format, t)
     elif not coordinates_stack:
-        return _time_machine.original_strftime(format)
-    return _time_machine.original_strftime(format, localtime())
+        result = _time_machine.original_strftime(format)
+    else:
+        result = _time_machine.original_strftime(format, localtime())
+    return result
 
 
 def time() -> float:
     if not coordinates_stack:
-        return _time_machine.original_time()
+        result: float = _time_machine.original_time()
+        return result
     return coordinates_stack[-1].time()
 
 
 def time_ns() -> int:
     if not coordinates_stack:
-        return _time_machine.original_time_ns()
-    else:
-        return coordinates_stack[-1].time_ns()
+        result: int = _time_machine.original_time_ns()
+        return result
+    return coordinates_stack[-1].time_ns()
 
 
 # pytest plugin
 
-if pytest is not None:  # pragma: no branch
+if HAVE_PYTEST:  # pragma: no branch
 
     class TimeMachineFixture:
         traveller: travel | None
@@ -442,10 +456,12 @@ if pytest is not None:  # pragma: no branch
 
 class _EscapeHatchDatetimeDatetime:
     def now(self, tz: dt.tzinfo | None = None) -> dt.datetime:
-        return _time_machine.original_now(tz)
+        result: dt.datetime = _time_machine.original_now(tz)
+        return result
 
     def utcnow(self) -> dt.datetime:
-        return _time_machine.original_utcnow()
+        result: dt.datetime = _time_machine.original_utcnow()
+        return result
 
 
 class _EscapeHatchDatetime:
@@ -455,28 +471,36 @@ class _EscapeHatchDatetime:
 
 class _EscapeHatchTime:
     def clock_gettime(self, clk_id: int) -> float:
-        return _time_machine.original_clock_gettime(clk_id)
+        result: float = _time_machine.original_clock_gettime(clk_id)
+        return result
 
     def clock_gettime_ns(self, clk_id: int) -> int:
-        return _time_machine.original_clock_gettime_ns(clk_id)
+        result: int = _time_machine.original_clock_gettime_ns(clk_id)
+        return result
 
     def gmtime(self, secs: float | None = None) -> struct_time:
-        return _time_machine.original_gmtime(secs)
+        result: struct_time = _time_machine.original_gmtime(secs)
+        return result
 
     def localtime(self, secs: float | None = None) -> struct_time:
-        return _time_machine.original_localtime(secs)
+        result: struct_time = _time_machine.original_localtime(secs)
+        return result
 
     def strftime(self, format: str, t: _TimeTuple | struct_time | None = None) -> str:
+        result: str
         if t is not None:
-            return _time_machine.original_strftime(format, t)
+            result = _time_machine.original_strftime(format, t)
         else:
-            return _time_machine.original_strftime(format)
+            result = _time_machine.original_strftime(format)
+        return result
 
     def time(self) -> float:
-        return _time_machine.original_time()
+        result: float = _time_machine.original_time()
+        return result
 
     def time_ns(self) -> int:
-        return _time_machine.original_time_ns()
+        result: int = _time_machine.original_time_ns()
+        return result
 
 
 class _EscapeHatch:
