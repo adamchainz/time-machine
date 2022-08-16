@@ -2,6 +2,8 @@
 History
 =======
 
+* Actually build Python 3.11 wheels.
+
 2.8.0 (2022-08-15)
 ------------------
 
