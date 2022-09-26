@@ -102,8 +102,8 @@ The following calls "tick," so if a call was made exactly half a second later, i
     import time_machine
     from unittest import TestCase
 
-    class TimeMachineTestCase(TestCase):
 
+    class TimeMachineTestCase(TestCase):
         @time_machine.travel(dt.datetime(1985, 10, 26, 1, 24), as_kwarg="traveller")
         def test_delorean(self, traveller):
             assert dt.date.today().isoformat() == "1985-10-26"

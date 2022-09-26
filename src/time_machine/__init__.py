@@ -211,7 +211,13 @@ uuid_idempotent_load_system_functions = (
 
 
 class travel:
-    def __init__(self, destination: DestinationType, *, tick: bool = True, as_kwarg: str | None = None) -> None:
+    def __init__(
+        self,
+        destination: DestinationType,
+        *,
+        tick: bool = True,
+        as_kwarg: str | None = None,
+    ) -> None:
         self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
             destination
         )
