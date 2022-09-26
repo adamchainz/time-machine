@@ -94,6 +94,22 @@ If ``True``, the default, successive calls to mocked functions return values inc
 So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
 The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
 
+``as_kwarg`` is a str optional parameter that can be used when ``travel`` is used as a method decorator to pass the ``Coordinates`` context to the underlying method.
+
+.. code-block:: python
+
+    import datetime as dt
+    import time_machine
+    from unittest import TestCase
+
+    class TimeMachineTestCase(TestCase):
+
+        @time_machine.travel(dt.datetime(1985, 10, 26, 1, 24), as_kwarg="traveller")
+        def test_delorean(self, traveller):
+            assert dt.date.today().isoformat() == "1985-10-26"
+
+            traveller.move_to(dt.datetime(1985, 12, 0, 0, 0))
+
 Mocked Functions
 ^^^^^^^^^^^^^^^^
 

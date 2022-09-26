@@ -496,6 +496,16 @@ class UnitTestMethodTests(TestCase):
         assert time.time() == EPOCH + 25.0
 
 
+class UnitTestMethodAsKwargTests(TestCase):
+    @time_machine.travel(EPOCH, as_kwarg="traveller")
+    def test_method_decorator(self, traveller):
+        assert time.time() == EPOCH
+
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
+
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+
+
 @time_machine.travel(EPOCH + 95.0)
 class UnitTestClassTests(TestCase):
     def test_class_decorator(self):

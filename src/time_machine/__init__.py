@@ -211,11 +211,12 @@ uuid_idempotent_load_system_functions = (
 
 
 class travel:
-    def __init__(self, destination: DestinationType, *, tick: bool = True) -> None:
+    def __init__(self, destination: DestinationType, *, tick: bool = True, as_kwarg: str | None = None) -> None:
         self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
             destination
         )
         self.tick = tick
+        self.as_kwarg = as_kwarg
 
     def start(self) -> Coordinates:
         global coordinates_stack
@@ -329,7 +330,9 @@ class travel:
 
             @functools.wraps(wrapped)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
-                with self:
+                with self as traveller:
+                    if self.as_kwarg:
+                        kwargs[self.as_kwarg] = traveller
                     return wrapped(*args, **kwargs)
 
             return wrapper
