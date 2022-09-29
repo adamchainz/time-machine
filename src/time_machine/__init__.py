@@ -10,9 +10,9 @@ from collections.abc import Generator
 from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
-from typing import Any, Callable, Coroutine
+from typing import Any, Awaitable, Callable
 from typing import Generator as TypingGenerator
-from typing import Tuple, Union, overload
+from typing import Tuple, Type, TypeVar, Union, cast, overload
 from unittest import TestCase, mock
 
 from dateutil.parser import parse as parse_datetime
@@ -85,6 +85,10 @@ DestinationType = Union[
     Callable[[], DestinationBaseType],
     TypingGenerator[DestinationBaseType, None, None],
 ]
+
+_F = TypeVar("_F", bound=Callable[..., Any])
+_AF = TypeVar("_AF", bound=Callable[..., Awaitable[Any]])
+TestCaseType = TypeVar("TestCaseType", bound=Type[TestCase])
 
 # copied from typeshed:
 _TimeTuple = Tuple[int, int, int, int, int, int, int, int, int]
@@ -257,31 +261,23 @@ class travel:
         self.stop()
 
     @overload
-    def __call__(self, wrapped: type[TestCase]) -> type[TestCase]:  # pragma: no cover
+    def __call__(self, wrapped: TestCaseType) -> TestCaseType:  # pragma: no cover
         ...
 
     @overload
-    def __call__(
-        self, wrapped: Callable[..., Coroutine[Any, Any, Any]]
-    ) -> Callable[..., Coroutine[Any, Any, Any]]:  # pragma: no cover
+    def __call__(self, wrapped: _AF) -> _AF:  # pragma: no cover
         ...
 
     @overload
-    def __call__(
-        self, wrapped: Callable[..., Any]
-    ) -> Callable[..., Any]:  # pragma: no cover
+    def __call__(self, wrapped: _F) -> _F:  # pragma: no cover
         ...
 
+    # 'Any' below is workaround for Mypy error:
+    # Overloaded function implementation does not accept all possible arguments
+    # of signature
     def __call__(
-        self,
-        wrapped: (
-            type[TestCase]
-            | Callable[..., Coroutine[Any, Any, Any]]
-            | Callable[..., Any]
-        ),
-    ) -> (
-        type[TestCase] | Callable[..., Coroutine[Any, Any, Any]] | Callable[..., Any]
-    ):
+        self, wrapped: TestCaseType | _AF | _F | Any
+    ) -> TestCaseType | _AF | _F | Any:
         if isinstance(wrapped, type):
             # Class decorator
             if not issubclass(wrapped, TestCase):
@@ -311,7 +307,7 @@ class travel:
             wrapped.tearDownClass = classmethod(  # type: ignore[assignment]
                 tearDownClass
             )
-            return wrapped
+            return cast(TestCaseType, wrapped)
         elif inspect.iscoroutinefunction(wrapped):
 
             @functools.wraps(wrapped)
@@ -323,7 +319,7 @@ class travel:
                         **kwargs,
                     )  # type: ignore [misc]
 
-            return wrapper
+            return cast(_AF, wrapper)
         else:
             assert callable(wrapped)
 
@@ -332,7 +328,7 @@ class travel:
                 with self:
                     return wrapped(*args, **kwargs)
 
-            return wrapper
+            return cast(_F, wrapper)
 
 
 # datetime module
