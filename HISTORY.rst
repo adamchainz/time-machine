@@ -2,6 +2,9 @@
 History
 =======
 
+2.8.2 (2022-09-29)
+------------------
+
 * Improve type hints for ``time_machine.travel()`` to preserve the types of the wrapped function/coroutine/class.
 
 2.8.1 (2022-08-16)
