@@ -2,6 +2,8 @@
 History
 =======
 
+* Build Windows ARM64 wheels.
+
 2.8.2 (2022-09-29)
 ------------------
 
