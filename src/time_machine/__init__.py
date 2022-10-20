@@ -441,10 +441,8 @@ if HAVE_PYTEST:  # pragma: no branch
     @pytest.fixture(name="time_machine")
     def time_machine_fixture() -> TypingGenerator[TimeMachineFixture, None, None]:
         fixture = TimeMachineFixture()
-        try:
-            yield fixture
-        finally:
-            fixture.stop()
+        yield fixture
+        fixture.stop()
 
 
 # escape hatch
