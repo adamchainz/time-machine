@@ -21,7 +21,7 @@ jobs:
       CIBW_ARCHS_LINUX: x86_64 i686 aarch64
       CIBW_ARCHS_MACOS: x86_64 universal2
       CIBW_ARCHS_WINDOWS: AMD64 x86 ARM64
-      CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-* cp311-*"
+      CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-* cp311-*"
 
     steps:
       - uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
 
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel==2.11.0
+          python -m pip install cibuildwheel==2.11.2
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
