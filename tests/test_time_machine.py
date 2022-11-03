@@ -464,6 +464,28 @@ def test_destination_generator():
     assert time.time() == EPOCH + 13.0
 
 
+def test_destination_delta():
+    now = time.time()
+    with time_machine.travel(dt.timedelta(seconds=3600)):
+        assert now + 3600 < time.time() < now + 3601
+
+
+def test_destination_negative_delta():
+    now = time.time()
+    with time_machine.travel(dt.timedelta(seconds=-3600)):
+        assert now - 3600 < time.time() < now - 3599
+
+
+@time_machine.travel(0)
+def test_destination_delta_raises():
+    with pytest.raises(TypeError) as excinfo:
+        time_machine.travel(dt.timedelta(seconds=3600))
+
+    assert excinfo.value.args == (
+        "Timedelta destination is not supported when already time travelling.",
+    )
+
+
 def test_traveller_object():
     traveller = time_machine.travel(EPOCH + 10.0)
     assert time.time() >= LIBRARY_EPOCH

@@ -84,6 +84,7 @@ DestinationBaseType = Union[
     int,
     float,
     dt.datetime,
+    dt.timedelta,
     dt.date,
     str,
 ]
@@ -124,6 +125,12 @@ def extract_timestamp_tzname(
         if dest.tzinfo is None:
             dest = dest.replace(tzinfo=dt.timezone.utc)
         timestamp = dest.timestamp()
+    elif isinstance(dest, dt.timedelta):
+        if coordinates_stack:
+            raise TypeError(
+                "timedelta destination is not supported when already time travelling."
+            )
+        timestamp = time() + dest.total_seconds()
     elif isinstance(dest, dt.date):
         timestamp = dt.datetime.combine(
             dest, dt.time(0, 0), tzinfo=dt.timezone.utc
