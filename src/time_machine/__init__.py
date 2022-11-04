@@ -10,14 +10,21 @@ from collections.abc import Generator
 from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
-from typing import Any, Awaitable, Callable
+from typing import Any
+from typing import Awaitable
+from typing import Callable
+from typing import cast
 from typing import Generator as TypingGenerator
-from typing import Tuple, Type, TypeVar, Union, cast, overload
-from unittest import TestCase, mock
-
-from dateutil.parser import parse as parse_datetime
+from typing import overload
+from typing import Tuple
+from typing import Type
+from typing import TypeVar
+from typing import Union
+from unittest import mock
+from unittest import TestCase
 
 import _time_machine
+from dateutil.parser import parse as parse_datetime
 
 # time.clock_gettime and time.CLOCK_REALTIME not always available
 # e.g. on builds against old macOS = official Python.org installer
