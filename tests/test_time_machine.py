@@ -717,12 +717,24 @@ def test_fixture_used_tick_true(time_machine):
     assert original < time.time() < EPOCH + 10.0
 
 
-def test_fixture_used_twice(time_machine):
+def test_fixture_move_to_twice(time_machine):
     time_machine.move_to(EPOCH)
     assert time.time() == EPOCH
 
     time_machine.move_to(EPOCH_PLUS_ONE_YEAR)
     assert time.time() == EPOCH_PLUS_ONE_YEAR
+
+
+def test_fixture_move_to_and_shift(time_machine):
+    time_machine.move_to(EPOCH, tick=False)
+    assert time.time() == EPOCH
+    time_machine.shift(100)
+    assert time.time() == EPOCH + 100
+
+
+def test_fixture_shift_without_move_to(time_machine):
+    with pytest.raises(RuntimeError):
+        time_machine.shift(100)
 
 
 # escape hatch tests
