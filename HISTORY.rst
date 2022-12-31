@@ -2,6 +2,9 @@
 History
 =======
 
+2.9.0 (2022-12-31)
+------------------
+
 * Build Windows ARM64 wheels.
 
 * Explicitly error when attempting to install on PyPy.
