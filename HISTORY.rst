@@ -4,6 +4,10 @@ History
 
 * Build Windows ARM64 wheels.
 
+* Explicitly error when attempting to install on PyPy.
+
+Thanks to Michał Górny in `PR #315 <https://github.com/adamchainz/time-machine/pull/315>`__.
+
 2.8.2 (2022-09-29)
 ------------------
 
