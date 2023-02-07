@@ -390,7 +390,6 @@ def test_destination_datetime_tzinfo_zoneinfo_no_orig_tz():
     orig_tzname = time.tzname
 
     try:
-
         dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
         with time_machine.travel(dest):
             assert time.tzname == ("EAT", "EAT")
