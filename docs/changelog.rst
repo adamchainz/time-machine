@@ -15,6 +15,9 @@ Unreleased
 
   `PR #556 <https://github.com/adamchainz/time-machine/issues/556>`__.
 
+* Make ``travel()`` error when passed a `pytz <https://pythonhosted.org/pytz/>`__ ``timezone`` object.
+  pytz is effectively deprecated due to its incompatibily with Python’s design, per `this blog post by Paul Ganssle <https://blog.ganssle.io/articles/2018/03/pytz-fastest-footgun.html>`__.
+
 * Import date and time functions once in the C extension.
 
   This should improve speed a little bit, and avoid segmentation faults when the functions have been swapped out, such as when freezegun is in effect.
