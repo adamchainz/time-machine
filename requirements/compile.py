@@ -12,17 +12,18 @@ if __name__ == "__main__":
     os.environ["CUSTOM_COMPILE_COMMAND"] = "requirements/compile.py"
     os.environ["PIP_REQUIRE_VIRTUALENV"] = "0"
 
-    for python_version in ['3.7', '3.8', '3.9', '3.10', '3.11']:
+    for python_version in ["3.7", "3.8", "3.9", "3.10", "3.11"]:
         subprocess.run(
             [
-                f"python{python_version}", "-m",
+                f"python{python_version}",
+                "-m",
                 "piptools",
                 "compile",
                 "--generate-hashes",
                 "--allow-unsafe",
                 *sys.argv[1:],
                 "-o",
-                f"py{python_version.replace('.', '')}.txt"
+                f"py{python_version.replace('.', '')}.txt",
             ],
             check=True,
             capture_output=True,
