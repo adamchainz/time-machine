@@ -412,6 +412,19 @@ def test_destination_datetime_tzinfo_zoneinfo_windows():
         assert time.timezone == orig_timezone
 
 
+def test_destination_datetime_tzinfo_pytz():
+    try:
+        import pytz
+    except ImportError:
+        import subprocess
+        subprocess.run(['pip', 'install', 'pytz'])
+        import pytz
+
+    dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=pytz.timezone("Africa/Addis_Ababa"))
+    with pytest.raises(RuntimeError, match="We don't support pytz"):
+        time_machine.extract_timestamp_tzname(dest)
+
+
 @time_machine.travel(int(EPOCH + 77))
 def test_destination_int():
     assert time.time() == int(EPOCH + 77)
