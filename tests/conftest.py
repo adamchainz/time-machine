@@ -6,5 +6,4 @@ import time
 
 # Isolate tests from the host machine’s timezone
 os.environ["TZ"] = "UTC"
-if hasattr(time, 'tzset'):  # Not available on Windows
-    time.tzset()
+time.tzset()
