@@ -412,13 +412,15 @@ def test_destination_datetime_tzinfo_zoneinfo_windows():
         assert time.timezone == orig_timezone
 
 
-def test_destination_datetime_tzinfo_pytz():
+def test_destination_datetime_tzinfo_pytz(monkeypatch):
     try:
         import pytz
     except ImportError:
         import subprocess
         subprocess.run(['pip', 'install', 'pytz'])
         import pytz
+
+    monkeypatch.setattr(time_machine, 'HAVE_PYTZ', True)
 
     dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=pytz.timezone("Africa/Addis_Ababa"))
     with pytest.raises(RuntimeError, match="We don't support pytz"):
