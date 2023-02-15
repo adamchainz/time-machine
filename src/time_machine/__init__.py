@@ -128,7 +128,7 @@ def extract_timestamp_tzname(
         if HAVE_ZONEINFO and isinstance(dest.tzinfo, ZoneInfo):
             tzname = dest.tzinfo.key
         elif HAVE_PYTZ and isinstance(dest.tzinfo, pytz.BaseTzInfo):
-            raise RuntimeError(
+            raise TypeError(
                 "We don't support pytz. For more background information, please read:"
                 " https://blog.ganssle.io/articles/2018/03/pytz-fastest-footgun.html"
             )
