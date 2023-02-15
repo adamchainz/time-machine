@@ -11,6 +11,7 @@ from importlib.util import spec_from_file_location
 from unittest import mock
 from unittest import SkipTest
 from unittest import TestCase
+import pytz
 
 import pytest
 from dateutil import tz
@@ -413,17 +414,6 @@ def test_destination_datetime_tzinfo_zoneinfo_windows():
 
 
 def test_destination_datetime_tzinfo_pytz(monkeypatch):
-    try:
-        import pytz
-    except ImportError:
-        import subprocess
-
-        subprocess.run(["pip", "install", "pytz"])
-        import pytz
-
-    monkeypatch.setattr(time_machine, "HAVE_PYTZ", True, raising=False)
-    monkeypatch.setattr(time_machine, "pytz", pytz, raising=False)
-
     dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=pytz.timezone("Africa/Addis_Ababa"))
     with pytest.raises(RuntimeError, match="We don't support pytz"):
         time_machine.extract_timestamp_tzname(dest)
