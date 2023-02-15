@@ -11,9 +11,9 @@ from importlib.util import spec_from_file_location
 from unittest import mock
 from unittest import SkipTest
 from unittest import TestCase
-import pytz
 
 import pytest
+import pytz
 from dateutil import tz
 
 import time_machine
