@@ -392,6 +392,13 @@ Some aren't ready for time to move so rapidly or backwards, and may crash or pro
 Also beware that other processes are not affected.
 For example, if you use SQL datetime functions on a database server, they will return the real time.
 
+pytz
+====
+``dateutil.tz`` is recommended by Python rather than ``pytz`` when it comes to timezones.
+The way pytz handles timezone information is eager vs the lazy way Python handles timezones. This leads to inconsistencies in the generated datetimes.
+For a more detailed explanation, please `read the excellent blog post of Paul Ganssle <https://blog.ganssle.io/articles/2018/03/pytz-fastest-footgun.html>`__.
+If you're using a pytz timezone, an error will be raised.
+
 Comparison
 ==========
 

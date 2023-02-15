@@ -2,6 +2,12 @@
 Changelog
 =========
 
+2.9.1 (unreleased)
+------------------
+
+* Explicitly error when attempting to use a ``pytz.timezone``.
+
+
 2.9.0 (2022-12-31)
 ------------------
 
