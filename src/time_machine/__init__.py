@@ -129,8 +129,8 @@ def extract_timestamp_tzname(
             tzname = dest.tzinfo.key
         elif HAVE_PYTZ and isinstance(dest.tzinfo, pytz.BaseTzInfo):
             raise TypeError(
-                "We don't support pytz. For more background information, please read:"
-                " https://blog.ganssle.io/articles/2018/03/pytz-fastest-footgun.html"
+                "We don't support pytz. For more background information, please read "
+                "the pytz topic in the readme."
             )
 
         if dest.tzinfo is None:
