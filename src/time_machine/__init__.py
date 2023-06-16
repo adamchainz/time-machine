@@ -54,6 +54,12 @@ else:
     except ImportError:  # pragma: no cover
         HAVE_ZONEINFO = False
 
+try:
+    import pytz
+
+    HAVE_PYTZ = True
+except ImportError:
+    HAVE_PYTZ = False
 
 try:
     import pytest
@@ -121,6 +127,12 @@ def extract_timestamp_tzname(
     elif isinstance(dest, dt.datetime):
         if HAVE_ZONEINFO and isinstance(dest.tzinfo, ZoneInfo):
             tzname = dest.tzinfo.key
+        elif HAVE_PYTZ and isinstance(dest.tzinfo, pytz.BaseTzInfo):
+            raise TypeError(
+                "We don't support pytz. For more background information, please read "
+                "the pytz topic in the readme."
+            )
+
         if dest.tzinfo is None:
             dest = dest.replace(tzinfo=dt.timezone.utc)
         timestamp = dest.timestamp()
