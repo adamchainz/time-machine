@@ -46,7 +46,7 @@ Use **pip**:
 
     python -m pip install time-machine
 
-Python 3.7 to 3.11 supported.
+Python 3.7 to 3.12 supported.
 Only CPython is supported at this time because time-machine directly hooks into the C-level API.
 
 ----
