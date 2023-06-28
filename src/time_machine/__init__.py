@@ -320,11 +320,7 @@ class travel:
             @functools.wraps(wrapped)
             async def wrapper(*args: Any, **kwargs: Any) -> Any:
                 with self:
-                    # mypy has not narrowed 'wrapped' to a coroutine function
-                    return await wrapped(
-                        *args,
-                        **kwargs,
-                    )  # type: ignore [misc]
+                    return await wrapped(*args, **kwargs)
 
             return cast(_AF, wrapper)
         else:
