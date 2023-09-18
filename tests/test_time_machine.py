@@ -223,6 +223,23 @@ def test_time_localtime_arg():
         assert local_time.tm_mday == 1
 
 
+def test_time_montonic():
+    with time_machine.travel(EPOCH, tick=False) as t:
+        assert time.monotonic() == EPOCH
+        t.shift(1)
+        assert time.monotonic() == EPOCH + 1
+
+
+def test_time_monotonic_ns():
+    with time_machine.travel(EPOCH, tick=False) as t:
+        assert time.monotonic_ns() == int(EPOCH * NANOSECONDS_PER_SECOND)
+        t.shift(1)
+        assert (
+            time.monotonic_ns()
+            == int(EPOCH * NANOSECONDS_PER_SECOND) + NANOSECONDS_PER_SECOND
+        )
+
+
 def test_time_strftime_format():
     with time_machine.travel(EPOCH):
         assert time.strftime("%Y-%m-%d") == "1970-01-01"
@@ -771,6 +788,19 @@ class TestEscapeHatch:
         with time_machine.travel(EPOCH):
             eh_now = time_machine.escape_hatch.time.localtime()
             assert eh_now >= now
+
+    def test_time_monotonic(self):
+        with time_machine.travel(LIBRARY_EPOCH):
+            # real monotonic time counts from a small number
+            assert time_machine.escape_hatch.time.monotonic() < LIBRARY_EPOCH
+
+    def test_time_monotonic_ns(self):
+        with time_machine.travel(LIBRARY_EPOCH):
+            # real monotonic time counts from a small number
+            assert (
+                time_machine.escape_hatch.time.monotonic_ns()
+                < LIBRARY_EPOCH * NANOSECONDS_PER_SECOND
+            )
 
     def test_time_strftime_no_arg(self):
         today = dt.date.today()

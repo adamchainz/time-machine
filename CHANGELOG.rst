@@ -2,6 +2,11 @@
 Changelog
 =========
 
+* Mock ``time.monotonic()`` and ``time.monotonic_ns()``.
+  They return the values of ``time.time()`` and ``time.time_ns()`` respectively, rather than real monotonic clocks.
+
+  Thanks to Anthony Sottile in `PR 382 <https://github.com/adamchainz/time-machine/pull/382>`__.
+
 2.12.0 (2023-08-14)
 -------------------
 
