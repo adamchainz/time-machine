@@ -101,15 +101,15 @@ All datetime functions in the standard library are mocked to move to the destina
 
 * ``datetime.datetime.now()``
 * ``datetime.datetime.utcnow()``
-* ``time.gmtime()``
-* ``time.localtime()``
 * ``time.clock_gettime()`` (only for ``CLOCK_REALTIME``)
 * ``time.clock_gettime_ns()`` (only for ``CLOCK_REALTIME``)
+* ``time.gmtime()``
+* ``time.localtime()``
+* ``time.monotonic()`` (not a real monotonic clock, returns ``time.time()``)
+* ``time.monotonic_ns()`` (not a real monotonic clock, returns ``time.time_ns()``)
 * ``time.strftime()``
 * ``time.time()``
 * ``time.time_ns()``
-* ``time.monotonic()`` (note: not a real monotonic clock -- uses ``time.time()``)
-* ``time.monotonic_ns()`` (note: not a real monotonic clock -- uses ``time.time_ns()``)
 
 The mocking is done at the C layer, replacing the function pointers for these built-ins.
 Therefore, it automatically affects everywhere those functions have been imported, unlike use of ``unittest.mock.patch()``.

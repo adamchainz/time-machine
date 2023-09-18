@@ -10,11 +10,11 @@ typedef struct {
     PyCFunction original_clock_gettime_ns;
     PyCFunction original_gmtime;
     PyCFunction original_localtime;
+    PyCFunction original_monotonic;
+    PyCFunction original_monotonic_ns;
     PyCFunction original_strftime;
     PyCFunction original_time;
     PyCFunction original_time_ns;
-    PyCFunction original_monotonic;
-    PyCFunction original_monotonic_ns;
 } _time_machine_state;
 
 static inline _time_machine_state*
@@ -236,6 +236,46 @@ PyDoc_STRVAR(original_localtime_doc,
 \n\
 Call time.localtime() after patching.");
 
+/* time.monotonic() */
+
+static PyObject*
+_time_machine_original_monotonic(PyObject* module, PyObject* args)
+{
+    _time_machine_state *state = get_time_machine_state(module);
+
+    PyObject *time_module = PyImport_ImportModule("time");
+
+    PyObject* result = state->original_monotonic(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
+}
+PyDoc_STRVAR(original_monotonic_doc,
+"original_monotonic() -> floating point number\n\
+\n\
+Call time.monotonic() after patching.");
+
+/* time.monotonic_ns() */
+
+static PyObject*
+_time_machine_original_monotonic_ns(PyObject* module, PyObject* args)
+{
+    _time_machine_state *state = get_time_machine_state(module);
+
+    PyObject *time_module = PyImport_ImportModule("time");
+
+    PyObject* result = state->original_monotonic_ns(time_module, args);
+
+    Py_DECREF(time_module);
+
+    return result;
+}
+PyDoc_STRVAR(original_monotonic_ns_doc,
+"original_monotonic_ns() -> int\n\
+\n\
+Call time.monotonic_ns() after patching.");
+
 /* time.strftime() */
 
 static PyObject*
@@ -338,47 +378,6 @@ PyDoc_STRVAR(original_time_ns_doc,
 \n\
 Call time.time_ns() after patching.");
 
-/* time.monotonic() */
-
-static PyObject*
-_time_machine_original_monotonic(PyObject* module, PyObject* args)
-{
-    _time_machine_state *state = get_time_machine_state(module);
-
-    PyObject *time_module = PyImport_ImportModule("time");
-
-    PyObject* result = state->original_monotonic(time_module, args);
-
-    Py_DECREF(time_module);
-
-    return result;
-}
-PyDoc_STRVAR(original_monotonic_doc,
-"original_monotonic() -> floating point number\n\
-\n\
-Call time.monotonic() after patching.");
-
-/* time.monotonic_ns() */
-
-static PyObject*
-_time_machine_original_monotonic_ns(PyObject* module, PyObject* args)
-{
-    _time_machine_state *state = get_time_machine_state(module);
-
-    PyObject *time_module = PyImport_ImportModule("time");
-
-    PyObject* result = state->original_monotonic_ns(time_module, args);
-
-    Py_DECREF(time_module);
-
-    return result;
-}
-PyDoc_STRVAR(original_monotonic_ns_doc,
-"original_monotonic_ns() -> int\n\
-\n\
-Call time.monotonic_ns() after patching.");
-
-
 static PyObject*
 _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
 {
@@ -438,6 +437,16 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     time_localtime->m_ml->ml_meth = _time_machine_localtime;
     Py_DECREF(time_localtime);
 
+    PyCFunctionObject *time_monotonic = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "monotonic");
+    state->original_monotonic = time_monotonic->m_ml->ml_meth;
+    time_monotonic->m_ml->ml_meth = _time_machine_time;
+    Py_DECREF(time_monotonic);
+
+    PyCFunctionObject *time_monotonic_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "monotonic_ns");
+    state->original_monotonic_ns = time_monotonic_ns->m_ml->ml_meth;
+    time_monotonic_ns->m_ml->ml_meth = _time_machine_time_ns;
+    Py_DECREF(time_monotonic_ns);
+
     PyCFunctionObject *time_strftime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "strftime");
     state->original_strftime = time_strftime->m_ml->ml_meth;
     time_strftime->m_ml->ml_meth = _time_machine_strftime;
@@ -452,16 +461,6 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     state->original_time_ns = time_time_ns->m_ml->ml_meth;
     time_time_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_time_ns);
-
-    PyCFunctionObject *time_monotonic = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "monotonic");
-    state->original_monotonic = time_monotonic->m_ml->ml_meth;
-    time_monotonic->m_ml->ml_meth = _time_machine_time;
-    Py_DECREF(time_monotonic);
-
-    PyCFunctionObject *time_monotonic_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "monotonic_ns");
-    state->original_monotonic_ns = time_monotonic_ns->m_ml->ml_meth;
-    time_monotonic_ns->m_ml->ml_meth = _time_machine_time_ns;
-    Py_DECREF(time_monotonic_ns);
 
     Py_DECREF(time_module);
 
@@ -483,11 +482,11 @@ static PyMethodDef module_functions[] = {
     {"original_clock_gettime_ns", (PyCFunction)_time_machine_original_clock_gettime_ns, METH_VARARGS, original_clock_gettime_ns_doc},
     {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
+    {"original_monotonic", (PyCFunction)_time_machine_original_monotonic, METH_NOARGS, original_monotonic_doc},
+    {"original_monotonic_ns", (PyCFunction)_time_machine_original_monotonic_ns, METH_NOARGS, original_monotonic_ns_doc},
     {"original_strftime", (PyCFunction)_time_machine_original_strftime, METH_VARARGS, original_strftime_doc},
     {"original_time", (PyCFunction)_time_machine_original_time, METH_NOARGS, original_time_doc},
     {"original_time_ns", (PyCFunction)_time_machine_original_time_ns, METH_NOARGS, original_time_ns_doc},
-    {"original_monotonic", (PyCFunction)_time_machine_original_monotonic, METH_NOARGS, original_monotonic_doc},
-    {"original_monotonic_ns", (PyCFunction)_time_machine_original_monotonic_ns, METH_NOARGS, original_monotonic_ns_doc},
     {"patch_if_needed", (PyCFunction)_time_machine_patch_if_needed, METH_NOARGS, patch_if_needed_doc},
     {NULL, NULL}  /* sentinel */
 };

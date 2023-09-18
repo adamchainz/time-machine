@@ -483,6 +483,14 @@ class _EscapeHatchTime:
         result: struct_time = _time_machine.original_localtime(secs)
         return result
 
+    def monotonic(self) -> float:
+        result: float = _time_machine.original_monotonic()
+        return result
+
+    def monotonic_ns(self) -> int:
+        result: int = _time_machine.original_monotonic_ns()
+        return result
+
     def strftime(self, format: str, t: _TimeTuple | struct_time | None = None) -> str:
         result: str
         if t is not None:
@@ -497,14 +505,6 @@ class _EscapeHatchTime:
 
     def time_ns(self) -> int:
         result: int = _time_machine.original_time_ns()
-        return result
-
-    def monotonic(self) -> float:
-        result: float = _time_machine.original_monotonic()
-        return result
-
-    def monotonic_ns(self) -> int:
-        result: int = _time_machine.original_monotonic_ns()
         return result
 
 
