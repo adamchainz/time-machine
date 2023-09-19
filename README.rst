@@ -297,7 +297,7 @@ pytest plugin
 -------------
 
 time-machine also works as a pytest plugin.
-It provides a function-scoped fixture called ``time_machine`` that has one method, ``move_to()``, which has the same signature as ``Coordinates.move_to()``.
+It provides a function-scoped fixture called ``time_machine`` with methods ``move_to()`` and ``shift()``, which have the same signature as their equivalents in ``Coordinates``.
 This can be used to mock your test at different points in time and will automatically be un-mock when the test is torn down.
 
 For example:
@@ -315,6 +315,10 @@ For example:
         time_machine.move_to(dt.datetime(2015, 10, 21))
 
         assert dt.date.today().isoformat() == "2015-10-21"
+
+        time_machine.shift(dt.timedelta(days=1))
+
+        assert dt.date.today().isoformat() == "2015-10-22"
 
 If you are using pytest test classes, you can apply the fixture to all test methods in a class by adding an autouse fixture:
 

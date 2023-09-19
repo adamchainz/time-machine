@@ -437,6 +437,14 @@ if HAVE_PYTEST:  # pragma: no branch
                 assert self.coordinates is not None
                 self.coordinates.move_to(destination, tick=tick)
 
+        def shift(self, delta: dt.timedelta | int | float) -> None:
+            if self.traveller is None:
+                raise RuntimeError(
+                    "Initialize time_machine with move_to() before using shift()."
+                )
+            assert self.coordinates is not None
+            self.coordinates.shift(delta=delta)
+
         def stop(self) -> None:
             if self.traveller is not None:
                 self.traveller.stop()
