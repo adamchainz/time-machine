@@ -316,6 +316,10 @@ For example:
 
         assert dt.date.today().isoformat() == "2015-10-21"
 
+        time_machine.shift(dt.timedelta(days=1))
+
+        assert dt.date.today().isoformat() == "2015-10-22"
+
 If you are using pytest test classes, you can apply the fixture to all test methods in a class by adding an autouse fixture:
 
 .. code-block:: python
