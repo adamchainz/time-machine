@@ -444,6 +444,24 @@ def test_destination_date():
     assert time.time() == EPOCH
 
 
+def test_destination_timedelta():
+    now = time.time()
+    with time_machine.travel(dt.timedelta(seconds=3600)):
+        assert now + 3600 <= time.time() <= now + 3601
+
+
+def test_destination_timedelta_negative():
+    now = time.time()
+    with time_machine.travel(dt.timedelta(seconds=-3600)):
+        assert now - 3600 <= time.time() <= now - 3599
+
+
+def test_destination_timedelta_nested():
+    with time_machine.travel(EPOCH):
+        with time_machine.travel(dt.timedelta(seconds=10)):
+            assert time.time() == EPOCH + 10.0
+
+
 @time_machine.travel("1970-01-01 00:01 +0000")
 def test_destination_string():
     assert time.time() == EPOCH + 60.0

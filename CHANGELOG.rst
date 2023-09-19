@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Add support for ``datetime.timedelta`` to ``time_machine.travel()``.
+
+  Thanks to Nate Dudenhoeffer in `PR #298 <https://github.com/adamchainz/time-machine/pull/298>`__.
+
 * Add ``shift()`` method to the ``time_machine`` pytest fixture.
 
   Thanks to Stefaan Lippens in `PR #312 <https://github.com/adamchainz/time-machine/pull/312>`__.
