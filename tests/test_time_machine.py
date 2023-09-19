@@ -476,14 +476,10 @@ def test_destination_negative_delta():
         assert now - 3600 <= time.time() <= now - 3599
 
 
-@time_machine.travel(0)
 def test_destination_delta_raises():
-    with pytest.raises(TypeError) as excinfo:
-        time_machine.travel(dt.timedelta(seconds=3600))
-
-    assert excinfo.value.args == (
-        "Timedelta destination is not supported when already time travelling.",
-    )
+    with time_machine.travel(EPOCH):
+        with time_machine.travel(dt.timedelta(seconds=10)):
+            assert time.time() == EPOCH + 10.0
 
 
 def test_traveller_object():

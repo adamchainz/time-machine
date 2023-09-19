@@ -126,10 +126,6 @@ def extract_timestamp_tzname(
             dest = dest.replace(tzinfo=dt.timezone.utc)
         timestamp = dest.timestamp()
     elif isinstance(dest, dt.timedelta):
-        if coordinates_stack:
-            raise TypeError(
-                "timedelta destination is not supported when already time travelling."
-            )
         timestamp = time() + dest.total_seconds()
     elif isinstance(dest, dt.date):
         timestamp = dt.datetime.combine(
