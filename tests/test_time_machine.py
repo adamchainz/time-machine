@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import datetime as dt
 import os
 import sys
 import time
 import typing
 import uuid
+from contextlib import contextmanager
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
 from unittest import mock
@@ -36,6 +36,21 @@ LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
 py_have_clock_gettime = pytest.mark.skipif(
     not hasattr(time, "clock_gettime"), reason="Doesn't have clock_gettime"
 )
+
+
+@contextmanager
+def change_local_timezone(local_tz: str | None) -> typing.Iterator[None]:
+    orig_tz = os.environ["TZ"]
+    if local_tz:
+        os.environ["TZ"] = local_tz
+    else:
+        del os.environ["TZ"]
+    time.tzset()
+    try:
+        yield
+    finally:
+        os.environ["TZ"] = orig_tz
+        time.tzset()
 
 
 @pytest.mark.skipif(
@@ -403,21 +418,14 @@ def test_destination_datetime_tzinfo_zoneinfo_nested():
 
 
 def test_destination_datetime_tzinfo_zoneinfo_no_orig_tz():
-    orig_tz = os.environ["TZ"]
-    del os.environ["TZ"]
-    time.tzset()
-    orig_tzname = time.tzname
-
-    try:
+    with change_local_timezone(None):
+        orig_tzname = time.tzname
         dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+
         with time_machine.travel(dest):
             assert time.tzname == ("EAT", "EAT")
 
         assert time.tzname == orig_tzname
-
-    finally:
-        os.environ["TZ"] = orig_tz
-        time.tzset()
 
 
 def test_destination_datetime_tzinfo_zoneinfo_windows():
@@ -467,18 +475,6 @@ def test_destination_timedelta_nested():
 @time_machine.travel("1970-01-01 00:01 +0000")
 def test_destination_string():
     assert time.time() == EPOCH + 60.0
-
-
-@contextlib.contextmanager
-def change_local_timezone(local_tz: str) -> typing.Iterator[None]:
-    orig_tz = os.environ["TZ"]
-    os.environ["TZ"] = local_tz
-    time.tzset()
-    try:
-        yield
-    finally:
-        os.environ["TZ"] = orig_tz
-        time.tzset()
 
 
 @pytest.mark.parametrize(
