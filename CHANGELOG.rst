@@ -4,12 +4,12 @@ Changelog
 
 * Add ``shift()`` method to the ``time_machine`` pytest fixture.
 
-  Thanks to Stefaan Lippens in `PR 312 <https://github.com/adamchainz/time-machine/pull/312>`__.
+  Thanks to Stefaan Lippens in `PR #312 <https://github.com/adamchainz/time-machine/pull/312>`__.
 
 * Mock ``time.monotonic()`` and ``time.monotonic_ns()``.
   They return the values of ``time.time()`` and ``time.time_ns()`` respectively, rather than real monotonic clocks.
 
-  Thanks to Anthony Sottile in `PR 382 <https://github.com/adamchainz/time-machine/pull/382>`__.
+  Thanks to Anthony Sottile in `PR #382 <https://github.com/adamchainz/time-machine/pull/382>`__.
 
 2.12.0 (2023-08-14)
 -------------------
