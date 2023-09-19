@@ -733,8 +733,12 @@ def test_fixture_move_to_and_shift(time_machine):
 
 
 def test_fixture_shift_without_move_to(time_machine):
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as excinfo:
         time_machine.shift(100)
+
+    assert excinfo.value.args == (
+        "Initialize time_machine with move_to() before using shift().",
+    )
 
 
 # escape hatch tests

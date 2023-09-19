@@ -440,7 +440,7 @@ if HAVE_PYTEST:  # pragma: no branch
         def shift(self, delta: dt.timedelta | int | float) -> None:
             if self.traveller is None:
                 raise RuntimeError(
-                    "Initialize with `move_to()` first before using `shift()`"
+                    "Initialize time_machine with move_to() before using shift()."
                 )
             assert self.coordinates is not None
             self.coordinates.shift(delta=delta)
