@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime as dt
 import os
 import sys
 import time
+import typing
 import uuid
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
@@ -465,6 +467,33 @@ def test_destination_timedelta_nested():
 @time_machine.travel("1970-01-01 00:01 +0000")
 def test_destination_string():
     assert time.time() == EPOCH + 60.0
+
+
+@contextlib.contextmanager
+def change_local_timezone(local_tz: str) -> typing.Iterator[None]:
+    orig_tz = os.environ["TZ"]
+    os.environ["TZ"] = local_tz
+    time.tzset()
+    try:
+        yield
+    finally:
+        os.environ["TZ"] = orig_tz
+        time.tzset()
+
+
+@pytest.mark.parametrize(
+    ["local_tz", "expected_offset"],
+    [
+        ("UTC", 0),
+        ("Europe/Amsterdam", -3600),
+        ("US/Eastern", 5 * 3600),
+    ],
+)
+@pytest.mark.parametrize("destination", ["1970-01-01 00:00", "1970-01-01"])
+def test_destination_string_naive(local_tz, expected_offset, destination):
+    with change_local_timezone(local_tz):
+        with time_machine.travel(destination):
+            assert time.time() == EPOCH + expected_offset
 
 
 @time_machine.travel(lambda: EPOCH + 140.0)
