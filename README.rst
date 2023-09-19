@@ -77,10 +77,12 @@ It may be:
   If it has ``tzinfo`` set to a |zoneinfo-instance|_, the current timezone will also be mocked.
 * A ``datetime.date``.
   This will be converted to a UTC datetime with the time 00:00:00.
+* A ``datetime.timedelta``.
+  This will be interpreted relative to the current time.
+  If already within a ``travel()`` block, the ``shift()`` method is easier to use (documented below).
 * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
 * A string, which will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
   Again, if the result is naive, it will be assumed to have the UTC time zone.
-* A ``datetime.timedelta`` relative to the current real time.
 
 .. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance
 .. _zoneinfo-instance: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo

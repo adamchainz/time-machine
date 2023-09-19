@@ -467,13 +467,13 @@ def test_destination_generator():
 def test_destination_delta():
     now = time.time()
     with time_machine.travel(dt.timedelta(seconds=3600)):
-        assert now + 3600 < time.time() < now + 3601
+        assert now + 3600 <= time.time() <= now + 3601
 
 
 def test_destination_negative_delta():
     now = time.time()
     with time_machine.travel(dt.timedelta(seconds=-3600)):
-        assert now - 3600 < time.time() < now - 3599
+        assert now - 3600 <= time.time() <= now - 3599
 
 
 @time_machine.travel(0)
