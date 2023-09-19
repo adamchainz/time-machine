@@ -2,6 +2,9 @@
 Changelog
 =========
 
+2.13.0 (2023-09-19)
+-------------------
+
 * Add support for ``datetime.timedelta`` to ``time_machine.travel()``.
 
   Thanks to Nate Dudenhoeffer in `PR #298 <https://github.com/adamchainz/time-machine/pull/298>`__.
