@@ -37,6 +37,14 @@ A quick example:
 
 For a bit of background, see `the introductory blog post <https://adamj.eu/tech/2020/06/03/introducing-time-machine/>`__ and `the benchmark blog post <https://adamj.eu/tech/2021/02/19/freezegun-versus-time-machine/>`__.
 
+----
+
+**Testing a Django project?**
+Check out my book `Speed Up Your Django Tests <https://adamchainz.gumroad.com/l/suydt>`__ which covers loads of ways to write faster, more accurate tests.
+I created time-machine whilst writing the book.
+
+----
+
 Installation
 ============
 
@@ -49,13 +57,6 @@ Use **pip**:
 Python 3.8 to 3.12 supported.
 Only CPython is supported at this time because time-machine directly hooks into the C-level API.
 
-----
-
-**Testing a Django project?**
-Check out my book `Speed Up Your Django Tests <https://adamchainz.gumroad.com/l/suydt>`__ which covers loads of ways to write faster, more accurate tests.
-I created time-machine whilst writing the book.
-
-----
 
 Usage
 =====
