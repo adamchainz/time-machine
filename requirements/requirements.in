@@ -1,5 +1,5 @@
 backports.zoneinfo ; python_version < "3.9"
-coverage
+coverage[toml]
 pytest
 pytest-randomly
 python-dateutil
