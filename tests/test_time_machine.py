@@ -155,8 +155,10 @@ def test_time_clock_gettime_realtime():
 @py_have_clock_gettime
 def test_time_clock_gettime_monotonic_unaffected():
     start = time.clock_gettime(time.CLOCK_MONOTONIC)
+    time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
     with time_machine.travel(EPOCH + 180.0):
         frozen = time.clock_gettime(time.CLOCK_MONOTONIC)
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert isinstance(frozen, float)
         assert frozen > start
 
@@ -169,6 +171,7 @@ def test_time_clock_gettime_monotonic_unaffected():
 def test_time_clock_gettime_ns_realtime():
     with time_machine.travel(EPOCH + 190.0):
         first = time.clock_gettime_ns(time.CLOCK_REALTIME)
+        time.sleep(time.clock_getres(time.CLOCK_REALTIME))
         assert isinstance(first, int)
         assert first == int((EPOCH + 190.0) * NANOSECONDS_PER_SECOND)
         second = time.clock_gettime_ns(time.CLOCK_REALTIME)
@@ -182,8 +185,10 @@ def test_time_clock_gettime_ns_realtime():
 @py_have_clock_gettime
 def test_time_clock_gettime_ns_monotonic_unaffected():
     start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+    time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
     with time_machine.travel(EPOCH + 190.0):
         frozen = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert isinstance(frozen, int)
         assert frozen > start
 
@@ -279,6 +284,7 @@ def test_time_strftime_format_t():
 def test_time_time():
     with time_machine.travel(EPOCH):
         first = time.time()
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert isinstance(first, float)
         assert first == EPOCH
         second = time.time()
@@ -300,6 +306,7 @@ windows_epoch_in_posix = -11_644_445_222
 def test_time_time_windows():
     with time_machine.travel(EPOCH):
         first = time.time()
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert isinstance(first, float)
         assert first == windows_epoch_in_posix
 
@@ -316,6 +323,7 @@ def test_time_time_no_tick():
 def test_time_time_ns():
     with time_machine.travel(EPOCH + 150.0):
         first = time.time_ns()
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert isinstance(first, int)
         assert first == int((EPOCH + 150.0) * NANOSECONDS_PER_SECOND)
         second = time.time_ns()
@@ -561,6 +569,7 @@ class UnitTestMethodTests(TestCase):
 @time_machine.travel(EPOCH + 95.0)
 class UnitTestClassTests(TestCase):
     def test_class_decorator(self):
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert EPOCH + 95.0 < time.time() < EPOCH + 96.0
 
     @time_machine.travel(EPOCH + 25.0)
@@ -578,6 +587,7 @@ class UnitTestClassCustomSetUpClassTests(TestCase):
         cls.custom_setupclass_ran = True
 
     def test_class_decorator(self):
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert EPOCH + 95.0 < time.time() < EPOCH + 96.0
         assert self.custom_setupclass_ran
 
@@ -639,6 +649,7 @@ def test_move_to_datetime():
         traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
 
         first = time.time()
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert first == EPOCH_PLUS_ONE_YEAR
 
         second = time.time()
@@ -706,6 +717,7 @@ def test_move_to_datetime_change_tick_on():
     with time_machine.travel(EPOCH, tick=False) as traveller:
         traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=True)
         assert time.time() == EPOCH_PLUS_ONE_YEAR
+        time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
         assert time.time() > EPOCH_PLUS_ONE_YEAR
 
 
@@ -756,6 +768,7 @@ def test_fixture_used_tick_false(time_machine):
 def test_fixture_used_tick_true(time_machine):
     time_machine.move_to(EPOCH, tick=True)
     original = time.time()
+    time.sleep(time.clock_getres(time.CLOCK_MONOTONIC))
     assert original == EPOCH
     assert original < time.time() < EPOCH + 10.0
 
