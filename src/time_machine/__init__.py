@@ -293,24 +293,26 @@ class travel:
                 raise TypeError("Can only decorate unittest.TestCase subclasses.")
 
             # Modify the setUpClass method
-            orig_setUpClass = wrapped.setUpClass
+            orig_setUpClass = wrapped.setUpClass.__func__  # type: ignore[attr-defined]
 
             @functools.wraps(orig_setUpClass)
             def setUpClass(cls: type[TestCase]) -> None:
                 self.__enter__()
                 try:
-                    orig_setUpClass()
+                    orig_setUpClass(cls)
                 except Exception:
                     self.__exit__(*sys.exc_info())
                     raise
 
             wrapped.setUpClass = classmethod(setUpClass)  # type: ignore[assignment]
 
-            orig_tearDownClass = wrapped.tearDownClass
+            orig_tearDownClass = (
+                wrapped.tearDownClass.__func__  # type: ignore[attr-defined]
+            )
 
             @functools.wraps(orig_tearDownClass)
             def tearDownClass(cls: type[TestCase]) -> None:
-                orig_tearDownClass()
+                orig_tearDownClass(cls)
                 self.__exit__(None, None, None)
 
             wrapped.tearDownClass = classmethod(  # type: ignore[assignment]
