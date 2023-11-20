@@ -34,6 +34,8 @@ _time_machine_now(PyTypeObject *type, PyObject *const *args, Py_ssize_t nargs, P
     PyObject *result = NULL;
 
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_now = PyObject_GetAttrString(time_machine_module, "now");
 
     result = _PyObject_Vectorcall(time_machine_now, args, nargs, kwnames);
@@ -70,6 +72,8 @@ static PyObject*
 _time_machine_utcnow(PyObject *cls, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_utcnow = PyObject_GetAttrString(time_machine_module, "utcnow");
 
     PyObject* result = PyObject_CallObject(time_machine_utcnow, args);
@@ -106,6 +110,8 @@ static PyObject*
 _time_machine_clock_gettime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_clock_gettime = PyObject_GetAttrString(time_machine_module, "clock_gettime");
 
     PyObject* result = PyObject_CallObject(time_machine_clock_gettime, args);
@@ -140,6 +146,8 @@ static PyObject*
 _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_clock_gettime_ns = PyObject_GetAttrString(time_machine_module, "clock_gettime_ns");
 
     PyObject* result = PyObject_CallObject(time_machine_clock_gettime_ns, args);
@@ -174,6 +182,8 @@ static PyObject*
 _time_machine_gmtime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_gmtime = PyObject_GetAttrString(time_machine_module, "gmtime");
 
     PyObject* result = PyObject_CallObject(time_machine_gmtime, args);
@@ -208,6 +218,8 @@ static PyObject*
 _time_machine_localtime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_localtime = PyObject_GetAttrString(time_machine_module, "localtime");
 
     PyObject* result = PyObject_CallObject(time_machine_localtime, args);
@@ -282,6 +294,8 @@ static PyObject*
 _time_machine_strftime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_strftime = PyObject_GetAttrString(time_machine_module, "strftime");
 
     PyObject* result = PyObject_CallObject(time_machine_strftime, args);
@@ -316,6 +330,8 @@ static PyObject*
 _time_machine_time(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_time = PyObject_GetAttrString(time_machine_module, "time");
 
     PyObject* result = PyObject_CallObject(time_machine_time, args);
@@ -350,6 +366,8 @@ static PyObject*
 _time_machine_time_ns(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module)
+        return NULL;
     PyObject *time_machine_time_ns = PyObject_GetAttrString(time_machine_module, "time_ns");
 
     PyObject* result = PyObject_CallObject(time_machine_time_ns, args);
