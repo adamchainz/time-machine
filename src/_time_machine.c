@@ -251,6 +251,24 @@ Call time.localtime() after patching.");
 /* time.monotonic() */
 
 static PyObject*
+_time_machine_monotonic(PyObject *self, PyObject *args)
+{
+    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module) {
+        return NULL;
+    }
+    PyObject *time_machine_monotonic = PyObject_GetAttrString(
+        time_machine_module, "monotonic");
+
+    PyObject* result = PyObject_CallObject(time_machine_monotonic, args);
+
+    Py_DECREF(time_machine_monotonic);
+    Py_DECREF(time_machine_module);
+
+    return result;
+}
+
+static PyObject*
 _time_machine_original_monotonic(PyObject* module, PyObject* args)
 {
     _time_machine_state *state = get_time_machine_state(module);
@@ -269,6 +287,24 @@ PyDoc_STRVAR(original_monotonic_doc,
 Call time.monotonic() after patching.");
 
 /* time.monotonic_ns() */
+
+static PyObject*
+_time_machine_monotonic_ns(PyObject *self, PyObject *args)
+{
+    PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (!time_machine_module) {
+        return NULL;
+    }
+    PyObject *time_machine_monotonic_ns = PyObject_GetAttrString(
+        time_machine_module, "monotonic_ns");
+
+    PyObject* result = PyObject_CallObject(time_machine_monotonic_ns, args);
+
+    Py_DECREF(time_machine_monotonic_ns);
+    Py_DECREF(time_machine_module);
+
+    return result;
+}
 
 static PyObject*
 _time_machine_original_monotonic_ns(PyObject* module, PyObject* args)
@@ -457,12 +493,12 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
 
     PyCFunctionObject *time_monotonic = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "monotonic");
     state->original_monotonic = time_monotonic->m_ml->ml_meth;
-    time_monotonic->m_ml->ml_meth = _time_machine_time;
+    time_monotonic->m_ml->ml_meth = _time_machine_monotonic;
     Py_DECREF(time_monotonic);
 
     PyCFunctionObject *time_monotonic_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "monotonic_ns");
     state->original_monotonic_ns = time_monotonic_ns->m_ml->ml_meth;
-    time_monotonic_ns->m_ml->ml_meth = _time_machine_time_ns;
+    time_monotonic_ns->m_ml->ml_meth = _time_machine_monotonic_ns;
     Py_DECREF(time_monotonic_ns);
 
     PyCFunctionObject *time_strftime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "strftime");

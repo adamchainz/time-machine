@@ -414,6 +414,20 @@ def time_ns() -> int:
     return coordinates_stack[-1].time_ns()
 
 
+def monotonic() -> float:
+    if not coordinates_stack:
+        result: float = _time_machine.original_monotonic()
+        return result
+    return coordinates_stack[-1].time()
+
+
+def monotonic_ns() -> int:
+    if not coordinates_stack:
+        result: int = _time_machine.original_monotonic_ns()
+        return result
+    return coordinates_stack[-1].time_ns()
+
+
 # pytest plugin
 
 if HAVE_PYTEST:  # pragma: no branch
