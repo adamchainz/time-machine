@@ -152,23 +152,37 @@ class Coordinates:
         self._destination_tzname = destination_tzname
         self._tick = tick
         self._requested = False
+        self._monotonic_start: int = _time_machine.original_monotonic_ns()
 
     def time(self) -> float:
         return self.time_ns() / NANOSECONDS_PER_SECOND
+
+    def _base(self) -> int:
+        return SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
 
     def time_ns(self) -> int:
         if not self._tick:
             return self._destination_timestamp_ns
 
-        base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
         now_ns: int = _time_machine.original_time_ns()
 
         if not self._requested:
             self._requested = True
             self._real_start_timestamp_ns = now_ns
-            return base
+            return self._base()
 
-        return base + (now_ns - self._real_start_timestamp_ns)
+        return self._base() + (now_ns - self._real_start_timestamp_ns)
+
+    def monotonic(self) -> float:
+        return self.monotonic_ns() / NANOSECONDS_PER_SECOND
+
+    def monotonic_ns(self) -> int:
+        ticks = self.time_ns() - self._base()
+        # XXX: not striclty monotonic if called twice in the leap second;
+        #      would need to duplicate time_ns with a monotonic call to fix.
+        ticks = max(ticks, 0)
+        # prevent having discontinuity between outside and inside monotonic.
+        return self._monotonic_start + ticks
 
     def shift(self, delta: dt.timedelta | int | float) -> None:
         if isinstance(delta, dt.timedelta):
@@ -418,14 +432,14 @@ def monotonic() -> float:
     if not coordinates_stack:
         result: float = _time_machine.original_monotonic()
         return result
-    return coordinates_stack[-1].time()
+    return coordinates_stack[-1].monotonic()
 
 
 def monotonic_ns() -> int:
     if not coordinates_stack:
         result: int = _time_machine.original_monotonic_ns()
         return result
-    return coordinates_stack[-1].time_ns()
+    return coordinates_stack[-1].monotonic_ns()
 
 
 # pytest plugin
