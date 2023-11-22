@@ -184,8 +184,9 @@ class Coordinates:
         # prevent having discontinuity between outside and inside monotonic.
         return self._monotonic_start + ticks
 
-    def shift(self, delta: dt.timedelta | int | float,
-              affect_monotonic: bool = False) -> None:
+    def shift(
+        self, delta: dt.timedelta | int | float, affect_monotonic: bool = False
+    ) -> None:
         if isinstance(delta, dt.timedelta):
             total_seconds = delta.total_seconds()
         elif isinstance(delta, (int, float)):
@@ -477,11 +478,13 @@ if HAVE_PYTEST:  # pragma: no branch
                 self.coordinates = self.traveller.start()
             else:
                 assert self.coordinates is not None
-                self.coordinates.move_to(destination, tick=tick,
-                                         affect_monotonic=affect_monotonic)
+                self.coordinates.move_to(
+                    destination, tick=tick, affect_monotonic=affect_monotonic
+                )
 
-        def shift(self, delta: dt.timedelta | int | float,
-                  affect_monotonic: bool =False) -> None:
+        def shift(
+            self, delta: dt.timedelta | int | float, affect_monotonic: bool = False
+        ) -> None:
             if self.traveller is None:
                 raise RuntimeError(
                     "Initialize time_machine with move_to() before using shift()."
