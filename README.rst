@@ -273,6 +273,12 @@ For example:
         traveller.move_to(234)
         assert time.time() == 234
 
+By default, ``move_to()`` does not affect ``time.monotonic``, but passing
+``affect_monotonic=True`` allows to let monotonic timer to get moved.
+However, be aware than by doing so, ``time.monotonic`` may step back in time
+either whem moving to an earlier date or when exiting the travel context,
+breaking everything depending on its monotonic behaviour.
+
 ``shift(delta)``
 ^^^^^^^^^^^^^^^^
 
@@ -296,6 +302,12 @@ For example:
 
         traveller.shift(-dt.timedelta(seconds=10))
         assert time.time() == 90
+
+By default, ``shift()`` does not affect ``time.monotonic``, but passing
+``affect_monotonic=True`` allows to let monotonic timer get affected by
+``shift``.
+However, be aware than by doing so, monotonic may step back in time when
+exiting travel, breaking everything depending on its monotonic behaviour.
 
 pytest plugin
 -------------

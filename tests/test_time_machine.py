@@ -249,21 +249,72 @@ def test_time_localtime_arg():
         assert local_time.tm_mday == 1
 
 
-def test_time_montonic():
+def test_time_monotonic():
+    last_time = time.monotonic()
+
+    def get_check_monotonic() -> float:
+        nonlocal last_time
+        new_time = time.monotonic()
+        assert new_time >= last_time
+        last_time = new_time
+        return new_time
+
     with time_machine.travel(EPOCH, tick=False) as t:
-        assert time.monotonic() == EPOCH
+        get_check_monotonic()
         t.shift(1)
-        assert time.monotonic() == EPOCH + 1
+        get_check_monotonic()
+
+    # check with tick
+    with time_machine.travel(EPOCH, tick=True) as t:
+        get_check_monotonic()
+        get_check_monotonic()
+
+    with time_machine.travel(EPOCH, tick=False) as t:
+        start_time = get_check_monotonic()
+        t.shift(1, affect_monotonic=True)
+        assert get_check_monotonic() - start_time == 1.
+
+        t.move_to(EPOCH_PLUS_ONE_YEAR, affect_monotonic=True)
+        assert get_check_monotonic() - start_time  == (
+            EPOCH_PLUS_ONE_YEAR_DATETIME - EPOCH_DATETIME).total_seconds()
+
+    # XXX: get_check_monotonic_ns() would fail here as we get back in time after
+    #      the time shifts
+
 
 
 def test_time_monotonic_ns():
+    last_time = time.monotonic_ns()
+
+    def get_check_monotonic_ns() -> int:
+        nonlocal last_time
+        new_time = time.monotonic_ns()
+        assert new_time >= last_time
+        last_time = new_time
+        return new_time
+
     with time_machine.travel(EPOCH, tick=False) as t:
-        assert time.monotonic_ns() == int(EPOCH * NANOSECONDS_PER_SECOND)
+        get_check_monotonic_ns()
         t.shift(1)
-        assert (
-            time.monotonic_ns()
-            == int(EPOCH * NANOSECONDS_PER_SECOND) + NANOSECONDS_PER_SECOND
-        )
+        get_check_monotonic_ns()
+
+    # check with ticks
+    with time_machine.travel(EPOCH, tick=True) as t:
+        get_check_monotonic_ns()
+        get_check_monotonic_ns()
+
+    with time_machine.travel(EPOCH, tick=False) as t:
+        start_time = get_check_monotonic_ns()
+        t.shift(1, affect_monotonic=True)
+        assert get_check_monotonic_ns() - start_time == NANOSECONDS_PER_SECOND
+
+        t.move_to(EPOCH_PLUS_ONE_YEAR, affect_monotonic=True)
+        assert get_check_monotonic_ns() - start_time == (
+                (EPOCH_PLUS_ONE_YEAR_DATETIME - EPOCH_DATETIME).total_seconds()
+                * NANOSECONDS_PER_SECOND)
+
+    # XXX: get_check_monotonic_ns() would fail here as we get back in time after
+    #      the time shifts
 
 
 def test_time_strftime_format():
