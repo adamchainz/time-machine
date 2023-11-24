@@ -108,7 +108,11 @@ _time_machine_clock_gettime(PyObject *self, PyObject *args)
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
     PyObject *time_machine_clock_gettime = PyObject_GetAttrString(time_machine_module, "clock_gettime");
 
+#if PY_VERSION_HEX >= 0x030d00a2
+    PyObject* result = PyObject_CallOneArg(time_machine_clock_gettime, args);
+#else
     PyObject* result = PyObject_CallObject(time_machine_clock_gettime, args);
+#endif
 
     Py_DECREF(time_machine_clock_gettime);
     Py_DECREF(time_machine_module);
@@ -142,7 +146,11 @@ _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
     PyObject *time_machine_clock_gettime_ns = PyObject_GetAttrString(time_machine_module, "clock_gettime_ns");
 
+#if PY_VERSION_HEX >= 0x030d00a2
+    PyObject* result = PyObject_CallOneArg(time_machine_clock_gettime_ns, args);
+#else
     PyObject* result = PyObject_CallObject(time_machine_clock_gettime_ns, args);
+#endif
 
     Py_DECREF(time_machine_clock_gettime_ns);
     Py_DECREF(time_machine_module);
@@ -478,8 +486,13 @@ PyDoc_STRVAR(module_doc, "_time_machine module");
 static PyMethodDef module_functions[] = {
     {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL|METH_KEYWORDS, original_now_doc},
     {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
+#if PY_VERSION_HEX >= 0x030d00a2
+    {"original_clock_gettime", (PyCFunction)_time_machine_original_clock_gettime, METH_O, original_clock_gettime_doc},
+    {"original_clock_gettime_ns", (PyCFunction)_time_machine_original_clock_gettime_ns, METH_O, original_clock_gettime_ns_doc},
+#else
     {"original_clock_gettime", (PyCFunction)_time_machine_original_clock_gettime, METH_VARARGS, original_clock_gettime_doc},
     {"original_clock_gettime_ns", (PyCFunction)_time_machine_original_clock_gettime_ns, METH_VARARGS, original_clock_gettime_ns_doc},
+#endif
     {"original_gmtime", (PyCFunction)_time_machine_original_gmtime, METH_VARARGS, original_gmtime_doc},
     {"original_localtime", (PyCFunction)_time_machine_original_localtime, METH_VARARGS, original_localtime_doc},
     {"original_monotonic", (PyCFunction)_time_machine_original_monotonic, METH_NOARGS, original_monotonic_doc},
