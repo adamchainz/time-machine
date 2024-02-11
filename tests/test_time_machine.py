@@ -10,9 +10,9 @@ import uuid
 from contextlib import contextmanager
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
-from unittest import mock
 from unittest import SkipTest
 from unittest import TestCase
+from unittest import mock
 
 import pytest
 from dateutil import tz

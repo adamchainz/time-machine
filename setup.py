@@ -5,7 +5,6 @@ import sys
 from setuptools import Extension
 from setuptools import setup
 
-
 if hasattr(sys, "pypy_version_info"):
     raise RuntimeError(
         "PyPy is not currently supported by time-machine, see "

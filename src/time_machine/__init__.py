@@ -13,15 +13,15 @@ from types import TracebackType
 from typing import Any
 from typing import Awaitable
 from typing import Callable
-from typing import cast
 from typing import Generator as TypingGenerator
-from typing import overload
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
 from typing import Union
-from unittest import mock
+from typing import cast
+from typing import overload
 from unittest import TestCase
+from unittest import mock
 
 import _time_machine
 from dateutil.parser import parse as parse_datetime
