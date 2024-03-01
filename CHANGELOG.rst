@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Avoid calling deprecated ``uuid._load_system_functions()`` on Python 3.9+.
+
+  Thanks to Nikita Sobolev for the ping in `CPython Issue #113308 <https://github.com/python/cpython/issues/113308>`__.
+
 2.13.0 (2023-09-19)
 -------------------
 
