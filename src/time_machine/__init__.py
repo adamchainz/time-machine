@@ -217,11 +217,6 @@ coordinates_stack: list[Coordinates] = []
 uuid_generate_time_attr = "_generate_time_safe"
 uuid_generate_time_patcher = mock.patch.object(uuid, uuid_generate_time_attr, new=None)
 uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
-# We need to cause the functions to be loaded before we try patch them out,
-# which is done by this internal function
-uuid_idempotent_load_system_functions = (
-    uuid._load_system_functions  # type: ignore[attr-defined]
-)
 
 
 class travel:
@@ -237,7 +232,11 @@ class travel:
         _time_machine.patch_if_needed()
 
         if not coordinates_stack:
-            uuid_idempotent_load_system_functions()
+            if sys.version_info < (3, 9):
+                # We need to cause the functions to be loaded before we patch
+                # them out, which is done by this internal function before:
+                # https://github.com/python/cpython/pull/19948
+                uuid._load_system_functions()
             uuid_generate_time_patcher.start()
             uuid_uuid_create_patcher.start()
 
