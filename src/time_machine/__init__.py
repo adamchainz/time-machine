@@ -350,7 +350,7 @@ def utcnow() -> dt.datetime:
     if not coordinates_stack:
         result: dt.datetime = _time_machine.original_utcnow()
         return result
-    return dt.datetime.utcfromtimestamp(time())
+    return dt.datetime.fromtimestamp(time(), dt.timezone.utc).replace(tzinfo=None)
 
 
 # time module
