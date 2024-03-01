@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Fix ``utcfromtimestamp()`` warning on Python 3.12+.
+
+  Thanks to Konstantin Baikov in `PR #424 <https://github.com/adamchainz/time-machine/pull/424>`__.
+
 * Avoid calling deprecated ``uuid._load_system_functions()`` on Python 3.9+.
 
   Thanks to Nikita Sobolev for the ping in `CPython Issue #113308 <https://github.com/python/cpython/issues/113308>`__.
