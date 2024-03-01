@@ -6,6 +6,10 @@ Changelog
 
   Thanks to Konstantin Baikov in `PR #424 <https://github.com/adamchainz/time-machine/pull/424>`__.
 
+* Fix class decorator for classmethod overrides.
+
+  Thanks to Pavel Bitiukov for the reproducer in `PR #404 <https://github.com/adamchainz/time-machine/pull/404>`__.
+
 * Avoid calling deprecated ``uuid._load_system_functions()`` on Python 3.9+.
 
   Thanks to Nikita Sobolev for the ping in `CPython Issue #113308 <https://github.com/python/cpython/issues/113308>`__.

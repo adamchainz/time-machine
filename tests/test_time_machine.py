@@ -558,6 +558,30 @@ def test_class_decorator_fails_non_testcase():
     assert excinfo.value.args == ("Can only decorate unittest.TestCase subclasses.",)
 
 
+@time_machine.travel(EPOCH)
+class ClassDecoratorInheritanceBase(TestCase):
+    prop: bool
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.setUpTestData()
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.prop = True
+
+
+class ClassDecoratorInheritanceTests(ClassDecoratorInheritanceBase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.prop = False
+
+    def test_ineheritance_correctly_rebound(self):
+        assert self.prop is False
+
+
 class TestMethodDecorator:
     @time_machine.travel(EPOCH + 95.0)
     def test_method_decorator(self):
