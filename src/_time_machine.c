@@ -4,7 +4,11 @@
 
 // Module state
 typedef struct {
+#if PY_VERSION_HEX >= 0x030d00a4
+    PyCFunctionFastWithKeywords original_now;
+#else
     _PyCFunctionFastWithKeywords original_now;
+#endif
     PyCFunction original_utcnow;
     PyCFunction original_clock_gettime;
     PyCFunction original_clock_gettime_ns;
@@ -401,7 +405,11 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
 
     PyCFunctionObject *datetime_datetime_now = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "now");
+#if PY_VERSION_HEX >= 0x030d00a4
+    state->original_now = (PyCFunctionFastWithKeywords) datetime_datetime_now->m_ml->ml_meth;
+#else
     state->original_now = (_PyCFunctionFastWithKeywords) datetime_datetime_now->m_ml->ml_meth;
+#endif
     datetime_datetime_now->m_ml->ml_meth = (PyCFunction) _time_machine_now;
     Py_DECREF(datetime_datetime_now);
 
