@@ -14,6 +14,10 @@ Changelog
 
   Thanks to Nikita Sobolev for the ping in `CPython Issue #113308 <https://github.com/python/cpython/issues/113308>`__.
 
+* Support Python 3.13 alpha 4.
+
+  Thanks to Miro Hrončok in `PR #409 <https://github.com/adamchainz/time-machine/pull/409>`__.
+
 2.13.0 (2023-09-19)
 -------------------
 
