@@ -2,6 +2,9 @@
 Changelog
 =========
 
+2.14.0 (2024-03-03)
+-------------------
+
 * Fix ``utcfromtimestamp()`` warning on Python 3.12+.
 
   Thanks to Konstantin Baikov in `PR #424 <https://github.com/adamchainz/time-machine/pull/424>`__.
