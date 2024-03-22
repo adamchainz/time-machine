@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "time-machine"
-version = "2.14.0"
+version = "2.14.1"
 description = "Travel through time in your tests."
 readme = {file = "README.rst", content-type = "text/x-rst"}
 keywords = [

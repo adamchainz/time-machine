@@ -2,6 +2,9 @@
 Changelog
 =========
 
+2.14.1 (2024-03-22)
+-------------------
+
 * Fix segmentation fault when the first ``travel()`` call in a process uses a ``timedelta``.
 
   Thanks to Marcin Sulikowski for the report in `Issue #431 <https://github.com/adamchainz/time-machine/issues/431>`__.
