@@ -5,6 +5,7 @@ import functools
 import inspect
 import os
 import sys
+import time as time_module
 import uuid
 from collections.abc import Generator
 from time import gmtime as orig_gmtime
@@ -126,7 +127,7 @@ def extract_timestamp_tzname(
             dest = dest.replace(tzinfo=dt.timezone.utc)
         timestamp = dest.timestamp()
     elif isinstance(dest, dt.timedelta):
-        timestamp = time() + dest.total_seconds()
+        timestamp = time_module.time() + dest.total_seconds()
     elif isinstance(dest, dt.date):
         timestamp = dt.datetime.combine(
             dest, dt.time(0, 0), tzinfo=dt.timezone.utc
