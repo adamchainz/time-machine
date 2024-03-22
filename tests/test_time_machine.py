@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import os
+import subprocess
 import sys
 import time
 import typing
@@ -10,6 +11,7 @@ import uuid
 from contextlib import contextmanager
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
+from textwrap import dedent
 from unittest import SkipTest
 from unittest import TestCase
 from unittest import mock
@@ -470,6 +472,25 @@ def test_destination_timedelta():
     now = time.time()
     with time_machine.travel(dt.timedelta(seconds=3600)):
         assert now + 3600 <= time.time() <= now + 3601
+
+
+def test_destination_timedelta_first_travel_in_process():
+    # Would previously segfault
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            dedent(
+                """
+                from datetime import timedelta
+                import time_machine
+                with time_machine.travel(timedelta()):
+                    pass
+                """
+            ),
+        ],
+        check=True,
+    )
 
 
 def test_destination_timedelta_negative():
