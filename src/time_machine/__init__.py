@@ -221,6 +221,7 @@ uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
 
 class travel:
     def __init__(self, destination: DestinationType, *, tick: bool = True) -> None:
+        _time_machine.patch_if_needed()
         self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
             destination
         )
@@ -228,9 +229,6 @@ class travel:
 
     def start(self) -> Coordinates:
         global coordinates_stack
-
-        _time_machine.patch_if_needed()
-
         if not coordinates_stack:
             if sys.version_info < (3, 9):
                 # We need to cause the functions to be loaded before we patch
