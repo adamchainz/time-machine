@@ -8,7 +8,7 @@ requires = [
 name = "time-machine"
 version = "2.14.1"
 description = "Travel through time in your tests."
-readme = {file = "README.rst", content-type = "text/x-rst"}
+readme = { file = "README.rst", content-type = "text/x-rst" }
 keywords = [
   "date",
   "datetime",
@@ -19,8 +19,10 @@ keywords = [
   "time",
   "warp",
 ]
-license = {text = "MIT"}
-authors = [{name = "Adam Johnson", email = "me@adamj.eu"}]
+license = { text = "MIT" }
+authors = [
+  { name = "Adam Johnson", email = "me@adamj.eu" },
+]
 requires-python = ">=3.8"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -35,22 +37,18 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Typing :: Typed",
 ]
 dependencies = [
   "python-dateutil",
 ]
-[project.urls]
-Changelog = "https://github.com/adamchainz/time-machine/blob/main/CHANGELOG.rst"
-Funding = "https://adamj.eu/books/"
-Repository = "https://github.com/adamchainz/time-machine"
-[project.entry-points.pytest11]
-time_machine = "time_machine"
-
+urls.Changelog = "https://github.com/adamchainz/time-machine/blob/main/CHANGELOG.rst"
+urls.Funding = "https://adamj.eu/books/"
+urls.Repository = "https://github.com/adamchainz/time-machine"
+entry-points.pytest11.time_machine = "time_machine"
 [tool.isort]
 add_imports = [
-    "from __future__ import annotations"
+  "from __future__ import annotations",
 ]
 force_single_line = true
 profile = "black"
@@ -65,14 +63,14 @@ addopts = """\
 branch = true
 parallel = true
 source = [
-    "src/_time_machine.c",
-    "tests",
+  "src/_time_machine.c",
+  "tests",
 ]
 
 [tool.coverage.paths]
 source = [
-    "src",
-    ".tox/**/site-packages",
+  "src",
+  ".tox/**/site-packages",
 ]
 
 [tool.coverage.report]
