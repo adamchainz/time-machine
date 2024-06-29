@@ -14,7 +14,8 @@ if __name__ == "__main__":
         "pip",
         "compile",
         "--quiet",
-        "--generate-hashes",
+        # On Windows, pytest also depends on colorama, which we aren’t pinning
+        # "--generate-hashes",
         "requirements.in",
         *sys.argv[1:],
     ]
