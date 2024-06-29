@@ -2,6 +2,9 @@
 Changelog
 =========
 
+2.14.2 (2024-06-29)
+-------------------
+
 * Fix ``SystemError`` on Python 3.13 and Windows when starting time travelling.
 
   Thanks to Bernát Gábor for the report in `Issue #456 <https://github.com/adamchainz/time-machine/issues/456>`__.
