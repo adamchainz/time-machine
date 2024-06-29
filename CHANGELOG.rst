@@ -2,10 +2,6 @@
 Changelog
 =========
 
-* Fix ``SystemError`` on Python 3.13 and Windows when starting time travelling.
-
-  Thanks to Bernát Gábor for the report in `Issue #456 <https://github.com/adamchainz/time-machine/issues/456>`__.
-
 2.14.1 (2024-03-22)
 -------------------
 

@@ -423,25 +423,21 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
 
     PyObject *time_module = PyImport_ImportModule("time");
 
-    /*
-        time.clock_gettime(), only available on Unix platforms.
-    */
+
+
     PyCFunctionObject *time_clock_gettime = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime");
-    if (time_clock_gettime == NULL) {
-        PyErr_Clear();
-    } else {
+    /*
+        time.clock_gettime() is not always available
+        e.g. on builds against old macOS = official Python.org installer
+    */
+    if (time_clock_gettime != NULL) {
         state->original_clock_gettime = time_clock_gettime->m_ml->ml_meth;
         time_clock_gettime->m_ml->ml_meth = _time_machine_clock_gettime;
         Py_DECREF(time_clock_gettime);
     }
 
-    /*
-        time.clock_gettime_ns(), only available on Unix platforms.
-    */
     PyCFunctionObject *time_clock_gettime_ns = (PyCFunctionObject *) PyObject_GetAttrString(time_module, "clock_gettime_ns");
-    if (time_clock_gettime_ns == NULL) {
-        PyErr_Clear();
-    } else {
+    if (time_clock_gettime_ns != NULL) {
         state->original_clock_gettime_ns = time_clock_gettime_ns->m_ml->ml_meth;
         time_clock_gettime_ns->m_ml->ml_meth = _time_machine_clock_gettime_ns;
         Py_DECREF(time_clock_gettime_ns);
