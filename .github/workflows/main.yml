@@ -12,14 +12,17 @@ concurrency:
 
 jobs:
   tests:
-    name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-22.04
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
+        os:
+        - ubuntu-22.04
+        - windows-2022
         python-version:
-        - 3.8
-        - 3.9
+        - '3.8'
+        - '3.9'
         - '3.10'
         - '3.11'
         - '3.12'
@@ -44,6 +47,7 @@ jobs:
       run: tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
 
     - name: Upload coverage data
+      if: matrix.os != 'windows-2022'
       uses: actions/upload-artifact@v4
       with:
         name: coverage-data-${{ matrix.python-version }}
