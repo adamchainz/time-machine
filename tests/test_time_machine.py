@@ -114,6 +114,15 @@ def test_datetime_now_arg():
     )
 
 
+def test_datetime_now_subclass():
+    class MyDatetime(dt.datetime):
+        pass
+
+    with time_machine.travel(EPOCH):
+        now = MyDatetime.now()
+        assert isinstance(now, MyDatetime)
+
+
 def test_datetime_utcnow():
     with time_machine.travel(EPOCH):
         now = dt.datetime.utcnow()
