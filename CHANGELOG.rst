@@ -2,6 +2,8 @@
 Changelog
 =========
 
+* Include wheels for Python 3.13.
+
 2.14.2 (2024-06-29)
 -------------------
 
