@@ -62,6 +62,7 @@ addopts = """\
     --strict-config
     --strict-markers
     """
+xfail_strict = true
 
 [tool.coverage.run]
 branch = true
