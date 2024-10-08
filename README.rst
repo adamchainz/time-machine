@@ -54,7 +54,7 @@ Use **pip**:
 
     python -m pip install time-machine
 
-Python 3.8 to 3.13 supported.
+Python 3.9 to 3.13 supported.
 Only CPython is supported at this time because time-machine directly hooks into the C-level API.
 
 
@@ -210,16 +210,12 @@ Timezone mocking
 
 If the ``destination`` passed to ``time_machine.travel()`` or ``Coordinates.move_to()`` has its ``tzinfo`` set to a |zoneinfo-instance2|_, the current timezone will be mocked.
 This will be done by calling |time-tzset|_, so it is only available on Unix.
-The ``zoneinfo`` module is new in Python 3.8 - on older Python versions use the |backports-zoneinfo-package|_, by the original ``zoneinfo`` author.
 
 .. |zoneinfo-instance2| replace:: ``zoneinfo.ZoneInfo`` instance
 .. _zoneinfo-instance2: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
 
 .. |time-tzset| replace:: ``time.tzset()``
 .. _time-tzset: https://docs.python.org/3/library/time.html#time.tzset
-
-.. |backports-zoneinfo-package| replace:: ``backports.zoneinfo`` package
-.. _backports-zoneinfo-package: https://pypi.org/project/backports.zoneinfo/
 
 ``time.tzset()`` changes the ``time`` module’s `timezone constants <https://docs.python.org/3/library/time.html#timezone-constants>`__ and features that rely on those, such as ``time.localtime()``.
 It won’t affect other concepts of “the current timezone”, such as Django’s (which can be changed with its |timezone-override|_).
