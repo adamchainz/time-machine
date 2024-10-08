@@ -7,22 +7,21 @@ import os
 import sys
 import time as time_module
 import uuid
+from collections.abc import Awaitable
 from collections.abc import Generator
+from collections.abc import Generator as TypingGenerator
 from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
 from typing import Any
-from typing import Awaitable
 from typing import Callable
-from typing import Generator as TypingGenerator
-from typing import Tuple
-from typing import Type
 from typing import TypeVar
 from typing import Union
 from typing import cast
 from typing import overload
 from unittest import TestCase
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 import _time_machine
 from dateutil.parser import parse as parse_datetime
@@ -42,19 +41,6 @@ try:
 except ImportError:  # pragma: no cover
     # Windows
     HAVE_TZSET = False
-
-if sys.version_info >= (3, 9):
-    from zoneinfo import ZoneInfo
-
-    HAVE_ZONEINFO = True
-else:
-    try:
-        from backports.zoneinfo import ZoneInfo
-
-        HAVE_ZONEINFO = True
-    except ImportError:  # pragma: no cover
-        HAVE_ZONEINFO = False
-
 
 try:
     import pytest
@@ -97,10 +83,10 @@ DestinationType = Union[
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 _AF = TypeVar("_AF", bound=Callable[..., Awaitable[Any]])
-TestCaseType = TypeVar("TestCaseType", bound=Type[TestCase])
+TestCaseType = TypeVar("TestCaseType", bound=type[TestCase])
 
 # copied from typeshed:
-_TimeTuple = Tuple[int, int, int, int, int, int, int, int, int]
+_TimeTuple = tuple[int, int, int, int, int, int, int, int, int]
 
 
 def extract_timestamp_tzname(
@@ -121,7 +107,7 @@ def extract_timestamp_tzname(
     elif isinstance(dest, float):
         timestamp = dest
     elif isinstance(dest, dt.datetime):
-        if HAVE_ZONEINFO and isinstance(dest.tzinfo, ZoneInfo):
+        if isinstance(dest.tzinfo, ZoneInfo):
             tzname = dest.tzinfo.key
         if dest.tzinfo is None:
             dest = dest.replace(tzinfo=dt.timezone.utc)
@@ -233,11 +219,6 @@ class travel:
         _time_machine.patch_if_needed()
 
         if not coordinates_stack:
-            if sys.version_info < (3, 9):
-                # We need to cause the functions to be loaded before we patch
-                # them out, which is done by this internal function before:
-                # https://github.com/python/cpython/pull/19948
-                uuid._load_system_functions()
             uuid_generate_time_patcher.start()
             uuid_uuid_create_patcher.start()
 

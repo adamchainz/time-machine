@@ -15,17 +15,12 @@ from textwrap import dedent
 from unittest import SkipTest
 from unittest import TestCase
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 import pytest
 from dateutil import tz
 
 import time_machine
-
-if sys.version_info >= (3, 9):
-    from zoneinfo import ZoneInfo
-else:
-    from backports.zoneinfo import ZoneInfo
-
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
