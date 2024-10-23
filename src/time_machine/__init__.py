@@ -342,8 +342,24 @@ def now(tz: dt.tzinfo | None = None) -> dt.datetime:
     return dt.datetime.fromtimestamp(time(), tz)
 
 
+def _deprecated_utcnow(now_utc: dt.datetime, *, stacklevel: int) -> dt.datetime:
+    if sys.version_info >= (3, 12):
+        import warnings
+
+        warnings.warn(
+            "datetime.datetime.utcnow() is deprecated and scheduled for "
+            "removal in a future version. Use timezone-aware "
+            "objects to represent datetimes in UTC: "
+            "datetime.datetime.now(datetime.UTC).",
+            DeprecationWarning,
+            stacklevel=stacklevel + 1,
+        )
+
+    return now_utc.replace(tzinfo=None)
+
+
 def utcnow() -> dt.datetime:
-    return dt.datetime.fromtimestamp(time(), dt.timezone.utc).replace(tzinfo=None)
+    return _deprecated_utcnow(now(dt.timezone.utc), stacklevel=2)
 
 
 # time module
@@ -474,8 +490,8 @@ class _EscapeHatchDatetimeDatetime:
         return result
 
     def utcnow(self) -> dt.datetime:
-        result: dt.datetime = _time_machine.original_utcnow()
-        return result
+        now_utc: dt.datetime = _time_machine.original_now(dt.timezone.utc)
+        return _deprecated_utcnow(now_utc, stacklevel=2)
 
 
 class _EscapeHatchDatetime:
