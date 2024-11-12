@@ -11,6 +11,7 @@ import uuid
 from contextlib import contextmanager
 from importlib.util import module_from_spec
 from importlib.util import spec_from_file_location
+from pathlib import Path
 from textwrap import dedent
 from unittest import SkipTest
 from unittest import TestCase
@@ -111,7 +112,10 @@ def test_datetime_now_arg():
 
 def test_datetime_utcnow():
     with time_machine.travel(EPOCH):
-        now = dt.datetime.utcnow()
+        with pytest.warns(DeprecationWarning) as w:
+            now = dt.datetime.utcnow()  # warns here
+        line = Path(w[0].filename).read_text().splitlines()[w[0].lineno - 1]
+        assert line.endswith("# warns here")
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
@@ -120,12 +124,18 @@ def test_datetime_utcnow():
         assert now.second == 0
         assert now.microsecond == 0
         assert now.tzinfo is None
-    assert dt.datetime.utcnow() >= LIBRARY_EPOCH_DATETIME
+
+    with pytest.warns(DeprecationWarning) as w:
+        real_now = dt.datetime.utcnow()  # warns here
+    line = Path(w[0].filename).read_text().splitlines()[w[0].lineno - 1]
+    assert line.endswith("# warns here")
+    assert real_now >= LIBRARY_EPOCH_DATETIME
 
 
 def test_datetime_utcnow_no_tick():
     with time_machine.travel(EPOCH, tick=False):
-        now = dt.datetime.utcnow()
+        with pytest.warns(DeprecationWarning):
+            now = dt.datetime.utcnow()
         assert now.microsecond == 0
 
 
@@ -867,10 +877,16 @@ class TestEscapeHatch:
             assert eh_now >= real_now
 
     def test_datetime_utcnow(self):
-        real_now = dt.datetime.utcnow()
+        with pytest.warns(DeprecationWarning):
+            real_now = dt.datetime.utcnow()
 
         with time_machine.travel(EPOCH):
-            eh_now = time_machine.escape_hatch.datetime.datetime.utcnow()
+            with pytest.warns(DeprecationWarning) as w:
+                eh_now = (
+                    time_machine.escape_hatch.datetime.datetime.utcnow()  # warns here
+                )
+            line = Path(w[0].filename).read_text().splitlines()[w[0].lineno - 1]
+            assert line.endswith("# warns here")
             assert eh_now >= real_now
 
     @py_have_clock_gettime

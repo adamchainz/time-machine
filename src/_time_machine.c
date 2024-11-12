@@ -9,7 +9,6 @@ typedef struct {
 #else
     _PyCFunctionFastWithKeywords original_now;
 #endif
-    PyCFunction original_utcnow;
     PyCFunction original_clock_gettime;
     PyCFunction original_clock_gettime_ns;
     PyCFunction original_gmtime;
@@ -83,26 +82,6 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
 
     return result;
 }
-
-static PyObject*
-_time_machine_original_utcnow(PyObject *module, PyObject *args)
-{
-    _time_machine_state *state = get_time_machine_state(module);
-
-    PyObject *datetime_module = PyImport_ImportModule("datetime");
-    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
-
-    PyObject* result = state->original_utcnow(datetime_class, args);
-
-    Py_DECREF(datetime_class);
-    Py_DECREF(datetime_module);
-
-    return result;
-}
-PyDoc_STRVAR(original_utcnow_doc,
-"original_utcnow() -> datetime\n\
-\n\
-Call datetime.datetime.utcnow() after patching.");
 
 /* time.clock_gettime() */
 
@@ -414,7 +393,6 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     Py_DECREF(datetime_datetime_now);
 
     PyCFunctionObject *datetime_datetime_utcnow = (PyCFunctionObject *) PyObject_GetAttrString(datetime_class, "utcnow");
-    state->original_utcnow = datetime_datetime_utcnow->m_ml->ml_meth;
     datetime_datetime_utcnow->m_ml->ml_meth = _time_machine_utcnow;
     Py_DECREF(datetime_datetime_utcnow);
 
@@ -497,7 +475,6 @@ PyDoc_STRVAR(module_doc, "_time_machine module");
 
 static PyMethodDef module_functions[] = {
     {"original_now", (PyCFunction)_time_machine_original_now, METH_FASTCALL|METH_KEYWORDS, original_now_doc},
-    {"original_utcnow", (PyCFunction)_time_machine_original_utcnow, METH_NOARGS, original_utcnow_doc},
 #if PY_VERSION_HEX >= 0x030d00a2
     {"original_clock_gettime", (PyCFunction)_time_machine_original_clock_gettime, METH_O, original_clock_gettime_doc},
     {"original_clock_gettime_ns", (PyCFunction)_time_machine_original_clock_gettime_ns, METH_O, original_clock_gettime_ns_doc},
