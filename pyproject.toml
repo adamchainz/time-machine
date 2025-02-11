@@ -46,6 +46,15 @@ urls.Funding = "https://adamj.eu/books/"
 urls.Repository = "https://github.com/adamchainz/time-machine"
 entry-points.pytest11.time_machine = "time_machine"
 
+[dependency-groups]
+test = [
+  "backports-zoneinfo; python_version<'3.9'",
+  "coverage[toml]",
+  "pytest",
+  "pytest-randomly",
+  "python-dateutil",
+]
+
 [tool.isort]
 add_imports = [
   "from __future__ import annotations",
