@@ -139,25 +139,41 @@ class Coordinates:
         self._destination_tzname = destination_tzname
         self._tick = tick
         self._requested = False
+        self._monotonic_start: int = _time_machine.original_monotonic_ns()
 
     def time(self) -> float:
         return self.time_ns() / NANOSECONDS_PER_SECOND
+
+    def _base(self) -> int:
+        return SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
 
     def time_ns(self) -> int:
         if not self._tick:
             return self._destination_timestamp_ns
 
-        base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
         now_ns: int = _time_machine.original_time_ns()
 
         if not self._requested:
             self._requested = True
             self._real_start_timestamp_ns = now_ns
-            return base
+            return self._base()
 
-        return base + (now_ns - self._real_start_timestamp_ns)
+        return self._base() + (now_ns - self._real_start_timestamp_ns)
 
-    def shift(self, delta: dt.timedelta | int | float) -> None:
+    def monotonic(self) -> float:
+        return self.monotonic_ns() / NANOSECONDS_PER_SECOND
+
+    def monotonic_ns(self) -> int:
+        ticks = self.time_ns() - self._base()
+        # XXX: not striclty monotonic if called twice in the leap second;
+        #      would need to duplicate time_ns with a monotonic call to fix.
+        ticks = max(ticks, 0)
+        # prevent having discontinuity between outside and inside monotonic.
+        return self._monotonic_start + ticks
+
+    def shift(
+        self, delta: dt.timedelta | int | float, affect_monotonic: bool = False
+    ) -> None:
         if isinstance(delta, dt.timedelta):
             total_seconds = delta.total_seconds()
         elif isinstance(delta, (int, float)):
@@ -165,16 +181,25 @@ class Coordinates:
         else:
             raise TypeError(f"Unsupported type for delta argument: {delta!r}")
 
-        self._destination_timestamp_ns += int(total_seconds * NANOSECONDS_PER_SECOND)
+        shift = int(total_seconds * NANOSECONDS_PER_SECOND)
+        self._destination_timestamp_ns += shift
+        if affect_monotonic:
+            self._monotonic_start += shift
 
     def move_to(
         self,
         destination: DestinationType,
         tick: bool | None = None,
+        affect_monotonic: bool = False,
     ) -> None:
+        prev_dest_time = self._destination_timestamp_ns
         self._stop()
         timestamp, self._destination_tzname = extract_timestamp_tzname(destination)
         self._destination_timestamp_ns = int(timestamp * NANOSECONDS_PER_SECOND)
+        if affect_monotonic:
+            # XXX: might be negative but when affect_monotonic is used, all bets
+            #      are off.
+            self._monotonic_start += self._destination_timestamp_ns - prev_dest_time
         self._requested = False
         self._start()
         if tick is not None:
@@ -397,6 +422,20 @@ def time_ns() -> int:
     return coordinates_stack[-1].time_ns()
 
 
+def monotonic() -> float:
+    if not coordinates_stack:
+        result: float = _time_machine.original_monotonic()
+        return result
+    return coordinates_stack[-1].monotonic()
+
+
+def monotonic_ns() -> int:
+    if not coordinates_stack:
+        result: int = _time_machine.original_monotonic_ns()
+        return result
+    return coordinates_stack[-1].monotonic_ns()
+
+
 # pytest plugin
 
 if HAVE_PYTEST:  # pragma: no branch
@@ -413,6 +452,7 @@ if HAVE_PYTEST:  # pragma: no branch
             self,
             destination: DestinationType,
             tick: bool | None = None,
+            affect_monotonic: bool = False,
         ) -> None:
             if self.traveller is None:
                 if tick is None:
@@ -421,15 +461,19 @@ if HAVE_PYTEST:  # pragma: no branch
                 self.coordinates = self.traveller.start()
             else:
                 assert self.coordinates is not None
-                self.coordinates.move_to(destination, tick=tick)
+                self.coordinates.move_to(
+                    destination, tick=tick, affect_monotonic=affect_monotonic
+                )
 
-        def shift(self, delta: dt.timedelta | int | float) -> None:
+        def shift(
+            self, delta: dt.timedelta | int | float, affect_monotonic: bool = False
+        ) -> None:
             if self.traveller is None:
                 raise RuntimeError(
                     "Initialize time_machine with move_to() before using shift()."
                 )
             assert self.coordinates is not None
-            self.coordinates.shift(delta=delta)
+            self.coordinates.shift(delta=delta, affect_monotonic=affect_monotonic)
 
         def stop(self) -> None:
             if self.traveller is not None:
