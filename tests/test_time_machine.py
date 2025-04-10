@@ -434,6 +434,42 @@ def test_destination_datetime_tzinfo_zoneinfo_no_orig_tz():
         assert time.tzname == orig_tzname
 
 
+def test_destination_datetime_tzinfo_zoneinfo_utc_no_orig_tz():
+    with change_local_timezone(None):
+        orig_tzname = time.tzname
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("UTC"))
+
+        with time_machine.travel(dest):
+            assert time.tzname == ("UTC", "UTC")
+
+        assert time.tzname == orig_tzname
+
+
+def test_destination_datetime_tzinfo_datetime_timezone_utc_no_orig_tz():
+    with change_local_timezone(None):
+        orig_tzname = time.tzname
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=dt.timezone.utc)
+
+        with time_machine.travel(dest):
+            assert time.tzname == ("UTC", "UTC")
+
+        assert time.tzname == orig_tzname
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="datetime.UTC was introduced in Python 3.11"
+)
+def test_destination_datetime_tzinfo_datetime_utc_no_orig_tz():
+    with change_local_timezone(None):
+        orig_tzname = time.tzname
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=dt.UTC)
+
+        with time_machine.travel(dest):
+            assert time.tzname == ("UTC", "UTC")
+
+        assert time.tzname == orig_tzname
+
+
 def test_destination_datetime_tzinfo_zoneinfo_windows():
     orig_timezone = time.timezone
 
