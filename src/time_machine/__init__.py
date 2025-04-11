@@ -214,8 +214,6 @@ class travel:
         self.tick = tick
 
     def start(self) -> Coordinates:
-        global coordinates_stack
-
         _time_machine.patch_if_needed()
 
         if not coordinates_stack:
@@ -233,7 +231,6 @@ class travel:
         return coordinates
 
     def stop(self) -> None:
-        global coordinates_stack
         coordinates_stack.pop()._stop()
 
         if not coordinates_stack:
