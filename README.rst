@@ -75,7 +75,7 @@ It may be:
 
 * A ``datetime.datetime``.
   If it is naive, it will be assumed to have the UTC timezone.
-  If it has ``tzinfo`` set to a |zoneinfo-instance|_, the current timezone will also be mocked.
+  If it has ``tzinfo`` set to a |zoneinfo-instance|_ or |datetime.UTC|_, the current timezone will also be mocked.
 * A ``datetime.date``.
   This will be converted to a UTC datetime with the time 00:00:00.
 * A ``datetime.timedelta``.
@@ -87,6 +87,8 @@ It may be:
 
 .. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance
 .. _zoneinfo-instance: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
+.. |datetime.UTC| replace:: ``datetime.UTC/datetime.timezone.utc``
+.. _datetime.UTC: https://docs.python.org/3/library/datetime.html#datetime.UTC
 
 Additionally, you can provide some more complex types:
 
