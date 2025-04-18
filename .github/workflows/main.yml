@@ -130,7 +130,7 @@ jobs:
         run: uv build --sdist
 
       - name: Build wheels
-        run: uvx --from cibuildwheel==2.20.0 cibuildwheel --output-dir dist
+        run: uvx --from cibuildwheel==2.23.2 cibuildwheel --output-dir dist
 
       - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} dist/
 
