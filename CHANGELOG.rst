@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Add support for ``travel()`` ``datetime`` destination with ``tzinfo`` set to ``datetime.UTC``/``datetime.timezone.utc``
+
+  Thanks to Lawrence Law in `PR #502 <https://github.com/adamchainz/time-machine/pull/502>`__.
+
 2.16.0 (2024-10-08)
 -------------------
 
