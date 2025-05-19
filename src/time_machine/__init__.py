@@ -7,20 +7,13 @@ import os
 import sys
 import time as time_module
 import uuid
-from collections.abc import Awaitable
-from collections.abc import Generator
+from collections.abc import Awaitable, Generator
 from collections.abc import Generator as TypingGenerator
 from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
-from typing import Any
-from typing import Callable
-from typing import TypeVar
-from typing import Union
-from typing import cast
-from typing import overload
-from unittest import TestCase
-from unittest import mock
+from typing import Any, Callable, TypeVar, Union, cast, overload
+from unittest import TestCase, mock
 from zoneinfo import ZoneInfo
 
 import _time_machine
