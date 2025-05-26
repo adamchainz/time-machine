@@ -9,12 +9,9 @@ import time
 import typing
 import uuid
 from contextlib import contextmanager
-from importlib.util import module_from_spec
-from importlib.util import spec_from_file_location
+from importlib.util import module_from_spec, spec_from_file_location
 from textwrap import dedent
-from unittest import SkipTest
-from unittest import TestCase
-from unittest import mock
+from unittest import SkipTest, TestCase, mock
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -351,9 +348,8 @@ def test_nestable():
 
 
 def test_unsupported_type():
-    with pytest.raises(TypeError) as excinfo:
-        with time_machine.travel([]):  # type: ignore[arg-type]
-            pass
+    with pytest.raises(TypeError) as excinfo, time_machine.travel([]):  # type: ignore[arg-type]
+        pass  # pragma: no cover
 
     assert excinfo.value.args == ("Unsupported destination []",)
 
@@ -495,9 +491,8 @@ def test_destination_timedelta_negative():
 
 
 def test_destination_timedelta_nested():
-    with time_machine.travel(EPOCH):
-        with time_machine.travel(dt.timedelta(seconds=10)):
-            assert time.time() == EPOCH + 10.0
+    with time_machine.travel(EPOCH), time_machine.travel(dt.timedelta(seconds=10)):
+        assert time.time() == EPOCH + 10.0
 
 
 @time_machine.travel("1970-01-01 00:01 +0000")
@@ -515,9 +510,8 @@ def test_destination_string():
 )
 @pytest.mark.parametrize("destination", ["1970-01-01 00:00", "1970-01-01"])
 def test_destination_string_naive(local_tz, expected_offset, destination):
-    with change_local_timezone(local_tz):
-        with time_machine.travel(destination):
-            assert time.time() == EPOCH + expected_offset
+    with change_local_timezone(local_tz), time_machine.travel(destination):
+        assert time.time() == EPOCH + expected_offset
 
 
 @time_machine.travel(lambda: EPOCH + 140.0)
@@ -670,9 +664,11 @@ def test_shift_negative_delta():
 
 
 def test_shift_wrong_delta():
-    with time_machine.travel(EPOCH, tick=False) as traveller:
-        with pytest.raises(TypeError) as excinfo:
-            traveller.shift(delta="1.1")  # type: ignore[arg-type]
+    with (
+        time_machine.travel(EPOCH, tick=False) as traveller,
+        pytest.raises(TypeError) as excinfo,
+    ):
+        traveller.shift(delta="1.1")  # type: ignore[arg-type]
 
     assert excinfo.value.args == ("Unsupported type for delta argument: '1.1'",)
 
