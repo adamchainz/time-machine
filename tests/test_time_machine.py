@@ -349,7 +349,7 @@ def test_nestable():
 
 def test_unsupported_type():
     with pytest.raises(TypeError) as excinfo, time_machine.travel([]):  # type: ignore[arg-type]
-        pass
+        pass  # pragma: no cover
 
     assert excinfo.value.args == ("Unsupported destination []",)
 
