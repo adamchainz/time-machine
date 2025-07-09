@@ -144,7 +144,9 @@ class Coordinates:
 
         if self._tick_delta is not None:
             destination_timestamp_ns_before = self._destination_timestamp_ns
-            self._destination_timestamp_ns += int(self._tick_delta.total_seconds() * NANOSECONDS_PER_SECOND)
+            self._destination_timestamp_ns += int(
+                self._tick_delta.total_seconds() * NANOSECONDS_PER_SECOND
+            )
             return destination_timestamp_ns_before
 
         base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
@@ -207,7 +209,13 @@ uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
 
 
 class travel:
-    def __init__(self, destination: DestinationType, *, tick: bool = True, tick_delta: dt.timedelta | None = None) -> None:
+    def __init__(
+        self,
+        destination: DestinationType,
+        *,
+        tick: bool = True,
+        tick_delta: dt.timedelta | None = None,
+    ) -> None:
         self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
             destination
         )

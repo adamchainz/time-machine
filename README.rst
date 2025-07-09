@@ -102,7 +102,9 @@ If ``tick`` is ``True``, setting ``tick_delta`` makes the tick deterministic, fo
 
 .. code-block:: python
 
-    with time_machine.travel(dt.datetime(2023, 1, 1), tick_delta=dt.timedelta(microseconds=1)):
+    with time_machine.travel(
+        dt.datetime(2023, 1, 1), tick_delta=dt.timedelta(microseconds=1)
+    ):
         assert dt.datetime.now() == dt.datetime(2023, 1, 1, 0, 0, microsecond=0)
         assert dt.datetime.now() == dt.datetime(2023, 1, 1, 0, 0, microsecond=1)
         assert dt.datetime.now() == dt.datetime(2023, 1, 1, 0, 0, microsecond=2)

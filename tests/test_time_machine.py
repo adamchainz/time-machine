@@ -339,7 +339,9 @@ def test_time_time_ns_no_tick():
 
 def test_tick_delta() -> None:
     ts = list[dt.datetime]()
-    with time_machine.travel(dt.datetime(2023, 1, 1), tick_delta=dt.timedelta(microseconds=1)):
+    with time_machine.travel(
+        dt.datetime(2023, 1, 1), tick_delta=dt.timedelta(microseconds=1)
+    ):
         for _ in range(5):
             ts.append(dt.datetime.now())
     assert ts == [
