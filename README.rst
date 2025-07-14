@@ -63,7 +63,7 @@ Usage
 
 If you’re coming from freezegun or libfaketime, see also the below section on migrating.
 
-``travel(destination, *, tick=True)``
+``travel(destination, *, tick=True, tick_delta=None)``
 -------------------------------------
 
 ``travel()`` is a class that allows time travel, to the datetime specified by ``destination``.
@@ -97,6 +97,18 @@ Additionally, you can provide some more complex types:
 If ``True``, the default, successive calls to mocked functions return values increasing by the elapsed real time *since the first call.*
 So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
 The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
+
+If ``tick`` is ``True``, setting ``tick_delta`` makes the tick deterministic, for example:
+
+.. code-block:: python
+
+    with time_machine.travel(
+        dt.datetime(2023, 1, 1), tick_delta=dt.timedelta(microseconds=1)
+    ):
+        assert dt.datetime.now() == dt.datetime(2023, 1, 1, 0, 0, microsecond=0)
+        assert dt.datetime.now() == dt.datetime(2023, 1, 1, 0, 0, microsecond=1)
+        assert dt.datetime.now() == dt.datetime(2023, 1, 1, 0, 0, microsecond=2)
+        ...
 
 Mocked Functions
 ^^^^^^^^^^^^^^^^

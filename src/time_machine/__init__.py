@@ -125,12 +125,14 @@ class Coordinates:
         destination_timestamp: float,
         destination_tzname: str | None,
         tick: bool,
+        tick_delta: dt.timedelta | None = None,
     ) -> None:
         self._destination_timestamp_ns = int(
             destination_timestamp * NANOSECONDS_PER_SECOND
         )
         self._destination_tzname = destination_tzname
         self._tick = tick
+        self._tick_delta = tick_delta
         self._requested = False
 
     def time(self) -> float:
@@ -139,6 +141,13 @@ class Coordinates:
     def time_ns(self) -> int:
         if not self._tick:
             return self._destination_timestamp_ns
+
+        if self._tick_delta is not None:
+            destination_timestamp_ns_before = self._destination_timestamp_ns
+            self._destination_timestamp_ns += int(
+                self._tick_delta.total_seconds() * NANOSECONDS_PER_SECOND
+            )
+            return destination_timestamp_ns_before
 
         base = SYSTEM_EPOCH_TIMESTAMP_NS + self._destination_timestamp_ns
         now_ns: int = _time_machine.original_time_ns()
@@ -200,11 +209,18 @@ uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
 
 
 class travel:
-    def __init__(self, destination: DestinationType, *, tick: bool = True) -> None:
+    def __init__(
+        self,
+        destination: DestinationType,
+        *,
+        tick: bool = True,
+        tick_delta: dt.timedelta | None = None,
+    ) -> None:
         self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
             destination
         )
         self.tick = tick
+        self.tick_delta = tick_delta
 
     def start(self) -> Coordinates:
         _time_machine.patch_if_needed()
@@ -217,6 +233,7 @@ class travel:
             destination_timestamp=self.destination_timestamp,
             destination_tzname=self.destination_tzname,
             tick=self.tick,
+            tick_delta=self.tick_delta,
         )
         coordinates_stack.append(coordinates)
         coordinates._start()
