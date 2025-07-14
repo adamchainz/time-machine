@@ -25,6 +25,9 @@ jobs:
         - '3.11'
         - '3.12'
         - '3.13'
+        - '3.13t'
+        - '3.14'
+        - '3.14t'
 
     steps:
     - uses: actions/checkout@v4
@@ -40,10 +43,12 @@ jobs:
         enable-cache: true
 
     - name: Install dependencies
-      run: uv pip install --system tox tox-uv
+      run: |
+        uv venv .venv
+        uv pip install --python .venv/bin/python tox tox-uv
 
     - name: Run tox targets for ${{ matrix.python-version }}
-      run: tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
+      run: .venv/bin/tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
 
     - name: Upload coverage data
       uses: actions/upload-artifact@v4
