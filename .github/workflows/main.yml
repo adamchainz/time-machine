@@ -25,6 +25,7 @@ jobs:
         - '3.11'
         - '3.12'
         - '3.13'
+        - '3.14'
 
     steps:
     - uses: actions/checkout@v4
@@ -118,7 +119,7 @@ jobs:
       CIBW_ARCHS_LINUX: x86_64 i686 aarch64
       CIBW_ARCHS_MACOS: x86_64 universal2
       CIBW_ARCHS_WINDOWS: AMD64 x86 ARM64
-      CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
+      CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-*"
 
     steps:
       - uses: actions/checkout@v4
@@ -136,7 +137,7 @@ jobs:
         run: uv build --sdist
 
       - name: Build wheels
-        run: uvx --from cibuildwheel==2.23.2 cibuildwheel --output-dir dist
+        run: uvx --from cibuildwheel==3.1.2 cibuildwheel --output-dir dist
 
       - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} dist/
 
