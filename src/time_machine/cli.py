@@ -161,17 +161,22 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
         elif isinstance(node, ast.FunctionDef):
             for decorator in node.decorator_list:
                 if (
-                    freezegun_import_seen
-                    and isinstance(decorator, ast.Call)
-                    and isinstance(decorator.func, ast.Attribute)
-                    and decorator.func.attr == "freeze_time"
-                    and isinstance(decorator.func.value, ast.Name)
-                    and decorator.func.value.id == "freezegun"
-                ) or (
-                    freeze_time_import_seen
-                    and isinstance(decorator, ast.Call)
-                    and isinstance(decorator.func, ast.Name)
-                    and decorator.func.id == "freeze_time"
+                    isinstance(decorator, ast.Call)
+                    and migratable_call(decorator)
+                    and (
+                        (
+                            freezegun_import_seen
+                            and isinstance(decorator.func, ast.Attribute)
+                            and decorator.func.attr == "freeze_time"
+                            and isinstance(decorator.func.value, ast.Name)
+                            and decorator.func.value.id == "freezegun"
+                        )
+                        or (
+                            freeze_time_import_seen
+                            and isinstance(decorator.func, ast.Name)
+                            and decorator.func.id == "freeze_time"
+                        )
+                    )
                 ):
                     ret[ast_start_offset(decorator.func)].append(
                         partial(switch_to_travel, node=decorator.func)
@@ -182,29 +187,42 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
 
         elif isinstance(node, ast.With):
             for item in node.items:
+                context_expr = item.context_expr
                 if (
-                    freezegun_import_seen
-                    and isinstance(item.context_expr, ast.Call)
-                    and isinstance(item.context_expr.func, ast.Attribute)
-                    and item.context_expr.func.attr == "freeze_time"
-                    and isinstance(item.context_expr.func.value, ast.Name)
-                    and item.context_expr.func.value.id == "freezegun"
+                    isinstance(context_expr, ast.Call)
+                    and migratable_call(context_expr)
                     and item.optional_vars is None
-                ) or (
-                    freeze_time_import_seen
-                    and isinstance(item.context_expr, ast.Call)
-                    and isinstance(item.context_expr.func, ast.Name)
-                    and item.context_expr.func.id == "freeze_time"
-                    and item.optional_vars is None
-                ):
-                    ret[ast_start_offset(item.context_expr.func)].append(
-                        partial(switch_to_travel, node=item.context_expr.func)
+                    and (
+                        (
+                            freezegun_import_seen
+                            and isinstance(context_expr.func, ast.Attribute)
+                            and context_expr.func.attr == "freeze_time"
+                            and isinstance(context_expr.func.value, ast.Name)
+                            and context_expr.func.value.id == "freezegun"
+                        )
+                        or (
+                            freeze_time_import_seen
+                            and isinstance(context_expr.func, ast.Name)
+                            and context_expr.func.id == "freeze_time"
+                        )
                     )
-                    ret[ast_start_offset(item.context_expr)].append(
-                        partial(add_tick_false, node=item.context_expr)
+                ):
+                    ret[ast_start_offset(context_expr.func)].append(
+                        partial(switch_to_travel, node=context_expr.func)
+                    )
+                    ret[ast_start_offset(context_expr)].append(
+                        partial(add_tick_false, node=context_expr)
                     )
 
     return ret  # type: ignore [return-value]
+
+
+def migratable_call(node: ast.Call) -> bool:
+    return (
+        len(node.args) == 1
+        # We could allow tick being set, as long as we didn't then add it
+        and len(node.keywords) == 0
+    )
 
 
 def ast_start_offset(node: ast.alias | ast.expr | ast.keyword | ast.stmt) -> Offset:
