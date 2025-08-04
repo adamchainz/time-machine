@@ -42,6 +42,9 @@ classifiers = [
 dependencies = [
   "python-dateutil",
 ]
+optional-dependencies.cli = [
+  "tokenize-rt",
+]
 urls.Changelog = "https://github.com/adamchainz/time-machine/blob/main/CHANGELOG.rst"
 urls.Funding = "https://adamj.eu/books/"
 urls.Repository = "https://github.com/adamchainz/time-machine"
