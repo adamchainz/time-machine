@@ -191,3 +191,97 @@ class TestMigrateContents:
             pass
             """,
         )
+
+    def test_decorator_name_unrelated(self):
+        check_noop(
+            """
+            from libfaketime import freeze_time
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_decorator_name_not_called(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_decorator_name(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_decorator_attr_unrelated(self):
+        check_noop(
+            """
+            import libfaketime
+
+            @libfaketime.freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_decorator_attr_not_called(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @freezegun.freeze_time
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_decorator_attr(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )

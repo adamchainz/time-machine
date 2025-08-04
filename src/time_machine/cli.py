@@ -135,14 +135,18 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
     the specific migration logic.
     """
     ret = defaultdict(list)
+    freezegun_import_seen = False
+    freeze_time_import_seen = False
     for node in ast.walk(tree):
+        # On Python 3.10+, this would look a lot better with the match statement
         if isinstance(node, ast.Import):
             if (
                 len(node.names) == 1
                 and (alias := node.names[0]).name == "freezegun"
                 and alias.asname is None
             ):
-                ret[ast_start_offset(node.names[0])] = [replace_import]
+                freezegun_import_seen = True
+                ret[ast_start_offset(node.names[0])].append(replace_import)
         elif isinstance(node, ast.ImportFrom):
             if (
                 node.module == "freezegun"
@@ -150,9 +154,39 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                 and (alias := node.names[0]).name == "freeze_time"
                 and alias.asname is None
             ):
-                ret[ast_start_offset(node)] = [partial(replace_import_from, node=node)]
-        else:
-            pass
+                freeze_time_import_seen = True
+                ret[ast_start_offset(node)].append(
+                    partial(replace_import_from, node=node)
+                )
+        elif isinstance(node, ast.FunctionDef):
+            for decorator in node.decorator_list:
+                if (
+                    freezegun_import_seen
+                    and isinstance(decorator, ast.Call)
+                    and isinstance(decorator.func, ast.Attribute)
+                    and decorator.func.attr == "freeze_time"
+                    and isinstance(decorator.func.value, ast.Name)
+                    and decorator.func.value.id == "freezegun"
+                ):
+                    ret[ast_start_offset(decorator.func)].append(
+                        partial(switch_to_travel, node=decorator.func)
+                    )
+                    ret[ast_start_offset(decorator)].append(
+                        partial(add_tick_false, node=decorator)
+                    )
+
+                elif (
+                    freeze_time_import_seen
+                    and isinstance(decorator, ast.Call)
+                    and isinstance(decorator.func, ast.Name)
+                    and decorator.func.id == "freeze_time"
+                ):
+                    ret[ast_start_offset(decorator)].append(
+                        partial(switch_to_travel, node=decorator.func)
+                    )
+                    ret[ast_start_offset(decorator)].append(
+                        partial(add_tick_false, node=decorator)
+                    )
 
     return ret  # type: ignore [return-value]
 
@@ -168,6 +202,21 @@ def replace_import(tokens: list[Token], i: int) -> None:
 def replace_import_from(tokens: list[Token], i: int, node: ast.ImportFrom) -> None:
     j = find_last_token(tokens, i, node=node)
     tokens[i : j + 1] = [Token(name=CODE, src="import time_machine")]
+
+
+def switch_to_travel(
+    tokens: list[Token], i: int, node: ast.Attribute | ast.Name
+) -> None:
+    j = find_last_token(tokens, i, node=node)
+    tokens[i : j + 1] = [Token(name=CODE, src="time_machine.travel")]
+
+
+def add_tick_false(tokens: list[Token], i: int, node: ast.Call) -> None:
+    """
+    Add `tick=False` to the function call.
+    """
+    j = find_last_token(tokens, i, node=node)
+    tokens.insert(j, Token(name=CODE, src=", tick=False"))
 
 
 # Token functions
