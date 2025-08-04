@@ -1,8 +1,24 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import sys
-from collections.abc import Sequence
+import warnings
+from collections import defaultdict
+from collections.abc import Callable, Mapping, Sequence
+from functools import partial
+
+from tokenize_rt import (
+    UNIMPORTANT_WS,
+    Offset,
+    Token,
+    reversed_enumerate,
+    src_to_tokens,
+    tokens_to_src,
+)
+
+CODE = "CODE"
+DEDENT = "DEDENT"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -30,10 +46,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 def migrate_files(files: list[str]) -> int:
     returncode = 0
     for filename in files:
-        returncode |= migrate_file(
-            filename,
-        )
-
+        returncode |= migrate_file(filename)
     return returncode
 
 
@@ -62,7 +75,117 @@ def migrate_file(filename: str) -> int:
     return contents_text != contents_text_orig
 
 
-def migrate_contents(text: str) -> str:
+def migrate_contents(contents_text: str) -> str:
     """Migrate a single text from freezegun to time-machine."""
+    try:
+        ast_obj = ast_parse(contents_text)
+    except SyntaxError:
+        return contents_text
 
-    return text.replace("freezegun", "time_machine")
+    callbacks = visit(ast_obj)
+
+    if not callbacks:
+        return contents_text
+
+    tokens = src_to_tokens(contents_text)
+
+    fixup_dedent_tokens(tokens)
+
+    for i, token in reversed_enumerate(tokens):
+        if not token.src:
+            continue
+        # though this is a defaultdict, by using `.get()` this function's
+        # self time is almost 50% faster
+        for callback in callbacks.get(token.offset, ()):
+            callback(tokens, i)
+
+    # no types for tokenize-rt
+    return tokens_to_src(tokens)  # type: ignore [no-any-return]
+
+
+def ast_parse(contents_text: str) -> ast.Module:
+    # intentionally ignore warnings, we can't do anything about them
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return ast.parse(contents_text.encode())
+
+
+def fixup_dedent_tokens(tokens: list[Token]) -> None:  # pragma: no cover
+    """For whatever reason the DEDENT / UNIMPORTANT_WS tokens are misordered
+
+    | if True:
+    |     if True:
+    |         pass
+    |     else:
+    |^    ^- DEDENT
+    |+----UNIMPORTANT_WS
+    """
+    for i, token in enumerate(tokens):
+        if token.name == UNIMPORTANT_WS and tokens[i + 1].name == DEDENT:
+            tokens[i], tokens[i + 1] = tokens[i + 1], tokens[i]
+
+
+TokenFunc = Callable[[list[Token], int], None]
+
+
+def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
+    """
+    Visit the AST and return a list of callbacks to apply to the tokens.
+    This is a placeholder function; actual implementation would depend on
+    the specific migration logic.
+    """
+    ret = defaultdict(list)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if (
+                len(node.names) == 1
+                and (alias := node.names[0]).name == "freezegun"
+                and alias.asname is None
+            ):
+                ret[ast_start_offset(node.names[0])] = [replace_import]
+        elif isinstance(node, ast.ImportFrom):
+            if (
+                node.module == "freezegun"
+                and len(node.names) == 1
+                and (alias := node.names[0]).name == "freeze_time"
+                and alias.asname is None
+            ):
+                ret[ast_start_offset(node)] = [partial(replace_import_from, node=node)]
+        else:
+            pass
+
+    return ret  # type: ignore [return-value]
+
+
+def ast_start_offset(node: ast.alias | ast.expr | ast.keyword | ast.stmt) -> Offset:
+    return Offset(node.lineno, node.col_offset)
+
+
+def replace_import(tokens: list[Token], i: int) -> None:
+    tokens[i] = Token(name="NAME", src="time_machine")
+
+
+def replace_import_from(tokens: list[Token], i: int, node: ast.ImportFrom) -> None:
+    j = find_last_token(tokens, i, node=node)
+    tokens[i : j + 1] = [Token(name=CODE, src="import time_machine")]
+
+
+# Token functions
+
+
+def find_last_token(
+    tokens: list[Token], i: int, *, node: ast.expr | ast.keyword | ast.stmt
+) -> int:
+    """
+    Find the last token corresponding to the given ast node.
+    """
+    while (
+        tokens[i].line is None or tokens[i].line < node.end_lineno
+    ):  # pragma: no cover
+        i += 1
+    while (
+        tokens[i].utf8_byte_offset is None
+        or tokens[i].utf8_byte_offset < node.end_col_offset
+    ):
+        i += 1
+    return i - 1
