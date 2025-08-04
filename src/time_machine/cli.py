@@ -185,6 +185,34 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         partial(add_tick_false, node=decorator)
                     )
 
+        elif isinstance(node, ast.ClassDef):
+            if node.decorator_list and looks_like_unittest_class(node):
+                for decorator in node.decorator_list:
+                    if (
+                        isinstance(decorator, ast.Call)
+                        and migratable_call(decorator)
+                        and (
+                            (
+                                freezegun_import_seen
+                                and isinstance(decorator.func, ast.Attribute)
+                                and decorator.func.attr == "freeze_time"
+                                and isinstance(decorator.func.value, ast.Name)
+                                and decorator.func.value.id == "freezegun"
+                            )
+                            or (
+                                freeze_time_import_seen
+                                and isinstance(decorator.func, ast.Name)
+                                and decorator.func.id == "freeze_time"
+                            )
+                        )
+                    ):
+                        ret[ast_start_offset(decorator.func)].append(
+                            partial(switch_to_travel, node=decorator.func)
+                        )
+                        ret[ast_start_offset(decorator)].append(
+                            partial(add_tick_false, node=decorator)
+                        )
+
         elif isinstance(node, ast.With):
             for item in node.items:
                 context_expr = item.context_expr
@@ -223,6 +251,41 @@ def migratable_call(node: ast.Call) -> bool:
         # We could allow tick being set, as long as we didn't then add it
         and len(node.keywords) == 0
     )
+
+
+def looks_like_unittest_class(node: ast.ClassDef) -> bool:
+    """
+    Heuristically determine if a class is a unittest.TestCase subclass.
+    """
+    for base in node.bases:
+        if (
+            isinstance(base, ast.Name)
+            and base.id.endswith("TestCase")
+            or (
+                isinstance(base, ast.Attribute)
+                and isinstance(base.value, ast.Name)
+                and base.value.id == "unittest"
+                and base.attr.endswith("TestCase")
+            )
+        ):
+            return True
+
+    for subnode in node.body:
+        if isinstance(subnode, ast.FunctionDef) and subnode.name in (
+            "setUp",
+            "setUpClass",
+            "tearDown",
+            "tearDownClass",
+            "setUpTestData",
+        ):
+            return True
+        if isinstance(subnode, ast.AsyncFunctionDef) and subnode.name in (
+            "asyncSetUp",
+            "asyncTearDown",
+        ):
+            return True
+
+    return False
 
 
 def ast_start_offset(node: ast.alias | ast.expr | ast.keyword | ast.stmt) -> Offset:

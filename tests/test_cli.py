@@ -192,7 +192,7 @@ class TestMigrateContents:
             """,
         )
 
-    def test_decorator_attr_unrelated(self):
+    def test_function_decorator_attr_unrelated(self):
         check_noop(
             """
             import libfaketime
@@ -203,7 +203,7 @@ class TestMigrateContents:
             """,
         )
 
-    def test_decorator_attr_not_called(self):
+    def test_function_decorator_attr_not_called(self):
         check_transformed(
             """
             import freezegun
@@ -221,7 +221,7 @@ class TestMigrateContents:
             """,
         )
 
-    def test_decorator_attr(self):
+    def test_function_decorator_attr(self):
         check_transformed(
             """
             import freezegun
@@ -239,7 +239,7 @@ class TestMigrateContents:
             """,
         )
 
-    def test_decorator_name_unrelated(self):
+    def test_function_decorator_name_unrelated(self):
         check_noop(
             """
             from libfaketime import freeze_time
@@ -250,7 +250,7 @@ class TestMigrateContents:
             """,
         )
 
-    def test_decorator_name_not_called(self):
+    def test_function_decorator_name_not_called(self):
         check_transformed(
             """
             from freezegun import freeze_time
@@ -268,7 +268,7 @@ class TestMigrateContents:
             """,
         )
 
-    def test_decorator_name(self):
+    def test_function_decorator_name(self):
         check_transformed(
             """
             from freezegun import freeze_time
@@ -283,6 +283,272 @@ class TestMigrateContents:
             @time_machine.travel("2023-01-01", tick=False)
             def test_function():
                 pass
+            """,
+        )
+
+    def test_class_decorator_attr_unrelated(self):
+        check_noop(
+            """
+            import libfaketime
+
+            @libfaketime.freeze_time("2023-01-01")
+            class TestClass:
+                pass
+            """,
+        )
+
+    def test_class_decorator_attr_not_called(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time
+            class TestClass:
+                pass
+            """,
+            """
+            import time_machine
+
+            @freezegun.freeze_time
+            class TestClass:
+                pass
+            """,
+        )
+
+    def test_class_decorator_attr_not_unittest_class(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass:
+                pass
+            """,
+            """
+            import time_machine
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass:
+                pass
+            """,
+        )
+
+    def test_class_decorator_attr_unittest_class_base_name(self):
+        check_transformed(
+            """
+            import freezegun
+            from django.test import SimpleTestCase
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass(SimpleTestCase):
+                pass
+            """,
+            """
+            import time_machine
+            from django.test import SimpleTestCase
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(SimpleTestCase):
+                pass
+            """,
+        )
+
+    def test_class_decorator_attr_unittest_class_base_attr(self):
+        check_transformed(
+            """
+            import freezegun
+            import unittest
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass(unittest.TestCase):
+                pass
+            """,
+            """
+            import time_machine
+            import unittest
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(unittest.TestCase):
+                pass
+            """,
+        )
+
+    def test_class_decorator_attr_unittest_class_method(self):
+        check_transformed(
+            """
+            import freezegun
+            from testing import TestBase
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass(TestBase):
+                def setUp(self):
+                    print("I look like a unittest class!")
+            """,
+            """
+            import time_machine
+            from testing import TestBase
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(TestBase):
+                def setUp(self):
+                    print("I look like a unittest class!")
+            """,
+        )
+
+    def test_class_decorator_attr_unittest_class_async_method(self):
+        check_transformed(
+            """
+            import freezegun
+            from testing import TestBase
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass(TestBase):
+                async def asyncSetUp(self):
+                    print("I look like a unittest class!")
+            """,
+            """
+            import time_machine
+            from testing import TestBase
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(TestBase):
+                async def asyncSetUp(self):
+                    print("I look like a unittest class!")
+            """,
+        )
+
+    def test_class_decorator_attr_multiple(self):
+        check_transformed(
+            """
+            import freezegun
+            from testing import TestBase
+            from unittest import mock
+
+            @freezegun.freeze_time("2023-01-01")
+            @mock.patch("example.connect")
+            class TestClass(TestBase):
+                def setUp(self):
+                    print("I look like a unittest class!")
+            """,
+            """
+            import time_machine
+            from testing import TestBase
+            from unittest import mock
+
+            @time_machine.travel("2023-01-01", tick=False)
+            @mock.patch("example.connect")
+            class TestClass(TestBase):
+                def setUp(self):
+                    print("I look like a unittest class!")
+            """,
+        )
+
+    def test_class_decorator_name_unrelated(self):
+        check_noop(
+            """
+            from libfaketime import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                pass
+            """,
+        )
+
+    def test_class_decorator_name_not_called(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time
+            class TestClass:
+                pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time
+            class TestClass:
+                pass
+            """,
+        )
+
+    def test_class_decorator_name_not_unittest_class(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                pass
+            """,
+        )
+
+    def test_class_decorator_name_unittest_class_base_name(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+            from django.test import SimpleTestCase
+
+            @freeze_time("2023-01-01")
+            class TestClass(SimpleTestCase):
+                pass
+            """,
+            """
+            import time_machine
+            from django.test import SimpleTestCase
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(SimpleTestCase):
+                pass
+            """,
+        )
+
+    def test_class_decorator_name_unittest_class_base_attr(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+            import unittest
+
+            @freeze_time("2023-01-01")
+            class TestClass(unittest.TestCase):
+                pass
+            """,
+            """
+            import time_machine
+            import unittest
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(unittest.TestCase):
+                pass
+            """,
+        )
+
+    def test_class_decorator_name_unittest_class_method(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+            from testing import TestBase
+
+            @freeze_time("2023-01-01")
+            class TestClass(TestBase):
+                def setUp(self):
+                    print("I look like a unittest class!")
+            """,
+            """
+            import time_machine
+            from testing import TestBase
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(TestBase):
+                def setUp(self):
+                    print("I look like a unittest class!")
             """,
         )
 
