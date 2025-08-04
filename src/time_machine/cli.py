@@ -167,6 +167,11 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                     and decorator.func.attr == "freeze_time"
                     and isinstance(decorator.func.value, ast.Name)
                     and decorator.func.value.id == "freezegun"
+                ) or (
+                    freeze_time_import_seen
+                    and isinstance(decorator, ast.Call)
+                    and isinstance(decorator.func, ast.Name)
+                    and decorator.func.id == "freeze_time"
                 ):
                     ret[ast_start_offset(decorator.func)].append(
                         partial(switch_to_travel, node=decorator.func)
@@ -175,17 +180,28 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         partial(add_tick_false, node=decorator)
                     )
 
-                elif (
+        elif isinstance(node, ast.With):
+            for item in node.items:
+                if (
+                    freezegun_import_seen
+                    and isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Attribute)
+                    and item.context_expr.func.attr == "freeze_time"
+                    and isinstance(item.context_expr.func.value, ast.Name)
+                    and item.context_expr.func.value.id == "freezegun"
+                    and item.optional_vars is None
+                ) or (
                     freeze_time_import_seen
-                    and isinstance(decorator, ast.Call)
-                    and isinstance(decorator.func, ast.Name)
-                    and decorator.func.id == "freeze_time"
+                    and isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Name)
+                    and item.context_expr.func.id == "freeze_time"
+                    and item.optional_vars is None
                 ):
-                    ret[ast_start_offset(decorator)].append(
-                        partial(switch_to_travel, node=decorator.func)
+                    ret[ast_start_offset(item.context_expr.func)].append(
+                        partial(switch_to_travel, node=item.context_expr.func)
                     )
-                    ret[ast_start_offset(decorator)].append(
-                        partial(add_tick_false, node=decorator)
+                    ret[ast_start_offset(item.context_expr)].append(
+                        partial(add_tick_false, node=item.context_expr)
                     )
 
     return ret  # type: ignore [return-value]

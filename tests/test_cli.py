@@ -192,6 +192,53 @@ class TestMigrateContents:
             """,
         )
 
+    def test_decorator_attr_unrelated(self):
+        check_noop(
+            """
+            import libfaketime
+
+            @libfaketime.freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_decorator_attr_not_called(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @freezegun.freeze_time
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_decorator_attr(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
     def test_decorator_name_unrelated(self):
         check_noop(
             """
@@ -239,49 +286,118 @@ class TestMigrateContents:
             """,
         )
 
-    def test_decorator_attr_unrelated(self):
+    def test_with_attr_unrelated(self):
         check_noop(
             """
             import libfaketime
 
-            @libfaketime.freeze_time("2023-01-01")
-            def test_function():
+            with libfaketime.freeze_time("2023-01-01"):
                 pass
             """,
         )
 
-    def test_decorator_attr_not_called(self):
+    def test_with_attr_not_called(self):
         check_transformed(
             """
             import freezegun
 
-            @freezegun.freeze_time
-            def test_function():
+            with freezegun.freeze_time:
                 pass
             """,
             """
             import time_machine
 
-            @freezegun.freeze_time
-            def test_function():
+            with freezegun.freeze_time:
                 pass
             """,
         )
 
-    def test_decorator_attr(self):
+    def test_with_attr_as(self):
         check_transformed(
             """
             import freezegun
 
-            @freezegun.freeze_time("2023-01-01")
-            def test_function():
+            with freezegun.freeze_time("2023-01-01") as ft:
                 pass
             """,
             """
             import time_machine
 
-            @time_machine.travel("2023-01-01", tick=False)
-            def test_function():
+            with freezegun.freeze_time("2023-01-01") as ft:
+                pass
+            """,
+        )
+
+    def test_with_attr(self):
+        check_transformed(
+            """
+            import freezegun
+
+            with freezegun.freeze_time("2023-01-01"):
+                pass
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=False):
+                pass
+            """,
+        )
+
+    def test_with_name_unrelated(self):
+        check_noop(
+            """
+            from libfaketime import freeze_time
+
+            with freeze_time("2023-01-01"):
+                pass
+            """,
+        )
+
+    def test_with_name_not_called(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            with freeze_time:
+                pass
+            """,
+            """
+            import time_machine
+
+            with freeze_time:
+                pass
+            """,
+        )
+
+    def test_with_name_as(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            with freeze_time("2023-01-01") as ft:
+                pass
+            """,
+            """
+            import time_machine
+
+            with freeze_time("2023-01-01") as ft:
+                pass
+            """,
+        )
+
+    def test_with_name(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            with freeze_time("2023-01-01"):
+                pass
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=False):
                 pass
             """,
         )
