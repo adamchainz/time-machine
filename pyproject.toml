@@ -107,7 +107,7 @@ xfail_strict = true
 branch = true
 parallel = true
 source = [
-  "src/_time_machine.c",
+  "time_machine",
   "tests",
 ]
 
