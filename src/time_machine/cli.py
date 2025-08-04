@@ -29,28 +29,40 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def migrate_files(files: list[str]) -> int:
     returncode = 0
-    for file in files:
-        try:
-            fp = open(file, "r+", encoding="utf-8")  # noqa: SIM115
-        except OSError as exc:
-            print(f"can't open {file}: {exc}", file=sys.stderr)
-            return 2
-        else:
-            with fp:
-                content = fp.read()
-                updated_content = migrate_text(content)
-                if updated_content != content:
-                    print(f"Rewriting {file}", file=sys.stderr)
-
-                    returncode = 1
-
-                    fp.seek(0)
-                    fp.write(updated_content)
-                    fp.truncate()
+    for filename in files:
+        returncode |= migrate_file(
+            filename,
+        )
 
     return returncode
 
 
-def migrate_text(text: str) -> str:
+def migrate_file(filename: str) -> int:
+    if filename == "-":
+        contents_bytes = sys.stdin.buffer.read()
+    else:
+        with open(filename, "rb") as fb:
+            contents_bytes = fb.read()
+
+    try:
+        contents_text_orig = contents_text = contents_bytes.decode()
+    except UnicodeDecodeError:
+        print(f"{filename} is non-utf-8 (not supported)")
+        return 1
+
+    contents_text = migrate_contents(contents_text)
+
+    if filename == "-":
+        print(contents_text, end="")
+    elif contents_text != contents_text_orig:
+        print(f"Rewriting {filename}", file=sys.stderr)
+        with open(filename, "w", encoding="UTF-8", newline="") as f:
+            f.write(contents_text)
+
+    return contents_text != contents_text_orig
+
+
+def migrate_contents(text: str) -> str:
     """Migrate a single text from freezegun to time-machine."""
+
     return text.replace("freezegun", "time_machine")
