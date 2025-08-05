@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+2.17.0 (2025-08-05)
+-------------------
 
 * Include wheels for Python 3.14.
 
