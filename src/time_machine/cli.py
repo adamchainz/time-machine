@@ -146,7 +146,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                 and alias.asname is None
             ):
                 freezegun_import_seen = True
-                ret[ast_start_offset(node.names[0])].append(replace_import)
+                ret[ast_start_offset(node)].append(replace_import)
         elif isinstance(node, ast.ImportFrom):
             if (
                 node.module == "freezegun"
@@ -293,6 +293,10 @@ def ast_start_offset(node: ast.alias | ast.expr | ast.keyword | ast.stmt) -> Off
 
 
 def replace_import(tokens: list[Token], i: int) -> None:
+    while True:
+        if tokens[i].name == "NAME" and tokens[i].src == "freezegun":
+            break
+        i += 1
     tokens[i] = Token(name="NAME", src="time_machine")
 
 
