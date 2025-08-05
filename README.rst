@@ -2,6 +2,9 @@
 time-machine
 ============
 
+.. image:: https://img.shields.io/readthedocs/time-machine?style=for-the-badge
+   :target: https://time-machine.readthedocs.io/en/latest/
+
 .. image:: https://img.shields.io/github/actions/workflow/status/adamchainz/time-machine/main.yml.svg?branch=main&style=for-the-badge
    :target: https://github.com/adamchainz/time-machine/actions?workflow=CI
 
