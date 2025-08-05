@@ -9,6 +9,10 @@ Unreleased
 
   Thanks to Edgar Ramírez Mondragón in `PR #521 <https://github.com/adamchainz/time-machine/pull/521>`__.
 
+* Support free-threaded Python.
+
+  Thanks to Javier Buzzi in `PR #500 <https://github.com/adamchainz/time-machine/pull/500>`__.
+
 * Add a new CLI for migrating code from freezegun to time-machine.
 
   Install with ``pip install time-machine[cli]`` and run with ``python -m time_machine migrate``.
