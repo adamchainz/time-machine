@@ -45,7 +45,8 @@ dependencies = [
 optional-dependencies.cli = [
   "tokenize-rt",
 ]
-urls.Changelog = "https://github.com/adamchainz/time-machine/blob/main/CHANGELOG.rst"
+urls.Changelog = "https://time-machine.readthedocs.io/en/latest/changelog.html"
+urls.Documentation = "https://time-machine.readthedocs.io/"
 urls.Funding = "https://adamj.eu/books/"
 urls.Repository = "https://github.com/adamchainz/time-machine"
 entry-points.pytest11.time_machine = "time_machine"
@@ -57,6 +58,12 @@ test = [
   "pytest",
   "pytest-randomly",
   "python-dateutil",
+]
+docs = [
+  "furo>=2024.8.6",
+  "sphinx>=7.4.7",
+  "sphinx-build-compatibility",
+  "sphinx-copybutton>=0.5.2",
 ]
 
 [tool.ruff]
@@ -140,3 +147,6 @@ allow_untyped_defs = true
 
 [tool.rstcheck]
 report_level = "ERROR"
+
+[tool.uv.sources]
+sphinx-build-compatibility = { git = "https://github.com/readthedocs/sphinx-build-compatibility", rev = "4f304bd4562cdc96316f4fec82b264ca379d23e0" }
