@@ -5,7 +5,7 @@ Installation
 Requirements
 ------------
 
-Python 3.9 to 3.13 supported.
+Python 3.9 to 3.14 supported.
 
 Only CPython is supported at this time because time-machine directly hooks into the C-level API.
 

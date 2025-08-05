@@ -20,10 +20,16 @@ class TestMain:
 
         assert excinfo.value.code == 2
         out, err = capsys.readouterr()
-        assert err == (
-            "usage: __main__.py [-h] {migrate} ...\n"
-            + "__main__.py: error: the following arguments are required: command\n"
-        )
+        if sys.version_info >= (3, 14):
+            assert err == (
+                "usage: python -m pytest [-h] {migrate} ...\n"
+                + "python -m pytest: error: the following arguments are required: command\n"
+            )
+        else:
+            assert err == (
+                "usage: __main__.py [-h] {migrate} ...\n"
+                + "__main__.py: error: the following arguments are required: command\n"
+            )
         assert out == ""
 
     def test_main_help(
@@ -43,7 +49,10 @@ class TestMain:
             capture_output=True,
         )
 
-        assert proc.stdout.startswith(b"usage: __main__.py ")
+        if sys.version_info >= (3, 14):
+            assert proc.stdout.startswith(b"usage: python -m time_machine ")
+        else:
+            assert proc.stdout.startswith(b"usage: __main__.py ")
 
     def test_migrate_help_command(self, capsys):
         with pytest.raises(SystemExit) as excinfo:

@@ -5,6 +5,10 @@ Changelog
 Unreleased
 ----------
 
+* Include wheels for Python 3.14.
+
+  Thanks to Edgar Ramírez Mondragón in `PR #521 <https://github.com/adamchainz/time-machine/pull/521>`__.
+
 * Add a new CLI for migrating code from freezegun to time-machine.
 
   Install with ``pip install time-machine[cli]`` and run with ``python -m time_machine migrate``.
