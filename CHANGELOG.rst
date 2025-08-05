@@ -1,1 +1,1 @@
-See https://django-upgrade.readthedocs.io/en/latest/changelog.html
+See https://time-machine.readthedocs.io/en/latest/changelog.html
