@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Add a new CLI for migrating code from freezegun to time-machine.
+
+  Install with ``pip install time-machine[cli]`` and run with ``python -m time_machine migrate``.
+
+  See more in the documentation.
+
 2.16.0 (2024-10-08)
 -------------------
 
