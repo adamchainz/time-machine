@@ -68,7 +68,20 @@ docs = [
 ]
 
 [tool.cibuildwheel]
-build = [ "cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*" ]
+build = [
+  "cp314-*",
+  "cp314t-*",
+  "cp313-*",
+  "cp313t-*",
+  "cp312-*",
+  "cp311-*",
+  "cp310-*",
+  "cp39-*",
+]
+enable = [
+  # Enable free-threaded wheels on Python 3.13 (where it was experimental)
+  "cpython-freethreading",
+]
 linux.archs = [ "x86_64", "i686", "aarch64" ]
 macos.archs = [ "x86_64", "universal2" ]
 windows.archs = [ "AMD64", "x86", "ARM64" ]
