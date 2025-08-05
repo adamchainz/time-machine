@@ -19,6 +19,8 @@ Unreleased
 
   See more :ref:`in the documentation <migration-cli>`.
 
+* Move the documentation to `Read the Docs <https://time-machine.readthedocs.io/>`__, and add a retro-futuristic logo.
+
 2.16.0 (2024-10-08)
 -------------------
 
