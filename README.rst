@@ -30,4 +30,4 @@ time-machine
 Documentation
 =============
 
-Please see https://django-upgrade.readthedocs.io/.
+Please see https://time-machine.readthedocs.io/.
