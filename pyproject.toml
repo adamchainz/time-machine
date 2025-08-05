@@ -67,6 +67,12 @@ docs = [
   "sphinx-copybutton>=0.5.2",
 ]
 
+[tool.cibuildwheel]
+build = [ "cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*" ]
+linux.archs = [ "x86_64", "i686", "aarch64" ]
+macos.archs = [ "x86_64", "universal2" ]
+windows.archs = [ "AMD64", "x86", "ARM64" ]
+
 [tool.ruff]
 lint.select = [
   # flake8-bugbear
