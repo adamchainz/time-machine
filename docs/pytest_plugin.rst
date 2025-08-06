@@ -43,7 +43,7 @@ Or for a class:
 ------------------------
 
 Use the function-scoped `fixture <https://docs.pytest.org/en/stable/explanation/fixtures.html#about-fixtures>`__ ``time_machine`` to control time in your tests.
-It provides an object with two methods, ``move_to()`` and ``shift()``, which work the same as their equivalents in the :class:`time_machine.Coordinates` class.
+It provides an object with two methods, ``move_to()`` and ``shift()``, which work the same as their equivalents in the :class:`time_machine.Traveller` class.
 Until you call ``move_to()``, time is not mocked.
 
 For example:
