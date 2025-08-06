@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import subprocess
 import sys
+from pathlib import Path
 from textwrap import dedent
 from unittest import mock
 
@@ -20,16 +21,15 @@ class TestMain:
 
         assert excinfo.value.code == 2
         out, err = capsys.readouterr()
-        if sys.version_info >= (3, 14):
-            assert err == (
-                "usage: python -m pytest [-h] {migrate} ...\n"
-                + "python -m pytest: error: the following arguments are required: command\n"
-            )
-        else:
-            assert err == (
-                "usage: __main__.py [-h] {migrate} ...\n"
-                + "__main__.py: error: the following arguments are required: command\n"
-            )
+        prog_name = (
+            f"{Path(sys.executable).name} -m pytest"
+            if sys.version_info >= (3, 14) and sys.modules["__main__"].__spec__
+            else Path(sys.argv[0]).name
+        )
+        assert err == (
+            f"usage: {prog_name} [-h] {{migrate}} ...\n"
+            + f"{prog_name}: error: the following arguments are required: command\n"
+        )
         assert out == ""
 
     def test_main_help(
@@ -50,7 +50,9 @@ class TestMain:
         )
 
         if sys.version_info >= (3, 14):
-            assert proc.stdout.startswith(b"usage: python -m time_machine ")
+            assert proc.stdout.startswith(
+                f"usage: {Path(sys.executable).name} -m time_machine ".encode()
+            )
         else:
             assert proc.stdout.startswith(b"usage: __main__.py ")
 
