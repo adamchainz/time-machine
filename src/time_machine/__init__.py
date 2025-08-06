@@ -7,6 +7,7 @@ import os
 import sys
 import time as time_module
 import uuid
+import warnings
 from collections.abc import Awaitable, Generator
 from collections.abc import Generator as TypingGenerator
 from time import gmtime as orig_gmtime
@@ -119,7 +120,7 @@ def extract_timestamp_tzname(
     return timestamp, tzname
 
 
-class Coordinates:
+class Traveller:
     def __init__(
         self,
         destination_timestamp: float,
@@ -188,7 +189,7 @@ class Coordinates:
             tzset()
 
 
-coordinates_stack: list[Coordinates] = []
+traveller_stack: list[Traveller] = []
 
 # During time travel, patch the uuid module's time-based generation function to
 # None, which makes it use time.time(). Otherwise it makes a system call to
@@ -206,31 +207,31 @@ class travel:
         )
         self.tick = tick
 
-    def start(self) -> Coordinates:
+    def start(self) -> Traveller:
         _time_machine.patch_if_needed()
 
-        if not coordinates_stack:
+        if not traveller_stack:
             uuid_generate_time_patcher.start()
             uuid_uuid_create_patcher.start()
 
-        coordinates = Coordinates(
+        traveller = Traveller(
             destination_timestamp=self.destination_timestamp,
             destination_tzname=self.destination_tzname,
             tick=self.tick,
         )
-        coordinates_stack.append(coordinates)
-        coordinates._start()
+        traveller_stack.append(traveller)
+        traveller._start()
 
-        return coordinates
+        return traveller
 
     def stop(self) -> None:
-        coordinates_stack.pop()._stop()
+        traveller_stack.pop()._stop()
 
-        if not coordinates_stack:
+        if not traveller_stack:
             uuid_generate_time_patcher.stop()
             uuid_uuid_create_patcher.stop()
 
-    def __enter__(self) -> Coordinates:
+    def __enter__(self) -> Traveller:
         return self.start()
 
     def __exit__(
@@ -314,14 +315,14 @@ class travel:
 
 
 def now(tz: dt.tzinfo | None = None) -> dt.datetime:
-    if not coordinates_stack:
+    if not traveller_stack:
         result: dt.datetime = _time_machine.original_now(tz)
         return result
     return dt.datetime.fromtimestamp(time(), tz)
 
 
 def utcnow() -> dt.datetime:
-    if not coordinates_stack:
+    if not traveller_stack:
         result: dt.datetime = _time_machine.original_utcnow()
         return result
     return dt.datetime.fromtimestamp(time(), dt.timezone.utc).replace(tzinfo=None)
@@ -331,14 +332,14 @@ def utcnow() -> dt.datetime:
 
 
 def clock_gettime(clk_id: int) -> float:
-    if not coordinates_stack or clk_id != CLOCK_REALTIME:
+    if not traveller_stack or clk_id != CLOCK_REALTIME:
         result: float = _time_machine.original_clock_gettime(clk_id)
         return result
     return time()
 
 
 def clock_gettime_ns(clk_id: int) -> int:
-    if not coordinates_stack or clk_id != CLOCK_REALTIME:
+    if not traveller_stack or clk_id != CLOCK_REALTIME:
         result: int = _time_machine.original_clock_gettime_ns(clk_id)
         return result
     return time_ns()
@@ -346,19 +347,19 @@ def clock_gettime_ns(clk_id: int) -> int:
 
 def gmtime(secs: float | None = None) -> struct_time:
     result: struct_time
-    if not coordinates_stack or secs is not None:
+    if not traveller_stack or secs is not None:
         result = _time_machine.original_gmtime(secs)
     else:
-        result = _time_machine.original_gmtime(coordinates_stack[-1].time())
+        result = _time_machine.original_gmtime(traveller_stack[-1].time())
     return result
 
 
 def localtime(secs: float | None = None) -> struct_time:
     result: struct_time
-    if not coordinates_stack or secs is not None:
+    if not traveller_stack or secs is not None:
         result = _time_machine.original_localtime(secs)
     else:
-        result = _time_machine.original_localtime(coordinates_stack[-1].time())
+        result = _time_machine.original_localtime(traveller_stack[-1].time())
     return result
 
 
@@ -366,7 +367,7 @@ def strftime(format: str, t: _TimeTuple | struct_time | None = None) -> str:
     result: str
     if t is not None:
         result = _time_machine.original_strftime(format, t)
-    elif not coordinates_stack:
+    elif not traveller_stack:
         result = _time_machine.original_strftime(format)
     else:
         result = _time_machine.original_strftime(format, localtime())
@@ -374,17 +375,17 @@ def strftime(format: str, t: _TimeTuple | struct_time | None = None) -> str:
 
 
 def time() -> float:
-    if not coordinates_stack:
+    if not traveller_stack:
         result: float = _time_machine.original_time()
         return result
-    return coordinates_stack[-1].time()
+    return traveller_stack[-1].time()
 
 
 def time_ns() -> int:
-    if not coordinates_stack:
+    if not traveller_stack:
         result: int = _time_machine.original_time_ns()
         return result
-    return coordinates_stack[-1].time_ns()
+    return traveller_stack[-1].time_ns()
 
 
 # pytest plugin
@@ -393,11 +394,11 @@ if HAVE_PYTEST:  # pragma: no branch
 
     class TimeMachineFixture:
         traveller: travel | None
-        coordinates: Coordinates | None
+        traveller_obj: Traveller | None
 
         def __init__(self) -> None:
             self.traveller = None
-            self.coordinates = None
+            self.traveller_obj = None
 
         def move_to(
             self,
@@ -408,18 +409,18 @@ if HAVE_PYTEST:  # pragma: no branch
                 if tick is None:
                     tick = True
                 self.traveller = travel(destination, tick=tick)
-                self.coordinates = self.traveller.start()
+                self.traveller_obj = self.traveller.start()
             else:
-                assert self.coordinates is not None
-                self.coordinates.move_to(destination, tick=tick)
+                assert self.traveller_obj is not None
+                self.traveller_obj.move_to(destination, tick=tick)
 
         def shift(self, delta: dt.timedelta | int | float) -> None:
             if self.traveller is None:
                 raise RuntimeError(
                     "Initialize time_machine with move_to() before using shift()."
                 )
-            assert self.coordinates is not None
-            self.coordinates.shift(delta=delta)
+            assert self.traveller_obj is not None
+            self.traveller_obj.shift(delta=delta)
 
         def stop(self) -> None:
             if self.traveller is not None:
@@ -498,7 +499,19 @@ class _EscapeHatch:
         self.time = _EscapeHatchTime()
 
     def is_travelling(self) -> bool:
-        return bool(coordinates_stack)
+        return bool(traveller_stack)
 
 
 escape_hatch = _EscapeHatch()
+
+
+def __getattr__(name: str) -> type:
+    if name == "Coordinates":
+        warnings.warn(
+            "The 'Coordinates' class has been renamed to 'Traveller' and "
+            "the alias will be removed in a future version. ",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return Traveller
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
