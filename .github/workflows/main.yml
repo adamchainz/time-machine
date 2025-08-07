@@ -20,14 +20,14 @@ jobs:
     strategy:
       matrix:
         python-version:
-        # - '3.9'
-        # - '3.10'
-        # - '3.11'
-        # - '3.12'
-        # - '3.13'
+        - '3.9'
+        - '3.10'
+        - '3.11'
+        - '3.12'
+        - '3.13'
         - '3.13t'
-        # - '3.14'
-        # - '3.14t'
+        - '3.14'
+        - '3.14t'
 
     steps:
     - uses: actions/checkout@v4
@@ -43,9 +43,7 @@ jobs:
         enable-cache: false # TODO: delete this
 
     - name: Run tox targets for ${{ matrix.python-version }}
-      run: |
-        uvx --with tox-uv tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
-        nm .tox/py313t/lib/python3.13t/site-packages/_time_machine.cpython-313t-x86_64-linux-gnu.so | grep GIL_DISABLED
+      run: uvx --with tox-uv tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
 
     - name: Upload coverage data
       uses: actions/upload-artifact@v4
