@@ -21,6 +21,8 @@ typedef struct {
     PyCFunction original_time_ns;
 } _time_machine_state;
 
+int Py_GIL_DISABLED_MODULE__time_machine = 1;
+
 static inline _time_machine_state*
 get_time_machine_state(PyObject *module)
 {
