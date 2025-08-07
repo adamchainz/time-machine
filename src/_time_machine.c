@@ -21,10 +21,6 @@ typedef struct {
     PyCFunction original_time_ns;
 } _time_machine_state;
 
-int Py_GIL_DISABLED_MODULE_time_machine = 1;
-int Py_GIL_DISABLED_MODULE__time_machine = 1;
-int Py_GIL_DISABLED_MODULE_time_machine__time_machine = 1;
-
 static inline _time_machine_state*
 get_time_machine_state(PyObject *module)
 {
@@ -533,7 +529,8 @@ static struct PyModuleDef _time_machine_module = {
     .m_slots = _time_machine_slots,
     .m_traverse = NULL,
     .m_clear = NULL,
-    .m_free = NULL
+    .m_free = NULL,
+    .m_gil = 0
 };
 
 PyMODINIT_FUNC
