@@ -530,10 +530,7 @@ static struct PyModuleDef _time_machine_module = {
     .m_traverse = NULL,
     .m_clear = NULL,
     .m_free = NULL,
-// Conditionally add m_gil only for Python 3.12+
-#if PY_VERSION_HEX >= 0x030C0000
-    // Set to Py_MOD_GIL_NOT_USED if thread-safe, or Py_MOD_GIL_USED if not.
-    // Setting to 0 is equivalent to leaving it undefined on older versions.
+    #if PY_VERSION_HEX >= 0x030C0000 && !defined(Py_GIL_DISABLED)
     .m_gil = Py_MOD_GIL_NOT_USED,
 #endif
 };
