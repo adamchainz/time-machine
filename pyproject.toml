@@ -132,6 +132,14 @@ addopts = """\
     --strict-markers
     """
 xfail_strict = true
+filterwarnings = [
+    "error",
+    "error::ResourceWarning",
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+    "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning",
+    "ignore:datetime.datetime.utcnow:DeprecationWarning",
+]
 
 [tool.coverage.run]
 branch = true
