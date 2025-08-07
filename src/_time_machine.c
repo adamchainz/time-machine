@@ -533,7 +533,7 @@ static struct PyModuleDef _time_machine_module = {
     .m_traverse = NULL,
     .m_clear = NULL,
     .m_free = NULL
-#if PY_VERSION_HEX >= 0x030C0000 && PY_VERSION_HEX < 0x030D0000
+#if PY_VERSION_HEX >= 0x030C00A4 && PY_VERSION_HEX < 0x030D0000
     ,
     .m_gil = Py_MOD_GIL_NOT_USED
 #endif
