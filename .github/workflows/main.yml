@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     strategy:
+      fail-fast: false
       matrix:
         python-version:
         - '3.9'
@@ -100,6 +101,7 @@ jobs:
       || contains(github.event.pull_request.labels.*.name, 'Build')
 
     strategy:
+      fail-fast: false
       matrix:
         os:
         - linux
