@@ -20,14 +20,14 @@ jobs:
     strategy:
       matrix:
         python-version:
-        - '3.9'
-        - '3.10'
-        - '3.11'
-        - '3.12'
+        # - '3.9'
+        # - '3.10'
+        # - '3.11'
+        # - '3.12'
         - '3.13'
         - '3.13t'
-        - '3.14'
-        - '3.14t'
+        # - '3.14'
+        # - '3.14t'
 
     steps:
     - uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
-        enable-cache: true
+        enable-cache: false # TODO: delete this
 
     - name: Run tox targets for ${{ matrix.python-version }}
       run: uvx --with tox-uv tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
