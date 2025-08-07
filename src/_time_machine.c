@@ -534,12 +534,6 @@ static struct PyModuleDef _time_machine_module = {
     .m_traverse = NULL,
     .m_clear = NULL,
     .m_free = NULL
-//     /* For Python 3.12.0a4+ free-threaded builds, use the m_gil member.
-//      * This was an experimental API that was removed in Python 3.13. */
-// #if PY_VERSION_HEX >= 0x030C00A4 && PY_VERSION_HEX < 0x030D0000 && defined(Py_GIL_DISABLED)
-//     ,
-//     .m_gil = Py_MOD_GIL_NOT_USED
-// #endif
 };
 
 PyMODINIT_FUNC
