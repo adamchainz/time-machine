@@ -45,7 +45,7 @@ jobs:
     - name: Run tox targets for ${{ matrix.python-version }}
       run: |
         uvx --with tox-uv tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
-        ls -lash .tox/py313t
+        ls -lash .tox/py313t/lib/python3.13/site-packages
         nm .tox/py313t/lib/python3.13/site-packages/time_machine/_time_machine*.so | grep GIL_DISABLED
 
     - name: Upload coverage data
