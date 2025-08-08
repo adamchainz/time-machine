@@ -11,6 +11,10 @@ Unreleased
 
   Thanks to Javier Buzzi in `PR #531 <https://github.com/adamchainz/time-machine/pull/531>`__.
 
+* Rename the ``Coordinates`` class to ``Traveller`` for clearer API semantics.
+
+  Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
+
 2.17.0 (2025-08-05)
 -------------------
 

@@ -161,7 +161,7 @@ For pytest-style test classes, see the pattern `documented below <#pytest-plugin
 Timezone mocking
 ^^^^^^^^^^^^^^^^
 
-If the ``destination`` passed to ``time_machine.travel()`` or ``Coordinates.move_to()`` has its ``tzinfo`` set to a |zoneinfo-instance2|_, the current timezone will be mocked.
+If the ``destination`` passed to ``time_machine.travel()`` or ``Traveller.move_to()`` has its ``tzinfo`` set to a |zoneinfo-instance2|_, the current timezone will be mocked.
 This will be done by calling |time-tzset|_, so it is only available on Unix.
 
 .. |zoneinfo-instance2| replace:: ``zoneinfo.ZoneInfo`` instance
@@ -194,10 +194,10 @@ Here’s a worked example changing the current timezone:
         now = dt.datetime.now()
         assert (now.hour, now.minute) == (16, 29)
 
-``Coordinates``
----------------
+``Traveller``
+-------------
 
-The ``start()`` method and entry of the context manager both return a ``Coordinates`` object that corresponds to the given "trip" in time.
+The ``start()`` method and entry of the context manager both return a ``Traveller`` object that corresponds to the given "trip" in time.
 This has a couple methods that can be used to travel to other times.
 
 ``move_to(destination, tick=None)``
