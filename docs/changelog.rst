@@ -2,6 +2,8 @@
 Changelog
 =========
 
+* Update the :ref:`migration CLI <migration-cli>` to detect unittest classes based on whether they use ``self.assert*`` methods like ``self.assertEqual()``.
+
 2.17.0 (2025-08-05)
 -------------------
 

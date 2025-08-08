@@ -563,6 +563,28 @@ class TestMigrateContents:
             """,
         )
 
+    def test_class_decorator_name_unittest_class_uses_assert_method(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+            from testing import TestBase
+
+            @freeze_time("2023-01-01")
+            class TestClass(TestBase):
+                def test_something(self):
+                    self.assertTrue(True)
+            """,
+            """
+            import time_machine
+            from testing import TestBase
+
+            @time_machine.travel("2023-01-01", tick=False)
+            class TestClass(TestBase):
+                def test_something(self):
+                    self.assertTrue(True)
+            """,
+        )
+
     def test_with_attr_unrelated(self):
         check_noop(
             """
