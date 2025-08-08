@@ -1,0 +1,24 @@
+# A clang-format style that approximates Python's PEP 7
+# Adapted from: https://github.com/python/cpython/blob/34d7351ac770ac49875fc39396b2a97828ba05ad/Tools/peg_generator/.clang-format#L1
+BasedOnStyle: Google
+AlwaysBreakAfterReturnType: All
+AllowShortIfStatementsOnASingleLine: false
+AlignAfterOpenBracket: DontAlign
+BreakBeforeBraces: Stroustrup
+ColumnLimit: 95
+DerivePointerAlignment: false
+IndentWidth: 4
+Language: Cpp
+PointerAlignment: Right
+ReflowComments: true
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+TabWidth: 4
+UseTab: Never
+SortIncludes: false
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllArgumentsOnNextLine: true
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: Never
