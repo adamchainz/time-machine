@@ -517,6 +517,11 @@ static PyMethodDef module_functions[] = {
 };
 
 static PyModuleDef_Slot _time_machine_slots[] = {
+  // On Python 3.13+, declare free-threaded support.
+  // https://py-free-threading.github.io/porting-extensions/#declaring-free-threaded-support
+#ifdef Py_GIL_DISABLED
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+#endif
     {0, NULL}
 };
 
@@ -526,10 +531,7 @@ static struct PyModuleDef _time_machine_module = {
     .m_doc = module_doc,
     .m_size = sizeof(_time_machine_state),
     .m_methods = module_functions,
-    .m_slots = _time_machine_slots,
-    .m_traverse = NULL,
-    .m_clear = NULL,
-    .m_free = NULL
+    .m_slots = _time_machine_slots
 };
 
 PyMODINIT_FUNC

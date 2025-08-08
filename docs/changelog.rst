@@ -3,11 +3,17 @@ Changelog
 =========
 
 Unreleased
--------------------
+----------
 
 * Add a pytest marker fixture supporting initial time setting and in-test time shifting.
 
   Thanks to Javier Buzzi in `PR #499 <https://github.com/adamchainz/time-machine/pull/499>`__.
+
+* Update the :ref:`migration CLI <migration-cli>` to detect unittest classes based on whether they use ``self.assert*`` methods like ``self.assertEqual()``.
+
+* Fix free-threaded Python warning: ``RuntimeWarning: The global interpreter lock (GIL) has been enabled...`` as seen on Python 3.13+.
+
+  Thanks to Javier Buzzi in `PR #531 <https://github.com/adamchainz/time-machine/pull/531>`__.
 
 2.17.0 (2025-08-05)
 -------------------
