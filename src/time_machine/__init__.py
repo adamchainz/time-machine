@@ -7,7 +7,6 @@ import os
 import sys
 import time as time_module
 import uuid
-import warnings
 from collections.abc import Awaitable, Generator
 from collections.abc import Generator as TypingGenerator
 from time import gmtime as orig_gmtime
@@ -503,15 +502,3 @@ class _EscapeHatch:
 
 
 escape_hatch = _EscapeHatch()
-
-
-def __getattr__(name: str) -> type:
-    if name == "Coordinates":
-        warnings.warn(
-            "The 'Coordinates' class has been renamed to 'Traveller' and "
-            "the alias will be removed in a future version. ",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return Traveller
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

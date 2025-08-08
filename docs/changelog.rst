@@ -5,7 +5,9 @@ Changelog
 Unreleased
 ----------
 
-* Rename ``Coordinates`` to ``Traveller`` in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
+* Rename the ``Coordinates`` class to ``Traveller`` for clearer API semantics.
+
+  Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
 
 2.17.0 (2025-08-05)
 -------------------
@@ -169,9 +171,9 @@ Thanks to Michał Górny in `PR #315 <https://github.com/adamchainz/time-machine
 2.3.0 (2021-07-05)
 ------------------
 
-* Allow passing ``tick`` to ``Traveller.move_to()`` (or ``Coordinates.move_to()`` until version 2.17.0)
-  and the pytest fixture’s ``time_machine.move_to()``. This allows freezing or unfreezing
-  of time when travelling.
+* Allow passing ``tick`` to ``Coordinates.move_to()`` and the pytest fixture’s
+  ``time_machine.move_to()``. This allows freezing or unfreezing of time when
+  travelling.
 
 2.2.0 (2021-07-02)
 ------------------

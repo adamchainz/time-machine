@@ -200,9 +200,6 @@ Here’s a worked example changing the current timezone:
 The ``start()`` method and entry of the context manager both return a ``Traveller`` object that corresponds to the given "trip" in time.
 This has a couple methods that can be used to travel to other times.
 
-.. note::
-    Until version 2.17.0, the ``Traveller`` class was named ``Coordinates``, which is now kept as an alias only for backward compatibility.
-
 ``move_to(destination, tick=None)``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
