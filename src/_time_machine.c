@@ -518,7 +518,7 @@ static PyMethodDef module_functions[] = {
 
 static PyModuleDef_Slot _time_machine_slots[] = {
     /* For Python 3.13+, use module slots to indicate GIL safety. */
-#if PY_VERSION_HEX >= 0x030D0000
+#ifdef Py_GIL_DISABLED
     {Py_mod_gil, Py_MOD_GIL_NOT_USED},
 #endif
     {0, NULL}
