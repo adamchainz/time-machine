@@ -517,7 +517,8 @@ static PyMethodDef module_functions[] = {
 };
 
 static PyModuleDef_Slot _time_machine_slots[] = {
-    /* For Python 3.13+, use module slots to indicate GIL safety. */
+  // On Python 3.13+, declare free-threaded support.
+  // https://py-free-threading.github.io/porting-extensions/#declaring-free-threaded-support
 #ifdef Py_GIL_DISABLED
     {Py_mod_gil, Py_MOD_GIL_NOT_USED},
 #endif
