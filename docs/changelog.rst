@@ -2,7 +2,14 @@
 Changelog
 =========
 
+Unreleased
+----------
+
 * Update the :ref:`migration CLI <migration-cli>` to detect unittest classes based on whether they use ``self.assert*`` methods like ``self.assertEqual()``.
+
+* Fixes run time warning when using time-machine with Python 3.13+ free-threaded builds.
+
+  Thanks to Javier Buzzi in `PR #531 <https://github.com/adamchainz/time-machine/pull/531>`__.
 
 2.17.0 (2025-08-05)
 -------------------
