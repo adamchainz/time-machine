@@ -531,10 +531,7 @@ static struct PyModuleDef _time_machine_module = {
     .m_doc = module_doc,
     .m_size = sizeof(_time_machine_state),
     .m_methods = module_functions,
-    .m_slots = _time_machine_slots,
-    .m_traverse = NULL,
-    .m_clear = NULL,
-    .m_free = NULL
+    .m_slots = _time_machine_slots
 };
 
 PyMODINIT_FUNC
