@@ -7,6 +7,10 @@ Unreleased
 
 * Update the :ref:`migration CLI <migration-cli>` to detect unittest classes based on whether they use ``self.assert*`` methods like ``self.assertEqual()``.
 
+* Fix free-threaded Python warning: ``RuntimeWarning: The global interpreter lock (GIL) has been enabled...`` as seen on Python 3.13+.
+
+  Thanks to Javier Buzzi in `PR #531 <https://github.com/adamchainz/time-machine/pull/531>`__.
+
 * Rename the ``Coordinates`` class to ``Traveller`` for clearer API semantics.
 
   Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
