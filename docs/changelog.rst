@@ -5,6 +5,8 @@ Changelog
 Unreleased
 ----------
 
+* Update the :ref:`migration CLI <migration-cli>` to detect unittest classes based on whether they use ``self.assert*`` methods like ``self.assertEqual()``.
+
 * Rename the ``Coordinates`` class to ``Traveller`` for clearer API semantics.
 
   Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.

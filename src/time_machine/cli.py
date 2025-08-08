@@ -270,6 +270,7 @@ def looks_like_unittest_class(node: ast.ClassDef) -> bool:
         ):
             return True
 
+    subnode: ast.AST
     for subnode in node.body:
         if isinstance(subnode, ast.FunctionDef) and subnode.name in (
             "setUp",
@@ -285,7 +286,55 @@ def looks_like_unittest_class(node: ast.ClassDef) -> bool:
         ):
             return True
 
+    for subnode in ast.walk(node):
+        if (
+            isinstance(subnode, ast.Attribute)
+            and isinstance(subnode.value, ast.Name)
+            and subnode.value.id == "self"
+            and subnode.attr in UNITTEST_ASSERT_NAMES
+        ):
+            return True
+
     return False
+
+
+UNITTEST_ASSERT_NAMES = frozenset(
+    [
+        "assertAlmostEqual",
+        "assertCountEqual",
+        "assertDictEqual",
+        "assertEqual",
+        "assertFalse",
+        "assertGreater",
+        "assertGreaterEqual",
+        "assertIn",
+        "assertIs",
+        "assertIsInstance",
+        "assertIsNone",
+        "assertIsNot",
+        "assertIsNotNone",
+        "assertLess",
+        "assertLessEqual",
+        "assertListEqual",
+        "assertLogs",
+        "assertMultiLineEqual",
+        "assertNoLogs",
+        "assertNotAlmostEqual",
+        "assertNotEqual",
+        "assertNotIn",
+        "assertNotIsInstance",
+        "assertNotRegex",
+        "assertRaises",
+        "assertRaisesRegex",
+        "assertRegex",
+        "assertSequenceEqual",
+        "assertSetEqual",
+        "assertTrue",
+        "assertTupleEqual",
+        "assertWarns",
+        "assertWarnsRegex",
+    ]
+)
 
 
 def ast_start_offset(node: ast.alias | ast.expr | ast.keyword | ast.stmt) -> Offset:
