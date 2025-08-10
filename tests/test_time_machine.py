@@ -861,9 +861,9 @@ class TestEscapeHatch:
     def test_import_error(self, path, args):
         module_name, _ = path.split(".", maxsplit=1)
         with (
-            pytest.raises(ModuleNotFoundError) as excinfo,
-            mock.patch.dict(sys.modules, {module_name: None}),
             time_machine.travel(EPOCH),
+            mock.patch.dict(sys.modules, {module_name: None}),
+            pytest.raises(ModuleNotFoundError) as excinfo,
         ):
             func = attrgetter(path)(time_machine.escape_hatch)
             func(*args)
@@ -882,9 +882,9 @@ class TestEscapeHatch:
     def test_attribute_error(self, path, args):
         module_name, attribute_name, _ = path.split(".", maxsplit=2)
         with (
-            pytest.raises(AttributeError) as excinfo,
-            mock.patch.dict(sys.modules, {module_name: ()}),
             time_machine.travel(EPOCH),
+            mock.patch.dict(sys.modules, {module_name: ()}),
+            pytest.raises(AttributeError) as excinfo,
         ):
             func = attrgetter(path)(time_machine.escape_hatch)
             func(*args)
