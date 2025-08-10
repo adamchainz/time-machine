@@ -56,7 +56,14 @@ _time_machine_original_now(
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *datetime_module = PyImport_ImportModule("datetime");
+    if (datetime_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+    if (datetime_class == NULL) {
+        Py_DECREF(datetime_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = state->original_now(datetime_class, args, nargs, kwnames);
 
@@ -92,7 +99,14 @@ _time_machine_original_utcnow(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *datetime_module = PyImport_ImportModule("datetime");
+    if (datetime_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+    if (datetime_class == NULL) {
+        Py_DECREF(datetime_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = state->original_utcnow(datetime_class, args);
 
@@ -133,6 +147,9 @@ _time_machine_original_clock_gettime(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_clock_gettime(time_module, args);
 
@@ -172,6 +189,9 @@ _time_machine_original_clock_gettime_ns(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_clock_gettime_ns(time_module, args);
 
@@ -206,6 +226,9 @@ _time_machine_original_gmtime(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_gmtime(time_module, args);
 
@@ -241,6 +264,9 @@ _time_machine_original_localtime(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_localtime(time_module, args);
 
@@ -261,6 +287,9 @@ _time_machine_original_monotonic(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_monotonic(time_module, args);
 
@@ -281,6 +310,9 @@ _time_machine_original_monotonic_ns(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_monotonic_ns(time_module, args);
 
@@ -315,6 +347,9 @@ _time_machine_original_strftime(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_strftime(time_module, args);
 
@@ -349,6 +384,9 @@ _time_machine_original_time(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_time(time_module, args);
 
@@ -383,6 +421,9 @@ _time_machine_original_time_ns(PyObject *module, PyObject *args)
     _time_machine_state *state = get_time_machine_state(module);
 
     PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
 
     PyObject *result = state->original_time_ns(time_module, args);
 
