@@ -2,6 +2,10 @@
 #include <limits.h>
 #include <stdlib.h>
 
+// Forward declarations
+PyMODINIT_FUNC
+PyInit__time_machine(void);
+
 // Module state
 typedef struct {
 #if PY_VERSION_HEX >= 0x030d00a4
@@ -516,11 +520,13 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
     PyCFunctionObject *datetime_datetime_now =
         (PyCFunctionObject *)PyObject_GetAttrString(datetime_class, "now");
 #if PY_VERSION_HEX >= 0x030d00a4
-    state->original_now = (PyCFunctionFastWithKeywords)datetime_datetime_now->m_ml->ml_meth;
+    state->original_now =
+        (PyCFunctionFastWithKeywords)(void (*)(void))datetime_datetime_now->m_ml->ml_meth;
 #else
-    state->original_now = (_PyCFunctionFastWithKeywords)datetime_datetime_now->m_ml->ml_meth;
+    state->original_now =
+        (_PyCFunctionFastWithKeywords)(void (*)(void))datetime_datetime_now->m_ml->ml_meth;
 #endif
-    datetime_datetime_now->m_ml->ml_meth = (PyCFunction)_time_machine_now;
+    datetime_datetime_now->m_ml->ml_meth = (PyCFunction)(void (*)(void))_time_machine_now;
     Py_DECREF(datetime_datetime_now);
 
     PyCFunctionObject *datetime_datetime_utcnow =
@@ -617,7 +623,7 @@ PyDoc_STRVAR(module_doc, "_time_machine module");
 
 static PyMethodDef module_functions[] = {
     {"original_now",
-        (PyCFunction)_time_machine_original_now,
+        (PyCFunction)(void (*)(void))_time_machine_original_now,
         METH_FASTCALL | METH_KEYWORDS,
         original_now_doc},
     {"original_utcnow",
