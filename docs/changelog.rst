@@ -11,6 +11,8 @@ Unreleased
 
   Thanks to Javier Buzzi in `PR #531 <https://github.com/adamchainz/time-machine/pull/531>`__.
 
+* Prevent segmentation faults in unlikely scenarios, such as if the ``time_machine`` module cannot be imported.
+
 2.17.0 (2025-08-05)
 -------------------
 
