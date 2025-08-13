@@ -166,6 +166,10 @@ module = "tests.*"
 allow_untyped_defs = true
 
 [tool.rstcheck]
+ignore_directives = [
+  "autoclass",
+  "autodata",
+]
 report_level = "ERROR"
 
 [tool.uv.sources]
