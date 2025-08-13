@@ -11,6 +11,10 @@ Unreleased
 
   Thanks to Javier Buzzi in `PR #531 <https://github.com/adamchainz/time-machine/pull/531>`__.
 
+* Add support to ``travel()`` for ``datetime`` destinations with ``tzinfo`` set to ``datetime.UTC`` (``datetime.timezone.utc``).
+
+  Thanks to Lawrence Law in `PR #502 <https://github.com/adamchainz/time-machine/pull/502>`__.
+
 * Prevent segmentation faults in unlikely scenarios, such as if the ``time_machine`` module cannot be imported.
 
 2.17.0 (2025-08-05)
