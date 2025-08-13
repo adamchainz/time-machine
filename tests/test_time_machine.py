@@ -434,6 +434,42 @@ def test_destination_datetime_tzinfo_zoneinfo_no_orig_tz():
         assert time.tzname == orig_tzname
 
 
+def test_destination_datetime_tzinfo_zoneinfo_utc_no_orig_tz():
+    with change_local_timezone(None):
+        orig_tzname = time.tzname
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("UTC"))
+
+        with time_machine.travel(dest):
+            assert time.tzname == ("UTC", "UTC")
+
+        assert time.tzname == orig_tzname
+
+
+def test_destination_datetime_tzinfo_datetime_timezone_utc_no_orig_tz():
+    with change_local_timezone(None):
+        orig_tzname = time.tzname
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=dt.timezone.utc)
+
+        with time_machine.travel(dest):
+            assert time.tzname == ("UTC", "UTC")
+
+        assert time.tzname == orig_tzname
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="datetime.UTC was introduced in Python 3.11"
+)
+def test_destination_datetime_tzinfo_datetime_utc_no_orig_tz():
+    with change_local_timezone(None):
+        orig_tzname = time.tzname
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=dt.UTC)
+
+        with time_machine.travel(dest):
+            assert time.tzname == ("UTC", "UTC")
+
+        assert time.tzname == orig_tzname
+
+
 def test_destination_datetime_tzinfo_zoneinfo_windows():
     orig_timezone = time.timezone
 
@@ -786,6 +822,59 @@ def test_uuid1():
 
     with time_machine.travel(destination, tick=False):
         assert time_from_uuid1(uuid.uuid1()) == destination
+
+
+# error handling tests
+
+
+@pytest.mark.parametrize(
+    "func, args",
+    [
+        (dt.datetime.now, ()),
+        (dt.datetime.utcnow, ()),
+        (time.gmtime, ()),
+        (time.clock_gettime, (time.CLOCK_REALTIME,)),
+        (time.clock_gettime_ns, (time.CLOCK_REALTIME,)),
+        (time.localtime, ()),
+        (time.strftime, ("%Y-%m-%d",)),
+        (time.time, ()),
+        (time.time_ns, ()),
+    ],
+)
+def test_time_machine_import_error(func, args):
+    with (
+        time_machine.travel(EPOCH),
+        mock.patch.dict(sys.modules, {"time_machine": None}),
+        pytest.raises(ModuleNotFoundError) as excinfo,
+    ):
+        func(*args)
+
+    assert excinfo.value.args == ("import of time_machine halted; None in sys.modules",)
+
+
+@pytest.mark.parametrize(
+    "func, args",
+    [
+        (dt.datetime.now, ()),
+        (dt.datetime.utcnow, ()),
+        (time.gmtime, ()),
+        (time.clock_gettime, (time.CLOCK_REALTIME,)),
+        (time.clock_gettime_ns, (time.CLOCK_REALTIME,)),
+        (time.localtime, ()),
+        (time.strftime, ("%Y-%m-%d",)),
+        (time.time, ()),
+        (time.time_ns, ()),
+    ],
+)
+def test_time_machine_attribute_error(func, args):
+    with (
+        time_machine.travel(EPOCH),
+        mock.patch.dict(sys.modules, {"time_machine": ()}),
+        pytest.raises(AttributeError) as excinfo,
+    ):
+        func(*args)
+
+    assert excinfo.value.args == (f"'tuple' object has no attribute '{func.__name__}'",)
 
 
 # pytest plugin tests

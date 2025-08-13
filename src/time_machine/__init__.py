@@ -102,7 +102,9 @@ def extract_timestamp_tzname(
     elif isinstance(dest, dt.datetime):
         if isinstance(dest.tzinfo, ZoneInfo):
             tzname = dest.tzinfo.key
-        if dest.tzinfo is None:
+        elif dest.tzinfo == dt.timezone.utc:
+            tzname = "UTC"
+        elif dest.tzinfo is None:
             dest = dest.replace(tzinfo=dt.timezone.utc)
         timestamp = dest.timestamp()
     elif isinstance(dest, dt.timedelta):

@@ -39,7 +39,14 @@ _time_machine_now(
     PyObject *result = NULL;
 
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_now = PyObject_GetAttrString(time_machine_module, "now");
+    if (time_machine_now == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     result = _PyObject_Vectorcall(time_machine_now, args, nargs, kwnames);
 
@@ -83,7 +90,14 @@ static PyObject *
 _time_machine_utcnow(PyObject *cls, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_utcnow = PyObject_GetAttrString(time_machine_module, "utcnow");
+    if (time_machine_utcnow == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = PyObject_CallObject(time_machine_utcnow, args);
 
@@ -126,8 +140,15 @@ static PyObject *
 _time_machine_clock_gettime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_clock_gettime =
         PyObject_GetAttrString(time_machine_module, "clock_gettime");
+    if (time_machine_clock_gettime == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
 #if PY_VERSION_HEX >= 0x030d00a2
     PyObject *result = PyObject_CallOneArg(time_machine_clock_gettime, args);
@@ -168,8 +189,15 @@ static PyObject *
 _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_clock_gettime_ns =
         PyObject_GetAttrString(time_machine_module, "clock_gettime_ns");
+    if (time_machine_clock_gettime_ns == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
 #if PY_VERSION_HEX >= 0x030d00a2
     PyObject *result = PyObject_CallOneArg(time_machine_clock_gettime_ns, args);
@@ -210,7 +238,14 @@ static PyObject *
 _time_machine_gmtime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_gmtime = PyObject_GetAttrString(time_machine_module, "gmtime");
+    if (time_machine_gmtime == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = PyObject_CallObject(time_machine_gmtime, args);
 
@@ -247,8 +282,15 @@ static PyObject *
 _time_machine_localtime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_localtime =
         PyObject_GetAttrString(time_machine_module, "localtime");
+    if (time_machine_localtime == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = PyObject_CallObject(time_machine_localtime, args);
 
@@ -331,7 +373,14 @@ static PyObject *
 _time_machine_strftime(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_strftime = PyObject_GetAttrString(time_machine_module, "strftime");
+    if (time_machine_strftime == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = PyObject_CallObject(time_machine_strftime, args);
 
@@ -368,7 +417,14 @@ static PyObject *
 _time_machine_time(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_time = PyObject_GetAttrString(time_machine_module, "time");
+    if (time_machine_time == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = PyObject_CallObject(time_machine_time, args);
 
@@ -405,7 +461,14 @@ static PyObject *
 _time_machine_time_ns(PyObject *self, PyObject *args)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
+    if (time_machine_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
     PyObject *time_machine_time_ns = PyObject_GetAttrString(time_machine_module, "time_ns");
+    if (time_machine_time_ns == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
 
     PyObject *result = PyObject_CallObject(time_machine_time_ns, args);
 
