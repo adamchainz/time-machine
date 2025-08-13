@@ -11,4 +11,25 @@ if hasattr(sys, "pypy_version_info"):
     )
 
 
-setup(ext_modules=[Extension(name="_time_machine", sources=["src/_time_machine.c"])])
+setup(
+    ext_modules=[
+        Extension(
+            name="_time_machine",
+            sources=["src/_time_machine.c"],
+            extra_compile_args=[
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-Wstrict-prototypes",
+                "-Wmissing-prototypes",
+                "-Wunused",
+                "-Wuninitialized",
+                "-Wshadow",
+                "-Wformat=2",
+                "-Wformat-security",
+                "-Wno-unused-parameter",
+                "-Wno-missing-field-initializers",
+            ],
+        )
+    ]
+)
