@@ -17,6 +17,10 @@ Unreleased
 
 * Prevent segmentation faults in unlikely scenarios, such as if the ``time_machine`` module cannot be imported.
 
+* Rename the ``Coordinates`` class to ``Traveller``, to match the recommended context manager variable name.
+
+  Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
+
 2.17.0 (2025-08-05)
 -------------------
 
