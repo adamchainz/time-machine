@@ -996,6 +996,9 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.datetime.datetime.now()
             assert eh_now >= real_now
 
+        eh_now2 = time_machine.escape_hatch.datetime.datetime.now()
+        assert eh_now2 >= eh_now
+
     def test_datetime_now_tz(self):
         real_now = dt.datetime.now(tz=dt.timezone.utc)
 

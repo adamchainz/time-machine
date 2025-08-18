@@ -72,7 +72,21 @@ _time_machine_original_now(
         return NULL;  // Propagate AttributeError
     }
 
-    PyObject *result = state->original_now(datetime_class, args, nargs, kwnames);
+    PyObject *result;
+    if (state->original_now == NULL) {
+        PyCFunctionObject *datetime_datetime_now =
+            (PyCFunctionObject *)PyObject_GetAttrString(datetime_class, "now");
+        if (datetime_datetime_now == NULL) {
+            Py_DECREF(datetime_class);
+            Py_DECREF(datetime_module);
+            return NULL;  // Propagate AttributeError
+        }
+        result = _PyObject_Vectorcall((PyObject *)datetime_datetime_now, args, nargs, kwnames);
+        Py_DECREF(datetime_datetime_now);
+    }
+    else {
+        result = state->original_now(datetime_class, args, nargs, kwnames);
+    }
 
     Py_DECREF(datetime_class);
     Py_DECREF(datetime_module);
