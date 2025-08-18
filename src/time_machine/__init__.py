@@ -209,9 +209,8 @@ class travel:
         self.tick = tick
 
     def start(self) -> Coordinates:
-        _time_machine.patch_if_needed()
-
         if not coordinates_stack:
+            _time_machine.patch()
             uuid_generate_time_patcher.start()
             uuid_uuid_create_patcher.start()
 
@@ -229,6 +228,7 @@ class travel:
         coordinates_stack.pop()._stop()
 
         if not coordinates_stack:
+            _time_machine.unpatch()
             uuid_generate_time_patcher.stop()
             uuid_uuid_create_patcher.stop()
 
@@ -316,16 +316,10 @@ class travel:
 
 
 def now(tz: dt.tzinfo | None = None) -> dt.datetime:
-    if not coordinates_stack:
-        result: dt.datetime = _time_machine.original_now(tz)
-        return result
     return dt.datetime.fromtimestamp(time(), tz)
 
 
 def utcnow() -> dt.datetime:
-    if not coordinates_stack:
-        result: dt.datetime = _time_machine.original_utcnow()
-        return result
     return dt.datetime.fromtimestamp(time(), dt.timezone.utc).replace(tzinfo=None)
 
 
@@ -333,14 +327,14 @@ def utcnow() -> dt.datetime:
 
 
 def clock_gettime(clk_id: int) -> float:
-    if not coordinates_stack or clk_id != CLOCK_REALTIME:
+    if clk_id != CLOCK_REALTIME:
         result: float = _time_machine.original_clock_gettime(clk_id)
         return result
     return time()
 
 
 def clock_gettime_ns(clk_id: int) -> int:
-    if not coordinates_stack or clk_id != CLOCK_REALTIME:
+    if clk_id != CLOCK_REALTIME:
         result: int = _time_machine.original_clock_gettime_ns(clk_id)
         return result
     return time_ns()
@@ -348,7 +342,7 @@ def clock_gettime_ns(clk_id: int) -> int:
 
 def gmtime(secs: float | None = None) -> struct_time:
     result: struct_time
-    if not coordinates_stack or secs is not None:
+    if secs is not None:
         result = _time_machine.original_gmtime(secs)
     else:
         result = _time_machine.original_gmtime(coordinates_stack[-1].time())
@@ -357,7 +351,7 @@ def gmtime(secs: float | None = None) -> struct_time:
 
 def localtime(secs: float | None = None) -> struct_time:
     result: struct_time
-    if not coordinates_stack or secs is not None:
+    if secs is not None:
         result = _time_machine.original_localtime(secs)
     else:
         result = _time_machine.original_localtime(coordinates_stack[-1].time())
@@ -368,24 +362,16 @@ def strftime(format: str, t: _TimeTuple | struct_time | None = None) -> str:
     result: str
     if t is not None:
         result = _time_machine.original_strftime(format, t)
-    elif not coordinates_stack:
-        result = _time_machine.original_strftime(format)
     else:
         result = _time_machine.original_strftime(format, localtime())
     return result
 
 
 def time() -> float:
-    if not coordinates_stack:
-        result: float = _time_machine.original_time()
-        return result
     return coordinates_stack[-1].time()
 
 
 def time_ns() -> int:
-    if not coordinates_stack:
-        result: int = _time_machine.original_time_ns()
-        return result
     return coordinates_stack[-1].time_ns()
 
 

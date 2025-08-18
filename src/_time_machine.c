@@ -500,7 +500,7 @@ PyDoc_STRVAR(original_time_ns_doc,
 Call time.time_ns() after patching.");
 
 static PyObject *
-_time_machine_patch_if_needed(PyObject *module, PyObject *unused)
+_time_machine_patch(PyObject *module, PyObject *unused)
 {
     _time_machine_state *state = PyModule_GetState(module);
     if (state == NULL) {
@@ -608,10 +608,124 @@ _time_machine_patch_if_needed(PyObject *module, PyObject *unused)
 
     Py_RETURN_NONE;
 }
-PyDoc_STRVAR(patch_if_needed_doc,
-    "patch_if_needed() -> None\n\
+PyDoc_STRVAR(patch_doc,
+    "patch() -> None\n\
 \n\
 Swap in helpers.");
+
+static PyObject *
+_time_machine_unpatch(PyObject *module, PyObject *unused)
+{
+    _time_machine_state *state = PyModule_GetState(module);
+    if (state == NULL) {
+        return NULL;
+    }
+
+    if (!state->original_time)
+        Py_RETURN_NONE;
+
+    PyObject *datetime_module = PyImport_ImportModule("datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+
+    PyCFunctionObject *datetime_datetime_now =
+        (PyCFunctionObject *)PyObject_GetAttrString(datetime_class, "now");
+#if PY_VERSION_HEX >= 0x030d00a4
+    datetime_datetime_now->m_ml->ml_meth = (PyCFunction)state->original_now;
+#else
+    datetime_datetime_now->m_ml->ml_meth = (PyCFunction)state->original_now;
+#endif
+    state->original_now = NULL;
+    Py_DECREF(datetime_datetime_now);
+
+    PyCFunctionObject *datetime_datetime_utcnow =
+        (PyCFunctionObject *)PyObject_GetAttrString(datetime_class, "utcnow");
+    datetime_datetime_utcnow->m_ml->ml_meth = state->original_utcnow;
+    state->original_utcnow = NULL;
+    Py_DECREF(datetime_datetime_utcnow);
+
+    Py_DECREF(datetime_class);
+    Py_DECREF(datetime_module);
+
+    PyObject *time_module = PyImport_ImportModule("time");
+
+    /*
+        time.clock_gettime(), only available on Unix platforms.
+    */
+    PyCFunctionObject *time_clock_gettime =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "clock_gettime");
+    if (time_clock_gettime == NULL) {
+        PyErr_Clear();
+    }
+    else {
+        time_clock_gettime->m_ml->ml_meth = state->original_clock_gettime;
+        state->original_clock_gettime = NULL;
+        Py_DECREF(time_clock_gettime);
+    }
+
+    /*
+        time.clock_gettime_ns(), only available on Unix platforms.
+    */
+    PyCFunctionObject *time_clock_gettime_ns =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "clock_gettime_ns");
+    if (time_clock_gettime_ns == NULL) {
+        PyErr_Clear();
+    }
+    else {
+        time_clock_gettime_ns->m_ml->ml_meth = state->original_clock_gettime_ns;
+        state->original_clock_gettime_ns = NULL;
+        Py_DECREF(time_clock_gettime_ns);
+    }
+
+    PyCFunctionObject *time_gmtime =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "gmtime");
+    time_gmtime->m_ml->ml_meth = state->original_gmtime;
+    state->original_gmtime = NULL;
+    Py_DECREF(time_gmtime);
+
+    PyCFunctionObject *time_localtime =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "localtime");
+    time_localtime->m_ml->ml_meth = state->original_localtime;
+    state->original_localtime = NULL;
+    Py_DECREF(time_localtime);
+
+    PyCFunctionObject *time_monotonic =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "monotonic");
+    time_monotonic->m_ml->ml_meth = state->original_monotonic;
+    state->original_monotonic = NULL;
+    Py_DECREF(time_monotonic);
+
+    PyCFunctionObject *time_monotonic_ns =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "monotonic_ns");
+    time_monotonic_ns->m_ml->ml_meth = state->original_monotonic_ns;
+    state->original_monotonic_ns = NULL;
+    Py_DECREF(time_monotonic_ns);
+
+    PyCFunctionObject *time_strftime =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "strftime");
+    time_strftime->m_ml->ml_meth = state->original_strftime;
+    state->original_strftime = NULL;
+    Py_DECREF(time_strftime);
+
+    PyCFunctionObject *time_time =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "time");
+    time_time->m_ml->ml_meth = state->original_time;
+    state->original_time = NULL;
+    Py_DECREF(time_time);
+
+    PyCFunctionObject *time_time_ns =
+        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "time_ns");
+    time_time_ns->m_ml->ml_meth = state->original_time_ns;
+    state->original_time_ns = NULL;
+    Py_DECREF(time_time_ns);
+
+    Py_DECREF(time_module);
+
+    Py_RETURN_NONE;
+}
+PyDoc_STRVAR(unpatch_doc,
+    "unpatch() -> None\n\
+\n\
+Swap out helpers.");
 
 PyDoc_STRVAR(module_doc, "_time_machine module");
 
@@ -671,10 +785,8 @@ static PyMethodDef module_functions[] = {
         (PyCFunction)_time_machine_original_time_ns,
         METH_NOARGS,
         original_time_ns_doc},
-    {"patch_if_needed",
-        (PyCFunction)_time_machine_patch_if_needed,
-        METH_NOARGS,
-        patch_if_needed_doc},
+    {"patch", (PyCFunction)_time_machine_patch, METH_NOARGS, patch_doc},
+    {"unpatch", (PyCFunction)_time_machine_unpatch, METH_NOARGS, unpatch_doc},
     {NULL, NULL} /* sentinel */
 };
 
