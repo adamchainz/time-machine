@@ -17,6 +17,12 @@ Unreleased
 
 * Prevent segmentation faults in unlikely scenarios, such as if the ``time_machine`` module cannot be imported.
 
+  `PR #543 <https://github.com/adamchainz/time-machine/pull/543>`__, `PR #545 <https://github.com/adamchainz/time-machine/pull/545>`__.
+
+* Make ``travel()`` fully unpatch date and time functions when travel ends. This may fix certain edge cases.
+
+  `Issue #532 <https://github.com/adamchainz/time-machine/issues/532>`__.
+
 2.17.0 (2025-08-05)
 -------------------
 
