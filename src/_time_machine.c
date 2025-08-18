@@ -4,6 +4,10 @@
 
 // Module state
 typedef struct {
+    // Imported objects
+    PyObject *datetime_module;
+    PyObject *time_module;
+    // Original method pointers from date and time functions
 #if PY_VERSION_HEX >= 0x030d00a4
     PyCFunctionFastWithKeywords original_now;
 #else
@@ -62,20 +66,14 @@ _time_machine_original_now(
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *datetime_module = PyImport_ImportModule("datetime");
-    if (datetime_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(state->datetime_module, "datetime");
     if (datetime_class == NULL) {
-        Py_DECREF(datetime_module);
         return NULL;  // Propagate AttributeError
     }
 
     PyObject *result = state->original_now(datetime_class, args, nargs, kwnames);
 
     Py_DECREF(datetime_class);
-    Py_DECREF(datetime_module);
 
     return result;
 }
@@ -112,20 +110,14 @@ _time_machine_original_utcnow(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *datetime_module = PyImport_ImportModule("datetime");
-    if (datetime_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(state->datetime_module, "datetime");
     if (datetime_class == NULL) {
-        Py_DECREF(datetime_module);
         return NULL;  // Propagate AttributeError
     }
 
     PyObject *result = state->original_utcnow(datetime_class, args);
 
     Py_DECREF(datetime_class);
-    Py_DECREF(datetime_module);
 
     return result;
 }
@@ -167,14 +159,7 @@ _time_machine_original_clock_gettime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_clock_gettime(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_clock_gettime(state->time_module, args);
 
     return result;
 }
@@ -216,14 +201,7 @@ _time_machine_original_clock_gettime_ns(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_clock_gettime_ns(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_clock_gettime_ns(state->time_module, args);
 
     return result;
 }
@@ -260,14 +238,7 @@ _time_machine_original_gmtime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_gmtime(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_gmtime(state->time_module, args);
 
     return result;
 }
@@ -305,14 +276,7 @@ _time_machine_original_localtime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_localtime(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_localtime(state->time_module, args);
 
     return result;
 }
@@ -328,14 +292,7 @@ _time_machine_original_monotonic(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_monotonic(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_monotonic(state->time_module, args);
 
     return result;
 }
@@ -351,14 +308,7 @@ _time_machine_original_monotonic_ns(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_monotonic_ns(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_monotonic_ns(state->time_module, args);
 
     return result;
 }
@@ -395,14 +345,7 @@ _time_machine_original_strftime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_strftime(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_strftime(state->time_module, args);
 
     return result;
 }
@@ -439,14 +382,7 @@ _time_machine_original_time(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_time(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_time(state->time_module, args);
 
     return result;
 }
@@ -483,14 +419,7 @@ _time_machine_original_time_ns(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    PyObject *time_module = PyImport_ImportModule("time");
-    if (time_module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-
-    PyObject *result = state->original_time_ns(time_module, args);
-
-    Py_DECREF(time_module);
+    PyObject *result = state->original_time_ns(state->time_module, args);
 
     return result;
 }
@@ -510,8 +439,7 @@ _time_machine_patch(PyObject *module, PyObject *unused)
     if (state->original_time)
         Py_RETURN_NONE;
 
-    PyObject *datetime_module = PyImport_ImportModule("datetime");
-    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(state->datetime_module, "datetime");
 
     PyCFunctionObject *datetime_datetime_now =
         (PyCFunctionObject *)PyObject_GetAttrString(datetime_class, "now");
@@ -530,15 +458,12 @@ _time_machine_patch(PyObject *module, PyObject *unused)
     Py_DECREF(datetime_datetime_utcnow);
 
     Py_DECREF(datetime_class);
-    Py_DECREF(datetime_module);
-
-    PyObject *time_module = PyImport_ImportModule("time");
 
     /*
         time.clock_gettime(), only available on Unix platforms.
     */
     PyCFunctionObject *time_clock_gettime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "clock_gettime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "clock_gettime");
     if (time_clock_gettime == NULL) {
         PyErr_Clear();
     }
@@ -552,7 +477,7 @@ _time_machine_patch(PyObject *module, PyObject *unused)
         time.clock_gettime_ns(), only available on Unix platforms.
     */
     PyCFunctionObject *time_clock_gettime_ns =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "clock_gettime_ns");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "clock_gettime_ns");
     if (time_clock_gettime_ns == NULL) {
         PyErr_Clear();
     }
@@ -563,48 +488,46 @@ _time_machine_patch(PyObject *module, PyObject *unused)
     }
 
     PyCFunctionObject *time_gmtime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "gmtime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "gmtime");
     state->original_gmtime = time_gmtime->m_ml->ml_meth;
     time_gmtime->m_ml->ml_meth = _time_machine_gmtime;
     Py_DECREF(time_gmtime);
 
     PyCFunctionObject *time_localtime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "localtime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "localtime");
     state->original_localtime = time_localtime->m_ml->ml_meth;
     time_localtime->m_ml->ml_meth = _time_machine_localtime;
     Py_DECREF(time_localtime);
 
     PyCFunctionObject *time_monotonic =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "monotonic");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "monotonic");
     state->original_monotonic = time_monotonic->m_ml->ml_meth;
     time_monotonic->m_ml->ml_meth = _time_machine_time;
     Py_DECREF(time_monotonic);
 
     PyCFunctionObject *time_monotonic_ns =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "monotonic_ns");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "monotonic_ns");
     state->original_monotonic_ns = time_monotonic_ns->m_ml->ml_meth;
     time_monotonic_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_monotonic_ns);
 
     PyCFunctionObject *time_strftime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "strftime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "strftime");
     state->original_strftime = time_strftime->m_ml->ml_meth;
     time_strftime->m_ml->ml_meth = _time_machine_strftime;
     Py_DECREF(time_strftime);
 
     PyCFunctionObject *time_time =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "time");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "time");
     state->original_time = time_time->m_ml->ml_meth;
     time_time->m_ml->ml_meth = _time_machine_time;
     Py_DECREF(time_time);
 
     PyCFunctionObject *time_time_ns =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "time_ns");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "time_ns");
     state->original_time_ns = time_time_ns->m_ml->ml_meth;
     time_time_ns->m_ml->ml_meth = _time_machine_time_ns;
     Py_DECREF(time_time_ns);
-
-    Py_DECREF(time_module);
 
     Py_RETURN_NONE;
 }
@@ -624,8 +547,7 @@ _time_machine_unpatch(PyObject *module, PyObject *unused)
     if (!state->original_time)
         Py_RETURN_NONE;
 
-    PyObject *datetime_module = PyImport_ImportModule("datetime");
-    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
+    PyObject *datetime_class = PyObject_GetAttrString(state->datetime_module, "datetime");
 
     PyCFunctionObject *datetime_datetime_now =
         (PyCFunctionObject *)PyObject_GetAttrString(datetime_class, "now");
@@ -644,15 +566,12 @@ _time_machine_unpatch(PyObject *module, PyObject *unused)
     Py_DECREF(datetime_datetime_utcnow);
 
     Py_DECREF(datetime_class);
-    Py_DECREF(datetime_module);
-
-    PyObject *time_module = PyImport_ImportModule("time");
 
     /*
         time.clock_gettime(), only available on Unix platforms.
     */
     PyCFunctionObject *time_clock_gettime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "clock_gettime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "clock_gettime");
     if (time_clock_gettime == NULL) {
         PyErr_Clear();
     }
@@ -666,7 +585,7 @@ _time_machine_unpatch(PyObject *module, PyObject *unused)
         time.clock_gettime_ns(), only available on Unix platforms.
     */
     PyCFunctionObject *time_clock_gettime_ns =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "clock_gettime_ns");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "clock_gettime_ns");
     if (time_clock_gettime_ns == NULL) {
         PyErr_Clear();
     }
@@ -677,48 +596,46 @@ _time_machine_unpatch(PyObject *module, PyObject *unused)
     }
 
     PyCFunctionObject *time_gmtime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "gmtime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "gmtime");
     time_gmtime->m_ml->ml_meth = state->original_gmtime;
     state->original_gmtime = NULL;
     Py_DECREF(time_gmtime);
 
     PyCFunctionObject *time_localtime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "localtime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "localtime");
     time_localtime->m_ml->ml_meth = state->original_localtime;
     state->original_localtime = NULL;
     Py_DECREF(time_localtime);
 
     PyCFunctionObject *time_monotonic =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "monotonic");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "monotonic");
     time_monotonic->m_ml->ml_meth = state->original_monotonic;
     state->original_monotonic = NULL;
     Py_DECREF(time_monotonic);
 
     PyCFunctionObject *time_monotonic_ns =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "monotonic_ns");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "monotonic_ns");
     time_monotonic_ns->m_ml->ml_meth = state->original_monotonic_ns;
     state->original_monotonic_ns = NULL;
     Py_DECREF(time_monotonic_ns);
 
     PyCFunctionObject *time_strftime =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "strftime");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "strftime");
     time_strftime->m_ml->ml_meth = state->original_strftime;
     state->original_strftime = NULL;
     Py_DECREF(time_strftime);
 
     PyCFunctionObject *time_time =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "time");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "time");
     time_time->m_ml->ml_meth = state->original_time;
     state->original_time = NULL;
     Py_DECREF(time_time);
 
     PyCFunctionObject *time_time_ns =
-        (PyCFunctionObject *)PyObject_GetAttrString(time_module, "time_ns");
+        (PyCFunctionObject *)PyObject_GetAttrString(state->time_module, "time_ns");
     time_time_ns->m_ml->ml_meth = state->original_time_ns;
     state->original_time_ns = NULL;
     Py_DECREF(time_time_ns);
-
-    Py_DECREF(time_module);
 
     Py_RETURN_NONE;
 }
@@ -790,7 +707,41 @@ static PyMethodDef module_functions[] = {
     {NULL, NULL} /* sentinel */
 };
 
-static PyModuleDef_Slot _time_machine_slots[] = {
+static int
+_time_machine_exec(PyObject *module)
+{
+    _time_machine_state *state = get_time_machine_state(module);
+    state->datetime_module = PyImport_ImportModule("datetime");
+    if (state->datetime_module == NULL) {
+        return -1;
+    }
+    state->time_module = PyImport_ImportModule("time");
+    if (state->time_module == NULL) {
+        Py_CLEAR(state->datetime_module);
+        return -1;
+    }
+    return 0;
+}
+
+static int
+_time_machine_traverse(PyObject *module, visitproc visit, void *arg)
+{
+    _time_machine_state *state = get_time_machine_state(module);
+    Py_VISIT(state->datetime_module);
+    Py_VISIT(state->time_module);
+    return 0;
+}
+
+static int
+_time_machine_clear(PyObject *module)
+{
+    _time_machine_state *state = get_time_machine_state(module);
+    Py_CLEAR(state->datetime_module);
+    Py_CLEAR(state->time_module);
+    return 0;
+}
+
+static PyModuleDef_Slot _time_machine_slots[] = {{Py_mod_exec, _time_machine_exec},
 // On Python 3.13+, declare free-threaded support.
 // https://py-free-threading.github.io/porting-extensions/#declaring-free-threaded-support
 #ifdef Py_GIL_DISABLED
@@ -803,10 +754,13 @@ static struct PyModuleDef _time_machine_module = {PyModuleDef_HEAD_INIT,
     .m_doc = module_doc,
     .m_size = sizeof(_time_machine_state),
     .m_methods = module_functions,
-    .m_slots = _time_machine_slots};
+    .m_slots = _time_machine_slots,
+    .m_traverse = _time_machine_traverse,
+    .m_clear = _time_machine_clear};
 
 PyMODINIT_FUNC
 PyInit__time_machine(void)
 {
-    return PyModuleDef_Init(&_time_machine_module);
+    PyObject *result = PyModuleDef_Init(&_time_machine_module);
+    return result;
 }
