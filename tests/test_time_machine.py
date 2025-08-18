@@ -828,6 +828,42 @@ def test_uuid1():
 
 
 @pytest.mark.parametrize(
+    "module",
+    [
+        "datetime",
+        "time",
+    ],
+)
+def test_start_import_error(module):
+    with (
+        mock.patch.dict(sys.modules, {module: None}),
+        pytest.raises(ModuleNotFoundError) as excinfo,
+    ):
+        time_machine.travel(EPOCH).start()
+
+    assert excinfo.value.args == (f"import of {module} halted; None in sys.modules",)
+
+
+@pytest.mark.parametrize(
+    "module",
+    [
+        "datetime",
+        "time",
+    ],
+)
+def test_stop_import_error(module):
+    traveller = time_machine.travel(EPOCH)
+    traveller.start()
+    with (
+        mock.patch.dict(sys.modules, {module: None}),
+        pytest.raises(ModuleNotFoundError) as excinfo,
+    ):
+        traveller.stop()
+
+    assert excinfo.value.args == (f"import of {module} halted; None in sys.modules",)
+
+
+@pytest.mark.parametrize(
     "func, args",
     [
         (dt.datetime.now, ()),

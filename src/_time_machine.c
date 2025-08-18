@@ -511,6 +511,14 @@ _time_machine_patch(PyObject *module, PyObject *unused)
         Py_RETURN_NONE;
 
     PyObject *datetime_module = PyImport_ImportModule("datetime");
+    if (datetime_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
+    PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        Py_DECREF(datetime_module);
+        return NULL;  // Propagate ImportError
+    }
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
 
     PyCFunctionObject *datetime_datetime_now =
@@ -531,8 +539,6 @@ _time_machine_patch(PyObject *module, PyObject *unused)
 
     Py_DECREF(datetime_class);
     Py_DECREF(datetime_module);
-
-    PyObject *time_module = PyImport_ImportModule("time");
 
     /*
         time.clock_gettime(), only available on Unix platforms.
@@ -625,6 +631,14 @@ _time_machine_unpatch(PyObject *module, PyObject *unused)
         Py_RETURN_NONE;
 
     PyObject *datetime_module = PyImport_ImportModule("datetime");
+    if (datetime_module == NULL) {
+        return NULL;  // Propagate ImportError
+    }
+    PyObject *time_module = PyImport_ImportModule("time");
+    if (time_module == NULL) {
+        Py_DECREF(datetime_module);
+        return NULL;  // Propagate ImportError
+    }
     PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
 
     PyCFunctionObject *datetime_datetime_now =
@@ -645,8 +659,6 @@ _time_machine_unpatch(PyObject *module, PyObject *unused)
 
     Py_DECREF(datetime_class);
     Py_DECREF(datetime_module);
-
-    PyObject *time_module = PyImport_ImportModule("time");
 
     /*
         time.clock_gettime(), only available on Unix platforms.
