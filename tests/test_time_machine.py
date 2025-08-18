@@ -877,6 +877,52 @@ def test_time_machine_attribute_error(func, args):
     assert excinfo.value.args == (f"'tuple' object has no attribute '{func.__name__}'",)
 
 
+def test_time_machine_start_datetime_not_a_class():
+    orig_datetime = dt.datetime
+    try:
+        dt.datetime = None  # type: ignore[assignment,misc]
+
+        with pytest.raises(RuntimeError) as excinfo, time_machine.travel(0):
+            pass
+
+        assert excinfo.value.args == ("datetime.datetime is not a class",)
+
+    finally:
+        dt.datetime = orig_datetime  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        "clock_gettime",
+        "clock_gettime_ns",
+        "gmtime",
+        "localtime",
+        "monotonic",
+        "monotonic_ns",
+        "strftime",
+        "time",
+        "time_ns",
+    ],
+)
+def test_start_time_function_not_a_builtin(func):
+    orig_func = getattr(time, func)
+
+    def dummy(*args, **kwargs):
+        return orig_func(*args, **kwargs)
+
+    try:
+        setattr(time, func, dummy)
+
+        with pytest.raises(RuntimeError) as excinfo, time_machine.travel(0):
+            pass
+
+        assert excinfo.value.args == (f"time.{func} is not a built-in function",)
+
+    finally:
+        setattr(time, func, orig_func)
+
+
 # pytest plugin tests
 
 
