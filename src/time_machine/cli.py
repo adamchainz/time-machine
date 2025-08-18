@@ -493,9 +493,7 @@ def remove_keyword(tokens: list[Token], i: int, node: ast.keyword) -> None:
     # Find the NAME token for the keyword arg to the left of the value
     arg_name = getattr(node, "arg", None)
     k = i
-    while k > 0 and not (
-        tokens[k].name == "NAME" and tokens[k].src == arg_name
-    ):
+    while k > 0 and not (tokens[k].name == "NAME" and tokens[k].src == arg_name):
         k -= 1
 
     # Compute removal bounds
