@@ -10,7 +10,6 @@ import typing
 import uuid
 from contextlib import contextmanager
 from importlib.util import module_from_spec, spec_from_file_location
-from operator import attrgetter
 from textwrap import dedent
 from unittest import SkipTest, TestCase, mock
 from zoneinfo import ZoneInfo
@@ -827,6 +826,28 @@ def test_uuid1():
 # error handling tests
 
 
+def test_c_extension_init_import_error():
+    code = dedent(
+        """\
+        import sys
+        sys.modules["datetime"] = None
+        try:
+            import _time_machine
+        except ImportError as exc:
+            print(exc.args[0])
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    assert result.stdout == "import of datetime halted; None in sys.modules\n"
+
+
 @pytest.mark.parametrize(
     "func, args",
     [
@@ -931,57 +952,6 @@ def test_fixture_shift_without_move_to(time_machine):
 
 
 class TestEscapeHatch:
-    @pytest.mark.parametrize(
-        "path, args",
-        [
-            ("datetime.datetime.now", ()),
-            ("datetime.datetime.utcnow", ()),
-            ("time.gmtime", ()),
-            ("time.clock_gettime", (time.CLOCK_REALTIME,)),
-            ("time.clock_gettime_ns", (time.CLOCK_REALTIME,)),
-            ("time.localtime", ()),
-            ("time.monotonic", ()),
-            ("time.monotonic_ns", ()),
-            ("time.strftime", ("%Y-%m-%d",)),
-            ("time.time", ()),
-            ("time.time_ns", ()),
-        ],
-    )
-    def test_import_error(self, path, args):
-        module_name, _ = path.split(".", maxsplit=1)
-        with (
-            time_machine.travel(EPOCH),
-            mock.patch.dict(sys.modules, {module_name: None}),
-            pytest.raises(ModuleNotFoundError) as excinfo,
-        ):
-            func = attrgetter(path)(time_machine.escape_hatch)
-            func(*args)
-
-        assert excinfo.value.args == (
-            f"import of {module_name} halted; None in sys.modules",
-        )
-
-    @pytest.mark.parametrize(
-        "path, args",
-        [
-            ("datetime.datetime.now", ()),
-            ("datetime.datetime.utcnow", ()),
-        ],
-    )
-    def test_attribute_error(self, path, args):
-        module_name, attribute_name, _ = path.split(".", maxsplit=2)
-        with (
-            time_machine.travel(EPOCH),
-            mock.patch.dict(sys.modules, {module_name: ()}),
-            pytest.raises(AttributeError) as excinfo,
-        ):
-            func = attrgetter(path)(time_machine.escape_hatch)
-            func(*args)
-
-        assert excinfo.value.args == (
-            f"'tuple' object has no attribute '{attribute_name}'",
-        )
-
     def test_is_travelling_false(self):
         assert time_machine.escape_hatch.is_travelling() is False
 
