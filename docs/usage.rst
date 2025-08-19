@@ -29,7 +29,7 @@ Main API
 
   ``travel()`` is a class that allows time travel, to the datetime specified by ``destination``.
   It does so by mocking all functions from Python's standard library that return the current date or datetime.
-  It can be used independently, as a function decorator, or as a context manager.
+  It can be used independently, as a function decorator, or as a context manager (synchronous or asynchronous).
 
   ``destination`` specifies the datetime to move to.
   It may be:
@@ -138,7 +138,8 @@ Main API
   Context Manager
   ^^^^^^^^^^^^^^^
 
-  When used as a context manager, time is mocked during the ``with`` block:
+  When used as a context manager, time is mocked during the ``with`` block.
+  This works both synchronously:
 
   .. code-block:: python
 
@@ -148,6 +149,18 @@ Main API
 
       def test_in_the_deep_past():
           with time_machine.travel(0.0):
+              assert 0.0 < time.time() < 1.0
+
+  …and asynchronously:
+
+  .. code-block:: python
+
+      import time
+      import time_machine
+
+
+      async def test_in_the_deep_past():
+          async with time_machine.travel(0.0):
               assert 0.0 < time.time() < 1.0
 
   Class Decorator

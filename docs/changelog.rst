@@ -7,6 +7,11 @@ Changelog
 
   Thanks to Javier Buzzi in `PR #499 <https://github.com/adamchainz/time-machine/pull/499>`__.
 
+* Add async context manager support to ``time_machine.travel()``.
+  You can now use ``async with time_machine.travel(...):`` in asynchronous code.
+
+  `PR #556 <https://github.com/adamchainz/time-machine/issues/556>`__.
+
 * Import date and time functions once in the C extension.
 
   This should improve speed a little bit, and avoid segmentation faults when the functions have been swapped out, such as when freezegun is in effect.

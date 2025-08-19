@@ -594,6 +594,54 @@ def test_coroutine_decorator():
     assert recorded_time == EPOCH + 140.0
 
 
+def test_async_context_manager():
+    recorded_time = None
+
+    async def record_time() -> None:
+        nonlocal recorded_time
+        async with time_machine.travel(EPOCH + 150.0):
+            recorded_time = time.time()
+
+    asyncio.run(record_time())
+
+    assert recorded_time == EPOCH + 150.0
+
+
+def test_async_context_manager_stops_properly():
+    recorded_times = []
+
+    async def record_times() -> None:
+        recorded_times.append(time.time())
+
+        async with time_machine.travel(EPOCH + 160.0):
+            recorded_times.append(time.time())
+
+        recorded_times.append(time.time())
+
+    asyncio.run(record_times())
+
+    assert recorded_times[0] >= LIBRARY_EPOCH
+    assert recorded_times[1] == EPOCH + 160.0
+    assert recorded_times[2] >= LIBRARY_EPOCH
+
+
+def test_async_context_manager_traveller():
+    recorded_time = None
+    shifted_time = None
+
+    async def test_traveller() -> None:
+        nonlocal recorded_time, shifted_time
+        async with time_machine.travel(EPOCH + 170.0, tick=False) as traveller:
+            recorded_time = time.time()
+            traveller.shift(10.0)
+            shifted_time = time.time()
+
+    asyncio.run(test_traveller())
+
+    assert recorded_time == EPOCH + 170.0
+    assert shifted_time == EPOCH + 180.0
+
+
 def test_class_decorator_fails_non_testcase():
     with pytest.raises(TypeError) as excinfo:
 

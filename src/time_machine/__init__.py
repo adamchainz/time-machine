@@ -243,6 +243,17 @@ class travel:
     ) -> None:
         self.stop()
 
+    async def __aenter__(self) -> Coordinates:
+        return self.start()
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self.stop()
+
     @overload
     def __call__(self, wrapped: TestCaseType) -> TestCaseType:  # pragma: no cover
         ...
