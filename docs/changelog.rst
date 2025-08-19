@@ -10,7 +10,7 @@ Unreleased
 
   Thanks to Javier Buzzi in `PR #499 <https://github.com/adamchainz/time-machine/pull/499>`__.
 
-* Add `asynchronous context manager` support to ``time_machine.travel()``.
+* Add asynchronous context manager support to ``time_machine.travel()``.
   You can now use ``async with time_machine.travel(...):`` in asynchronous code, per :ref:`the documentation <travel-context-manager>`.
 
   `PR #556 <https://github.com/adamchainz/time-machine/issues/556>`__.
