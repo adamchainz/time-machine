@@ -2,6 +2,11 @@
 Changelog
 =========
 
+* Import date and time functions once in the C extension.
+
+  This should improve speed a little bit, and avoid segmentation faults when the functions have been swapped out, such as when freezegun is in effect.
+  (time-machine still won’t apply if freezegun is in effect.)
+
 2.18.0 (2025-08-18)
 -------------------
 
