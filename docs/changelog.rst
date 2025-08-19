@@ -4,6 +4,47 @@ Changelog
 
 * Drop Python 3.9 support.
 
+* Remove mocking of ``time.monotonic()`` and ``time.monotonic_ns()``.
+
+  This mocking caused too many issues, such as causing freezes in asyncio event loops (`Issue #387 <https://github.com/adamchainz/time-machine/issues/387>`__), preventing pytest-durations from timing tests correctly (`Issue #505 <https://github.com/adamchainz/time-machine/issues/505>`__), and triggering timeouts in psycopg (`Issue #509 <https://github.com/adamchainz/time-machine/issues/509>`__).
+  The root cause here is that mocking the monotonic clock breaks its contract, allowing it to move backwards when it’s meant to only move forwards.
+
+  As an alternative, use |unittest.mock|__ to mock the monotonic function for the specific tested modules that need it.
+  That means that your code should import ``monotonic()`` or ``monotonic_ns()`` directly, so that your tests can mock it in those places only.
+  For example, if your system under test looks like:
+
+  .. |unittest.mock| replace:: ``unittest.mock``
+  __ https://docs.python.org/3/library/unittest.mock.html
+
+  .. code-block:: python
+
+      # example.py
+      from time import monotonic
+
+
+      def measurement():
+          start = monotonic()
+          ...
+          end = monotonic()
+          return end - start
+
+  …then your tests can mock ``monotonic()`` like this:
+
+  .. code-block:: python
+
+      from unittest import TestCase, mock
+
+      import example
+
+
+      class MeasurementTests(TestCase):
+          def test_success(self):
+              with mock.patch.object(example, "monotonic", side_effect=[0.0, 1.23]):
+                  result = example.measurement()
+              assert result == 1.23
+
+  `PR #560 <https://github.com/adamchainz/time-machine/pull/560>`__.
+
 2.19.0 (2025-08-19)
 -------------------
 
