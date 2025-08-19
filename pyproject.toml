@@ -130,6 +130,7 @@ max_supported_python = "3.14"
 addopts = """\
     --strict-config
     --strict-markers
+    -p pytester
     """
 xfail_strict = true
 

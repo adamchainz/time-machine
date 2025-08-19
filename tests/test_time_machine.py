@@ -948,6 +948,79 @@ def test_fixture_shift_without_move_to(time_machine):
     )
 
 
+def test_marker_function(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import time
+
+        @pytest.fixture
+        def current_time():
+            return time.time()
+
+        @pytest.mark.time_machine(0)
+        def test(current_time):
+            assert current_time < 10.0
+    """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+    result.assert_outcomes(passed=1)
+
+
+def test_marker_and_fixture(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import time
+
+        @pytest.mark.time_machine(0)
+        def test(time_machine):
+            assert time.time() < 10.0
+            time_machine.shift(100)
+            assert 100.0 <= time.time() < 110.0
+            time_machine.move_to(0)
+            assert time.time() < 10.0
+        """
+    )
+    result = testdir.runpytest("-v", "-s")
+    result.assert_outcomes(passed=1)
+
+
+def test_marker_class(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import time
+
+        @pytest.mark.time_machine(0)
+        class TestTimeMachine:
+            def test(self):
+                assert time.time() < 10.0
+    """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+    result.assert_outcomes(passed=1)
+
+
+def test_marker_module(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import time
+
+        pytestmark = pytest.mark.time_machine(0)
+
+        def test_module():
+            assert time.time() < 10.0
+    """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+    result.assert_outcomes(passed=1)
+
+
 # escape hatch tests
 
 

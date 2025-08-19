@@ -2,6 +2,11 @@
 Changelog
 =========
 
+* Add marker support to :doc:`the pytest plugin <pytest_plugin>`.
+  Decorate tests with ``@pytest.mark.time_machine(<destination>)`` to set time during a test, affecting function-level fixtures as well.
+
+  Thanks to Javier Buzzi in `PR #499 <https://github.com/adamchainz/time-machine/pull/499>`__.
+
 * Import date and time functions once in the C extension.
 
   This should improve speed a little bit, and avoid segmentation faults when the functions have been swapped out, such as when freezegun is in effect.
