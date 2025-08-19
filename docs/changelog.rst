@@ -5,6 +5,13 @@ Changelog
 Unreleased
 ----------
 
+* Rename the ``Coordinates`` class to ``Traveller``, to match the recommended context manager variable name.
+
+  Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
+
+2.18.0 (2025-08-18)
+-------------------
+
 * Update the :ref:`migration CLI <migration-cli>` to detect unittest classes based on whether they use ``self.assert*`` methods like ``self.assertEqual()``.
 
 * Fix free-threaded Python warning: ``RuntimeWarning: The global interpreter lock (GIL) has been enabled...`` as seen on Python 3.13+.
@@ -17,9 +24,11 @@ Unreleased
 
 * Prevent segmentation faults in unlikely scenarios, such as if the ``time_machine`` module cannot be imported.
 
-* Rename the ``Coordinates`` class to ``Traveller``, to match the recommended context manager variable name.
+  `PR #543 <https://github.com/adamchainz/time-machine/pull/543>`__, `PR #545 <https://github.com/adamchainz/time-machine/pull/545>`__.
 
-  Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
+* Make ``travel()`` fully unpatch date and time functions when travel ends. This may fix certain edge cases.
+
+  `Issue #532 <https://github.com/adamchainz/time-machine/issues/532>`__.
 
 2.17.0 (2025-08-05)
 -------------------

@@ -727,7 +727,7 @@ wheels = [
 
 [[package]]
 name = "time-machine"
-version = "2.17.0"
+version = "2.18.0"
 source = { editable = "." }
 dependencies = [
     { name = "python-dateutil" },
