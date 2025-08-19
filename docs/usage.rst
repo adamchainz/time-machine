@@ -135,6 +135,8 @@ Main API
       async def test_in_the_deep_past():
           assert 0.0 < time.time() < 1.0
 
+  .. _travel-context-manager:
+
   Context manager
   ^^^^^^^^^^^^^^^
 

@@ -2,13 +2,16 @@
 Changelog
 =========
 
+Unreleased
+----------
+
 * Add marker support to :doc:`the pytest plugin <pytest_plugin>`.
   Decorate tests with ``@pytest.mark.time_machine(<destination>)`` to set time during a test, affecting function-level fixtures as well.
 
   Thanks to Javier Buzzi in `PR #499 <https://github.com/adamchainz/time-machine/pull/499>`__.
 
-* Add async context manager support to ``time_machine.travel()``.
-  You can now use ``async with time_machine.travel(...):`` in asynchronous code.
+* Add `asynchronous context manager` support to ``time_machine.travel()``.
+  You can now use ``async with time_machine.travel(...):`` in asynchronous code, per :ref:`the documentation <travel-context-manager>`.
 
   `PR #556 <https://github.com/adamchainz/time-machine/issues/556>`__.
 
@@ -16,6 +19,8 @@ Changelog
 
   This should improve speed a little bit, and avoid segmentation faults when the functions have been swapped out, such as when freezegun is in effect.
   (time-machine still won’t apply if freezegun is in effect.)
+
+  `PR #555 <https://github.com/adamchainz/time-machine/issues/555>`__.
 
 2.18.0 (2025-08-18)
 -------------------
