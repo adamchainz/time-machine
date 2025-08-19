@@ -72,8 +72,6 @@ Main API
   * ``time.clock_gettime_ns()`` (only for ``CLOCK_REALTIME``)
   * ``time.gmtime()``
   * ``time.localtime()``
-  * ``time.monotonic()`` (not a real monotonic clock, returns ``time.time()``)
-  * ``time.monotonic_ns()`` (not a real monotonic clock, returns ``time.time_ns()``)
   * ``time.strftime()``
   * ``time.time()``
   * ``time.time_ns()``
