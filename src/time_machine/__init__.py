@@ -378,6 +378,24 @@ def time_ns() -> int:
 # pytest plugin
 
 if HAVE_PYTEST:  # pragma: no branch
+    MARKER_NAME = "time_machine"
+    FIXTURE_NAME = "time_machine"
+
+    def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+        """
+        Inject our fixture into any tests with our marker
+        """
+        for item in items:
+            if item.get_closest_marker(MARKER_NAME):
+                item.fixturenames.insert(0, FIXTURE_NAME)  # type: ignore[attr-defined]
+
+    def pytest_configure(config: pytest.Config) -> None:
+        """
+        Register our marker
+        """
+        config.addinivalue_line(
+            "markers", f"{MARKER_NAME}(...): use time machine to set time"
+        )
 
     class TimeMachineFixture:
         traveller: travel | None
@@ -413,9 +431,15 @@ if HAVE_PYTEST:  # pragma: no branch
             if self.traveller is not None:
                 self.traveller.stop()
 
-    @pytest.fixture(name="time_machine")
-    def time_machine_fixture() -> TypingGenerator[TimeMachineFixture, None, None]:
+    @pytest.fixture(name=FIXTURE_NAME)
+    def time_machine_fixture(
+        request: pytest.FixtureRequest,
+    ) -> TypingGenerator[TimeMachineFixture, None, None]:
         fixture = TimeMachineFixture()
+        marker = request.node.get_closest_marker(MARKER_NAME)
+        if marker:
+            fixture.move_to(*marker.args, **marker.kwargs)
+
         yield fixture
         fixture.stop()
 

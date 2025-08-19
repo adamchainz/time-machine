@@ -948,6 +948,36 @@ def test_fixture_shift_without_move_to(time_machine):
     )
 
 
+def test_standalone_marker(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import time
+
+        @pytest.fixture
+        def current_time():
+             return time.time()
+
+        @pytest.fixture
+        def set_time(time_machine):
+             time_machine.move_to("2000-01-01")
+
+        def test_normal(current_time):
+            assert current_time > 1742943111.0
+
+        @pytest.mark.time_machine("2000-01-01")
+        def test_mod(current_time, time_machine):
+            assert current_time == 946684800.0
+            time_machine.shift(1)
+            assert current_time == 946684800.0
+            assert int(time.time()) == 946684801
+    """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+    assert result.ret == 0
+
+
 # escape hatch tests
 
 
