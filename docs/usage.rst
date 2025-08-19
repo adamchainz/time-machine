@@ -61,7 +61,7 @@ Main API
   So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
   The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
 
-  Mocked Functions
+  Mocked functions
   ^^^^^^^^^^^^^^^^
 
   All datetime functions in the standard library are mocked to move to the destination current datetime:
@@ -108,7 +108,7 @@ Main API
   ``travel()`` instances are nestable, but you'll need to be careful when manually managing to call their ``stop()`` methods in the correct order, even when exceptions occur.
   It's recommended to use the decorator or context manager forms instead, to take advantage of Python features to do this.
 
-  Function Decorator
+  Function decorator
   ^^^^^^^^^^^^^^^^^^
 
   When used as a function decorator, time is mocked during the wrapped function's duration:
@@ -135,7 +135,7 @@ Main API
       async def test_in_the_deep_past():
           assert 0.0 < time.time() < 1.0
 
-  Context Manager
+  Context manager
   ^^^^^^^^^^^^^^^
 
   When used as a context manager, time is mocked during the ``with`` block.
@@ -163,7 +163,7 @@ Main API
           async with time_machine.travel(0.0):
               assert 0.0 < time.time() < 1.0
 
-  Class Decorator
+  Class decorator
   ^^^^^^^^^^^^^^^
 
   Only ``unittest.TestCase`` subclasses are supported.
