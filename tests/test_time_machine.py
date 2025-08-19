@@ -611,41 +611,35 @@ def test_async_context_manager_stops_properly():
     recorded_times = []
 
     async def record_times() -> None:
-        # Time before travel
         recorded_times.append(time.time())
 
         async with time_machine.travel(EPOCH + 160.0):
-            # Time during travel
             recorded_times.append(time.time())
 
-        # Time after travel should be back to normal
         recorded_times.append(time.time())
 
     asyncio.run(record_times())
 
-    # First time should be library epoch or later
     assert recorded_times[0] >= LIBRARY_EPOCH
-    # Second time should be exactly the traveled time
     assert recorded_times[1] == EPOCH + 160.0
-    # Third time should be back to normal (library epoch or later)
     assert recorded_times[2] >= LIBRARY_EPOCH
 
 
-def test_async_context_manager_coordinates():
+def test_async_context_manager_traveller():
     recorded_time = None
     shifted_time = None
 
-    async def test_coordinates() -> None:
+    async def test_traveller() -> None:
         nonlocal recorded_time, shifted_time
-        async with time_machine.travel(EPOCH + 170.0, tick=False) as coordinates:
+        async with time_machine.travel(EPOCH + 170.0, tick=False) as traveller:
             recorded_time = time.time()
-            coordinates.shift(10.0)  # Shift by 10 seconds
+            traveller.shift(10.0)
             shifted_time = time.time()
 
-    asyncio.run(test_coordinates())
+    asyncio.run(test_traveller())
 
     assert recorded_time == EPOCH + 170.0
-    assert shifted_time == EPOCH + 180.0  # 170 + 10
+    assert shifted_time == EPOCH + 180.0
 
 
 def test_class_decorator_fails_non_testcase():
