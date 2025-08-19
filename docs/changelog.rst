@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+2.19.0 (2025-08-19)
+-------------------
 
 * Add marker support to :doc:`the pytest plugin <pytest_plugin>`.
   Decorate tests with ``@pytest.mark.time_machine(<destination>)`` to set time during a test, affecting function-level fixtures as well.
