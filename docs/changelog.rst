@@ -15,6 +15,10 @@ Changelog
 2.18.0 (2025-08-18)
 -------------------
 
+* Add async context manager support to ``time_machine.travel()``. You can now use ``async with time_machine.travel(...):`` for asynchronous code.
+
+  `Issue #478 <https://github.com/adamchainz/time-machine/issues/478>`__.
+
 * Update the :ref:`migration CLI <migration-cli>` to detect unittest classes based on whether they use ``self.assert*`` methods like ``self.assertEqual()``.
 
 * Fix free-threaded Python warning: ``RuntimeWarning: The global interpreter lock (GIL) has been enabled...`` as seen on Python 3.13+.
