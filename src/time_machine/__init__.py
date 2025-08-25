@@ -407,11 +407,11 @@ if HAVE_PYTEST:  # pragma: no branch
         )
 
     class TimeMachineFixture:
-        traveller: travel | None
+        traveler: travel | None
         coordinates: Coordinates | None
 
         def __init__(self) -> None:
-            self.traveller = None
+            self.traveler = None
             self.coordinates = None
 
         def move_to(
@@ -419,17 +419,17 @@ if HAVE_PYTEST:  # pragma: no branch
             destination: DestinationType,
             tick: bool | None = None,
         ) -> None:
-            if self.traveller is None:
+            if self.traveler is None:
                 if tick is None:
                     tick = True
-                self.traveller = travel(destination, tick=tick)
-                self.coordinates = self.traveller.start()
+                self.traveler = travel(destination, tick=tick)
+                self.coordinates = self.traveler.start()
             else:
                 assert self.coordinates is not None
                 self.coordinates.move_to(destination, tick=tick)
 
         def shift(self, delta: dt.timedelta | int | float) -> None:
-            if self.traveller is None:
+            if self.traveler is None:
                 raise RuntimeError(
                     "Initialize time_machine with move_to() before using shift()."
                 )
@@ -437,8 +437,8 @@ if HAVE_PYTEST:  # pragma: no branch
             self.coordinates.shift(delta=delta)
 
         def stop(self) -> None:
-            if self.traveller is not None:
-                self.traveller.stop()
+            if self.traveler is not None:
+                self.traveler.stop()
 
     @pytest.fixture(name="time_machine")
     def time_machine_fixture(
