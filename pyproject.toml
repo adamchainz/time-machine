@@ -59,6 +59,7 @@ test = [
   "pytest",
   "pytest-randomly",
   "python-dateutil",
+  "pytz>=2025.2",
 ]
 docs = [
   "furo>=2024.8.6",
