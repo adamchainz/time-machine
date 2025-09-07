@@ -700,3 +700,155 @@ class TestMigrateContents:
                 pass
             """,
         )
+
+    def test_freezer_fixture(self):
+        check_transformed(
+            """
+            def test_function(freezer):
+                freezer.move_to("2023-01-01")
+            """,
+            """
+            def test_function(time_machine):
+                time_machine.move_to("2023-01-01", tick=False)
+            """,
+        )
+
+    def test_freezer_decorator(self):
+        check_transformed(
+            """
+            import pytest
+
+            @pytest.mark.freeze_time("2000-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2000-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_freezer_tick(self):
+        check_transformed(
+            """
+            from datetime import timedelta
+            import pytest
+
+            @pytest.mark.freeze_time("2000-01-01")
+            def test_function(freezer):
+                freezer.tick()
+                freezer.tick(10.0)
+                freezer.tick(100)
+                freezer.tick(timedelta(seconds=100))
+                freezer.tick(delta=timedelta(seconds=100))
+            """,
+            """
+            from datetime import timedelta
+            import pytest
+
+            @pytest.mark.time_machine("2000-01-01", tick=False)
+            def test_function(time_machine):
+                time_machine.shift(1)
+                time_machine.shift(10.0)
+                time_machine.shift(100)
+                time_machine.shift(timedelta(seconds=100))
+                time_machine.shift(delta=timedelta(seconds=100))
+            """,
+        )
+
+    def test_freezer_decorator_and_fixture(self):
+        check_transformed(
+            """
+            import pytest
+
+            @pytest.mark.freeze_time("2000-01-01")
+            def test_function(freezer):
+                freezer.move_to("2023-01-01")
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2000-01-01", tick=False)
+            def test_function(time_machine):
+                time_machine.move_to("2023-01-01", tick=False)
+            """,
+        )
+
+    def test_freezegun_freezer_decorator_and_fixture_mix(self):
+        check_transformed(
+            """
+            import freezegun
+            import pytest
+
+            @freezegun.freeze_time("2000-01-01")
+            def test_function(freezer):
+                freezer.move_to("2023-01-01")
+
+            def test_function2():
+                with freezegun.freeze_time("2000-01-01") as t:
+                    t.move_to("2023-01-01")
+                    t.tick()
+
+            @pytest.mark.freeze_time("2000-01-01")
+            def test_function3(freezer):
+                freezer.move_to("2023-01-01")
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2000-01-01", tick=False)
+            def test_function(time_machine):
+                time_machine.move_to("2023-01-01", tick=False)
+
+            def test_function2():
+                import time_machine
+                with time_machine.travel("2000-01-01", tick=False) as t:
+                    t.move_to("2023-01-01")
+                    t.shift(1)
+
+            @pytest.mark.time_machine("2000-01-01", tick=False)
+            def test_function3(time_machine):
+                time_machine.move_to("2023-01-01", tick=False)
+            """,
+        )
+
+    def test_freezegun_freezer_decorator_and_fixture_mix_tick_false(self):
+        check_transformed(
+            """
+            import freezegun
+            import pytest
+
+            @freezegun.freeze_time("2000-01-01", tick=True)
+            def test_function(freezer):
+                freezer.move_to("2023-01-01")
+
+            def test_function2():
+                with freezegun.freeze_time("2000-01-01", tick=True) as t:
+                    t.move_to("2023-01-01")
+                    t.tick()
+
+            @pytest.mark.freeze_time("2000-01-01", tick=False)
+            def test_function3(freezer):
+                freezer.move_to("2023-01-01")
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2000-01-01", tick=True)
+            def test_function(time_machine):
+                time_machine.move_to("2023-01-01", tick=True)
+
+            def test_function2():
+                import time_machine
+                with time_machine.travel("2000-01-01", tick=True) as t:
+                    t.move_to("2023-01-01", tick=True)
+                    t.shift(1)
+
+            @pytest.mark.time_machine("2000-01-01", tick=False)
+            def test_function3(time_machine):
+                time_machine.move_to("2023-01-01", tick=False)
+            """,
+        )
