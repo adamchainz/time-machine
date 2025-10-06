@@ -243,7 +243,7 @@ def test_time_localtime_arg():
         assert local_time.tm_mday == 1
 
 
-def test_time_montonic():
+def test_time_monotonic():
     with time_machine.travel(EPOCH, tick=False) as t:
         assert time.monotonic() == EPOCH
         t.shift(1)
