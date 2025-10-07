@@ -68,7 +68,7 @@ def test_import_without_clock_realtime():
         spec.loader.exec_module(module)  # type: ignore[union-attr]
 
     finally:
-        time.CLOCK_REALTIME = orig
+        time.CLOCK_REALTIME = orig  # type: ignore[misc]
 
     # No assertions - testing for coverage only
 
