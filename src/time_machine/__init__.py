@@ -25,7 +25,7 @@ try:
     from time import CLOCK_REALTIME
 except ImportError:
     # Dummy value that won't compare equal to any value
-    CLOCK_REALTIME = sys.maxsize
+    CLOCK_REALTIME = sys.maxsize  # type: ignore[misc]
 
 try:
     from time import tzset

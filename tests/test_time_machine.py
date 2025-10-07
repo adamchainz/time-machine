@@ -68,7 +68,7 @@ def test_import_without_clock_realtime():
         spec.loader.exec_module(module)  # type: ignore[union-attr]
 
     finally:
-        time.CLOCK_REALTIME = orig
+        time.CLOCK_REALTIME = orig  # type: ignore[misc]
 
     # No assertions - testing for coverage only
 
@@ -243,7 +243,7 @@ def test_time_localtime_arg():
         assert local_time.tm_mday == 1
 
 
-def test_time_montonic():
+def test_time_monotonic():
     with time_machine.travel(EPOCH, tick=False) as t:
         assert time.monotonic() == EPOCH
         t.shift(1)
