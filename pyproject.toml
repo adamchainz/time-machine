@@ -67,6 +67,9 @@ docs = [
   "sphinx-copybutton>=0.5.2",
 ]
 
+[tool.uv.sources]
+sphinx-build-compatibility = { git = "https://github.com/readthedocs/sphinx-build-compatibility", rev = "4f304bd4562cdc96316f4fec82b264ca379d23e0" }
+
 [tool.cibuildwheel]
 build = [
   "cp314-*",
@@ -172,6 +175,3 @@ ignore_directives = [
   "autodata",
 ]
 report_level = "ERROR"
-
-[tool.uv.sources]
-sphinx-build-compatibility = { git = "https://github.com/readthedocs/sphinx-build-compatibility", rev = "4f304bd4562cdc96316f4fec82b264ca379d23e0" }
