@@ -138,17 +138,15 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
     freezegun_import_seen = False
     freeze_time_import_seen = False
     for node in ast.walk(tree):
-        # On Python 3.10+, this would look a lot better with the match statement
-        if isinstance(node, ast.Import):
-            if (
+        match node:
+            case ast.Import() if (
                 len(node.names) == 1
                 and (alias := node.names[0]).name == "freezegun"
                 and alias.asname is None
             ):
                 freezegun_import_seen = True
                 ret[ast_start_offset(node)].append(replace_import)
-        elif isinstance(node, ast.ImportFrom):
-            if (
+            case ast.ImportFrom() if (
                 node.module == "freezegun"
                 and len(node.names) == 1
                 and (alias := node.names[0]).name == "freeze_time"
@@ -158,35 +156,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                 ret[ast_start_offset(node)].append(
                     partial(replace_import_from, node=node)
                 )
-        elif isinstance(node, ast.FunctionDef):
-            for decorator in node.decorator_list:
-                if (
-                    isinstance(decorator, ast.Call)
-                    and migratable_call(decorator)
-                    and (
-                        (
-                            freezegun_import_seen
-                            and isinstance(decorator.func, ast.Attribute)
-                            and decorator.func.attr == "freeze_time"
-                            and isinstance(decorator.func.value, ast.Name)
-                            and decorator.func.value.id == "freezegun"
-                        )
-                        or (
-                            freeze_time_import_seen
-                            and isinstance(decorator.func, ast.Name)
-                            and decorator.func.id == "freeze_time"
-                        )
-                    )
-                ):
-                    ret[ast_start_offset(decorator.func)].append(
-                        partial(switch_to_travel, node=decorator.func)
-                    )
-                    ret[ast_start_offset(decorator)].append(
-                        partial(add_tick_false, node=decorator)
-                    )
-
-        elif isinstance(node, ast.ClassDef):
-            if node.decorator_list and looks_like_unittest_class(node):
+            case ast.FunctionDef():
                 for decorator in node.decorator_list:
                     if (
                         isinstance(decorator, ast.Call)
@@ -213,34 +183,63 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                             partial(add_tick_false, node=decorator)
                         )
 
-        elif isinstance(node, ast.With):
-            for item in node.items:
-                context_expr = item.context_expr
-                if (
-                    isinstance(context_expr, ast.Call)
-                    and migratable_call(context_expr)
-                    and item.optional_vars is None
-                    and (
-                        (
-                            freezegun_import_seen
-                            and isinstance(context_expr.func, ast.Attribute)
-                            and context_expr.func.attr == "freeze_time"
-                            and isinstance(context_expr.func.value, ast.Name)
-                            and context_expr.func.value.id == "freezegun"
+            case ast.ClassDef() if node.decorator_list and looks_like_unittest_class(
+                node
+            ):
+                for decorator in node.decorator_list:
+                    if (
+                        isinstance(decorator, ast.Call)
+                        and migratable_call(decorator)
+                        and (
+                            (
+                                freezegun_import_seen
+                                and isinstance(decorator.func, ast.Attribute)
+                                and decorator.func.attr == "freeze_time"
+                                and isinstance(decorator.func.value, ast.Name)
+                                and decorator.func.value.id == "freezegun"
+                            )
+                            or (
+                                freeze_time_import_seen
+                                and isinstance(decorator.func, ast.Name)
+                                and decorator.func.id == "freeze_time"
+                            )
                         )
-                        or (
-                            freeze_time_import_seen
-                            and isinstance(context_expr.func, ast.Name)
-                            and context_expr.func.id == "freeze_time"
+                    ):
+                        ret[ast_start_offset(decorator.func)].append(
+                            partial(switch_to_travel, node=decorator.func)
                         )
-                    )
-                ):
-                    ret[ast_start_offset(context_expr.func)].append(
-                        partial(switch_to_travel, node=context_expr.func)
-                    )
-                    ret[ast_start_offset(context_expr)].append(
-                        partial(add_tick_false, node=context_expr)
-                    )
+                        ret[ast_start_offset(decorator)].append(
+                            partial(add_tick_false, node=decorator)
+                        )
+
+            case ast.With():
+                for item in node.items:
+                    context_expr = item.context_expr
+                    if (
+                        isinstance(context_expr, ast.Call)
+                        and migratable_call(context_expr)
+                        and item.optional_vars is None
+                        and (
+                            (
+                                freezegun_import_seen
+                                and isinstance(context_expr.func, ast.Attribute)
+                                and context_expr.func.attr == "freeze_time"
+                                and isinstance(context_expr.func.value, ast.Name)
+                                and context_expr.func.value.id == "freezegun"
+                            )
+                            or (
+                                freeze_time_import_seen
+                                and isinstance(context_expr.func, ast.Name)
+                                and context_expr.func.id == "freeze_time"
+                            )
+                        )
+                    ):
+                        ret[ast_start_offset(context_expr.func)].append(
+                            partial(switch_to_travel, node=context_expr.func)
+                        )
+                        ret[ast_start_offset(context_expr)].append(
+                            partial(add_tick_false, node=context_expr)
+                        )
 
     return ret  # type: ignore [return-value]
 
