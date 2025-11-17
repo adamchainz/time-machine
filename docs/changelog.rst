@@ -45,6 +45,10 @@ Changelog
 
   `PR #560 <https://github.com/adamchainz/time-machine/pull/560>`__.
 
+* Rename the ``Coordinates`` class to ``Traveller``, to match the recommended context manager variable name.
+
+  Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
+
 2.19.0 (2025-08-19)
 -------------------
 
