@@ -43,7 +43,8 @@ Main API
     This will be interpreted relative to the current time.
     If already within a ``travel()`` block, the ``shift()`` method is easier to use (documented below).
   * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
-  * A string, which will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
+  * If `dateutil <https://dateutil.readthedocs.io/en/stable/>`__ is installed , a ``str``.
+    The value will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
     If the result is naive, it will be assumed to be local time.
 
   .. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance

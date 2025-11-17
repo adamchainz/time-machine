@@ -17,3 +17,15 @@ Use **pip**:
 .. code-block:: sh
 
     python -m pip install time-machine
+
+For support parsing strings as datetimes, include the ``dateutil`` extra:
+
+.. code-block:: sh
+
+    python -m pip install time-machine[dateutil]
+
+For support running the :ref:`migration CLI <migration-cli>`, include the ``cli`` extra:
+
+.. code-block:: sh
+
+    python -m pip install time-machine[cli]
