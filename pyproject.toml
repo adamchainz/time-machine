@@ -24,7 +24,7 @@ license-files = [ "LICENSE" ]
 authors = [
   { name = "Adam Johnson", email = "me@adamj.eu" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Framework :: Pytest",
@@ -32,7 +32,6 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -54,7 +53,6 @@ entry-points.pytest11.time_machine = "time_machine"
 
 [dependency-groups]
 test = [
-  "backports-zoneinfo; python_version<'3.9'",
   "coverage[toml]",
   "pytest",
   "pytest-randomly",
