@@ -7,12 +7,12 @@ import os
 import sys
 import time as time_module
 import uuid
-from collections.abc import Awaitable, Generator
+from collections.abc import Awaitable, Callable, Generator
 from collections.abc import Generator as TypingGenerator
 from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
-from typing import Any, Callable, TypeVar, Union, cast, overload
+from typing import Any, TypeAlias, TypeVar, cast, overload
 from unittest import TestCase, mock
 from zoneinfo import ZoneInfo
 
@@ -60,19 +60,14 @@ SYSTEM_EPOCH_TIMESTAMP_NS = int(
     * NANOSECONDS_PER_SECOND
 )
 
-DestinationBaseType = Union[
-    int,
-    float,
-    dt.datetime,
-    dt.timedelta,
-    dt.date,
-    str,
-]
-DestinationType = Union[
-    DestinationBaseType,
-    Callable[[], DestinationBaseType],
-    TypingGenerator[DestinationBaseType, None, None],
-]
+DestinationBaseType: TypeAlias = (
+    int | float | dt.datetime | dt.timedelta | dt.date | str
+)
+DestinationType: TypeAlias = (
+    DestinationBaseType
+    | Callable[[], DestinationBaseType]
+    | TypingGenerator[DestinationBaseType, None, None]
+)
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 _AF = TypeVar("_AF", bound=Callable[..., Awaitable[Any]])
