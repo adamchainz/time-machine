@@ -302,6 +302,7 @@ It also provides a way to check if time-machine is currently time travelling.
 
 These capabilities are useful in rare circumstances.
 For example, if you need to authenticate with an external service during time travel, you may need the real value of ``datetime.now()``.
+When not time-travelling, these functions (except ``is_travelling()``) raise ``ValueError`` to avoid accidental use.
 
 The functions are:
 
