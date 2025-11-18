@@ -43,13 +43,22 @@ Changelog
 
   `PR #560 <https://github.com/adamchainz/time-machine/pull/560>`__.
 
+* Parse ``str`` destinations with |datetime.fromisoformat()|__ first, before falling back to dateutil if installed.
+  ``datetime.fromisoformat()`` can parse most valid ISO 8601 formats, with better performance and no extra dependencies.
+
+  .. |datetime.fromisoformat()| replace:: ``datetime.fromisoformat()``
+  __ https://docs.python.org/3/library/datetime.html#datetime.datetime.fromisoformat
+
+  `PR #578 <https://github.com/adamchainz/time-machine/pull/578>`__.
+
 * Make the dependency on `dateutil <https://dateutil.readthedocs.io/en/stable/>`__ optional.
-  If dateutil is not installed, time-machine will not parse ``str`` destinations passed to ``travel()``.
   To include dateutil support, install with the ``dateutil`` extra:
 
   .. code-block:: sh
 
       python -m pip install time-machine[dateutil]
+
+  Beware that some of the formats that dateutil parses are ambiguous and may lead to unexpected results.
 
   `PR #576 <https://github.com/adamchainz/time-machine/pull/576>`__.
 
