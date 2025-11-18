@@ -68,6 +68,10 @@ Changelog
 
 * Drop Python 3.9 support.
 
+* Make the ``escape_hatch`` functions raise ``ValueError`` when called outside of time-travelling, rather than triggering segmentation faults.
+
+  `PR #580 <https://github.com/adamchainz/time-machine/pull/580>`__.
+
 2.19.0 (2025-08-19)
 -------------------
 

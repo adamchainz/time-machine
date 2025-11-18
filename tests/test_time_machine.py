@@ -1131,6 +1131,10 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.datetime.datetime.now()
             assert eh_now >= real_now
 
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.datetime.datetime.now()
+        assert excinfo.value.args == ("Not currently time-travelling.",)
+
     def test_datetime_now_tz(self):
         real_now = dt.datetime.now(tz=dt.timezone.utc)
 
@@ -1145,6 +1149,10 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.datetime.datetime.utcnow()
             assert eh_now >= real_now
 
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.datetime.datetime.utcnow()
+        assert excinfo.value.args == ("Not currently time-travelling.",)
+
     @py_have_clock_gettime
     def test_time_clock_gettime(self):
         now = time.clock_gettime(time.CLOCK_REALTIME)
@@ -1152,6 +1160,10 @@ class TestEscapeHatch:
         with time_machine.travel(EPOCH + 180.0):
             eh_now = time_machine.escape_hatch.time.clock_gettime(time.CLOCK_REALTIME)
             assert eh_now >= now
+
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.time.clock_gettime(time.CLOCK_REALTIME)
+        assert excinfo.value.args == ("Not currently time-travelling.",)
 
     @py_have_clock_gettime
     def test_time_clock_gettime_ns(self):
@@ -1163,12 +1175,20 @@ class TestEscapeHatch:
             )
             assert eh_now >= now
 
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.time.clock_gettime_ns(time.CLOCK_REALTIME)
+        assert excinfo.value.args == ("Not currently time-travelling.",)
+
     def test_time_gmtime(self):
         now = time.gmtime()
 
         with time_machine.travel(EPOCH):
             eh_now = time_machine.escape_hatch.time.gmtime()
             assert eh_now >= now
+
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.time.gmtime()
+        assert excinfo.value.args == ("Not currently time-travelling.",)
 
     def test_time_localtime(self):
         now = time.localtime()
@@ -1177,6 +1197,10 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.time.localtime()
             assert eh_now >= now
 
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.time.localtime()
+        assert excinfo.value.args == ("Not currently time-travelling.",)
+
     def test_time_strftime_no_arg(self):
         today = dt.date.today()
 
@@ -1184,6 +1208,10 @@ class TestEscapeHatch:
             eh_formatted = time_machine.escape_hatch.time.strftime("%Y-%m-%d")
             eh_today = dt.datetime.strptime(eh_formatted, "%Y-%m-%d").date()
             assert eh_today >= today
+
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.time.strftime("%Y-%m-%d")
+        assert excinfo.value.args == ("Not currently time-travelling.",)
 
     def test_time_strftime_arg(self):
         with time_machine.travel(EPOCH):
@@ -1200,9 +1228,17 @@ class TestEscapeHatch:
             eh_now = time_machine.escape_hatch.time.time()
             assert eh_now >= now
 
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.time.time()
+        assert excinfo.value.args == ("Not currently time-travelling.",)
+
     def test_time_time_ns(self):
         now = time.time_ns()
 
         with time_machine.travel(EPOCH):
             eh_now = time_machine.escape_hatch.time.time_ns()
             assert eh_now >= now
+
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.time.time_ns()
+        assert excinfo.value.args == ("Not currently time-travelling.",)

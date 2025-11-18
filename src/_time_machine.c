@@ -74,6 +74,11 @@ _time_machine_original_now(
 {
     _time_machine_state *state = get_time_machine_state(module);
 
+    if (state->original_now == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
+
     PyObject *result = state->original_now(state->datetime_class, args, nargs, kwnames);
 
     return result;
@@ -110,6 +115,11 @@ static PyObject *
 _time_machine_original_utcnow(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
+    if (state->original_utcnow == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
 
     PyObject *result = state->original_utcnow(state->datetime_class, args);
 
@@ -153,6 +163,11 @@ _time_machine_original_clock_gettime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
+    if (state->original_clock_gettime == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
+
     PyObject *result = state->original_clock_gettime(state->time_module, args);
 
     return result;
@@ -195,6 +210,11 @@ _time_machine_original_clock_gettime_ns(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
+    if (state->original_clock_gettime_ns == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
+
     PyObject *result = state->original_clock_gettime_ns(state->time_module, args);
 
     return result;
@@ -231,6 +251,11 @@ static PyObject *
 _time_machine_original_gmtime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
+    if (state->original_gmtime == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
 
     PyObject *result = state->original_gmtime(state->time_module, args);
 
@@ -270,6 +295,11 @@ _time_machine_original_localtime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
+    if (state->original_localtime == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
+
     PyObject *result = state->original_localtime(state->time_module, args);
 
     return result;
@@ -306,6 +336,11 @@ static PyObject *
 _time_machine_original_strftime(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
+    if (state->original_strftime == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
 
     PyObject *result = state->original_strftime(state->time_module, args);
 
@@ -344,6 +379,11 @@ _time_machine_original_time(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
+    if (state->original_time == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
+
     PyObject *result = state->original_time(state->time_module, args);
 
     return result;
@@ -380,6 +420,11 @@ static PyObject *
 _time_machine_original_time_ns(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
+
+    if (state->original_time_ns == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+        return NULL;
+    }
 
     PyObject *result = state->original_time_ns(state->time_module, args);
 
