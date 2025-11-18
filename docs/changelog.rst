@@ -2,8 +2,6 @@
 Changelog
 =========
 
-* Drop Python 3.9 support.
-
 * Remove mocking of ``time.monotonic()`` and ``time.monotonic_ns()``.
 
   This mocking caused too many issues, such as causing freezes in asyncio event loops (`Issue #387 <https://github.com/adamchainz/time-machine/issues/387>`__), preventing pytest-durations from timing tests correctly (`Issue #505 <https://github.com/adamchainz/time-machine/issues/505>`__), and triggering timeouts in psycopg (`Issue #509 <https://github.com/adamchainz/time-machine/issues/509>`__).
@@ -58,6 +56,8 @@ Changelog
 * Rename the ``Coordinates`` class to ``Traveller``, to match the recommended context manager variable name.
 
   Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.
+
+* Drop Python 3.9 support.
 
 2.19.0 (2025-08-19)
 -------------------
