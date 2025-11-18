@@ -106,20 +106,6 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
     return result;
 }
 
-static PyObject *
-_time_machine_original_utcnow(PyObject *module, PyObject *args)
-{
-    _time_machine_state *state = get_time_machine_state(module);
-
-    PyObject *result = state->original_utcnow(state->datetime_class, args);
-
-    return result;
-}
-PyDoc_STRVAR(original_utcnow_doc,
-    "original_utcnow() -> datetime\n\
-\n\
-Call datetime.datetime.utcnow() after patching.");
-
 /* time.clock_gettime() */
 
 static PyObject *
@@ -517,10 +503,6 @@ static PyMethodDef module_functions[] = {
         (PyCFunction)_time_machine_original_now,
         METH_FASTCALL | METH_KEYWORDS,
         original_now_doc},
-    {"original_utcnow",
-        (PyCFunction)_time_machine_original_utcnow,
-        METH_NOARGS,
-        original_utcnow_doc},
 #if PY_VERSION_HEX >= 0x030d00a2
     {"original_clock_gettime",
         (PyCFunction)_time_machine_original_clock_gettime,
