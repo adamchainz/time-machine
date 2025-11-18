@@ -34,25 +34,37 @@ Main API
   ``destination`` specifies the datetime to move to.
   It may be:
 
-  * A ``datetime.datetime``.
+  * A |datetime.datetime|__.
     If it is naive, it will be assumed to have the UTC timezone.
-    If it has ``tzinfo`` set to a |zoneinfo-instance|_ or |datetime.UTC|_, the current timezone will also be mocked.
+    If it has ``tzinfo`` set to a |zoneinfo-instance|__ or |datetime.UTC|__, the current timezone will also be mocked.
 
-  * A ``datetime.date``.
+    .. |datetime.datetime| replace:: ``datetime.datetime``
+    __ https://docs.python.org/3/library/datetime.html#datetime.datetime
+
+    .. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance
+    __ https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
+
+    .. |datetime.UTC| replace:: ``datetime.UTC`` (``datetime.timezone.utc``)
+    __ https://docs.python.org/3/library/datetime.html#datetime.UTC
+
+  * A |datetime.date|__.
     This will be converted to a UTC datetime with the time 00:00:00.
 
-  * A ``datetime.timedelta``.
-    This will be interpreted relative to the current time.
-    If already within a ``travel()`` block, the ``shift()`` method is easier to use (documented below).
+    .. |datetime.date| replace:: ``datetime.date``
+    __ https://docs.python.org/3/library/datetime.html#datetime.date
 
-  * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
+  * A |datetime.timedelta|__.
+    This will be interpreted relative to the current time.
+    If already within a ``travel()`` block, the :meth:`Traveller.shift` method is easier to use.
+
+    .. |datetime.timedelta| replace:: ``datetime.timedelta``
+    __ https://docs.python.org/3/library/datetime.html#datetime.timedelta
+
+  * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__.
 
   * A ``str``.
-
     This will be parsed with |datetime.fromisoformat()|__ first, which supports ISO 8601 formats like ``YYYY-MM-DD`` and ``YYYY-MM-DDTHH:MM:SS``.
-
-    If that parsing fails and `dateutil <https://dateutil.readthedocs.io/en/stable/>`__ is installed, the value will be parsed with |dateutil.parse()|__.
-    This function supports a wider variety of formats, but beware that some are ambiguous.
+    If that parsing fails and `dateutil <https://dateutil.readthedocs.io/en/stable/>`__ is installed, the value will be parsed with |dateutil.parse()|__, which supports a wider variety of formats, although beware that some are ambiguous.
 
     In either case, if the result is naive, it will be assumed to be in local time.
 
@@ -61,11 +73,6 @@ Main API
 
     .. |dateutil.parse()| replace:: ``dateutil.parse()``
     __ https://dateutil.readthedocs.io/en/stable/parser.html
-
-  .. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance
-  .. _zoneinfo-instance: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo
-  .. |datetime.UTC| replace:: ``datetime.UTC`` (``datetime.timezone.utc``)
-  .. _datetime.UTC: https://docs.python.org/3/library/datetime.html#datetime.UTC
 
   Additionally, you can provide some more complex types:
 
