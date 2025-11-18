@@ -37,15 +37,30 @@ Main API
   * A ``datetime.datetime``.
     If it is naive, it will be assumed to have the UTC timezone.
     If it has ``tzinfo`` set to a |zoneinfo-instance|_ or |datetime.UTC|_, the current timezone will also be mocked.
+
   * A ``datetime.date``.
     This will be converted to a UTC datetime with the time 00:00:00.
+
   * A ``datetime.timedelta``.
     This will be interpreted relative to the current time.
     If already within a ``travel()`` block, the ``shift()`` method is easier to use (documented below).
+
   * A ``float`` or ``int`` specifying a `Unix timestamp <https://en.m.wikipedia.org/wiki/Unix_time>`__
-  * If `dateutil <https://dateutil.readthedocs.io/en/stable/>`__ is installed , a ``str``.
-    The value will be parsed with `dateutil.parse <https://dateutil.readthedocs.io/en/stable/parser.html>`__ and converted to a timestamp.
-    If the result is naive, it will be assumed to be local time.
+
+  * A ``str``.
+
+    This will be parsed with |datetime.fromisoformat()|__ first, which supports ISO 8601 formats like ``YYYY-MM-DD`` and ``YYYY-MM-DDTHH:MM:SS``.
+
+    If that parsing fails and `dateutil <https://dateutil.readthedocs.io/en/stable/>`__ is installed, the value will be parsed with |dateutil.parse()|__.
+    This function supports a wider variety of formats, but beware that some are ambiguous.
+
+    In either case, if the result is naive, it will be assumed to be in local time.
+
+    .. |datetime.fromisoformat()| replace:: ``datetime.fromisoformat()``
+    __ https://docs.python.org/3/library/datetime.html#datetime.datetime.fromisoformat
+
+    .. |dateutil.parse()| replace:: ``dateutil.parse()``
+    __ https://dateutil.readthedocs.io/en/stable/parser.html
 
   .. |zoneinfo-instance| replace:: ``zoneinfo.ZoneInfo`` instance
   .. _zoneinfo-instance: https://docs.python.org/3/library/zoneinfo.html#zoneinfo.ZoneInfo

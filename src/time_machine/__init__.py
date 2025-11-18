@@ -114,8 +114,19 @@ def extract_timestamp_tzname(
         timestamp = dt.datetime.combine(
             dest, dt.time(0, 0), tzinfo=dt.timezone.utc
         ).timestamp()
-    elif HAVE_DATEUTIL and isinstance(dest, str):
-        timestamp = parse_datetime(dest).timestamp()
+    elif isinstance(dest, str):
+        try:
+            parsed = dt.datetime.fromisoformat(dest)
+        except ValueError as exc:
+            if HAVE_DATEUTIL:
+                try:
+                    parsed = parse_datetime(dest)
+                except ValueError as dateutil_exc:
+                    raise dateutil_exc from None
+            else:
+                raise exc
+
+        timestamp = parsed.timestamp()
     else:
         raise TypeError(f"Unsupported destination {dest!r}")
 

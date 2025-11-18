@@ -514,9 +514,70 @@ def test_destination_timedelta_nested():
         assert time.time() == EPOCH + 10.0
 
 
-@time_machine.travel("1970-01-01 00:01 +0000")
-def test_destination_string():
-    assert time.time() == EPOCH + 60.0
+def test_destination_string_no_dateutil_unparsable():
+    with (
+        mock.patch.object(time_machine, "HAVE_DATEUTIL", new=False),
+        pytest.raises(ValueError) as excinfo,
+        time_machine.travel("the future"),
+    ):
+        pass  # pragma: no cover
+    assert excinfo.value.args == ("Invalid isoformat string: 'the future'",)
+
+
+@pytest.mark.parametrize(
+    ("string", "expected_time"),
+    [
+        ("1970-01-01 00:00:00", EPOCH),
+        ("1970-01-01 00:01:01", EPOCH + 61.0),
+        ("1970-01-01", EPOCH),
+    ],
+)
+def test_destination_string_no_dateutil(string, expected_time):
+    with (
+        mock.patch.object(time_machine, "HAVE_DATEUTIL", new=False),
+        time_machine.travel(string),
+    ):
+        assert time.time() == expected_time
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="datetime.fromisoformat extended formats added in 3.11",
+)
+@pytest.mark.parametrize(
+    ("string", "expected_time"),
+    [
+        ("19700101T000102", EPOCH + 62.0),
+        ("1970-01-01T00:00:05+01:00", EPOCH - 3600.0 + 5),
+    ],
+)
+def test_destination_string_no_dateutil_extended_formats(string, expected_time):
+    with (
+        mock.patch.object(time_machine, "HAVE_DATEUTIL", new=False),
+        time_machine.travel(string),
+    ):
+        assert time.time() == expected_time
+
+
+def test_destination_string_unparsable_dateutil():
+    with (
+        pytest.raises(ValueError) as excinfo,
+        time_machine.travel("the future"),
+    ):
+        pass  # pragma: no cover
+    assert excinfo.value.args == ("Unknown string format: %s", "the future")
+
+
+@pytest.mark.parametrize(
+    ("string", "expected_time"),
+    [
+        ("1st January 1970 00:03:03", EPOCH + 183.0),
+        ("1st Jan 1970", EPOCH),
+    ],
+)
+def test_destination_string_dateutil(string, expected_time):
+    with time_machine.travel(string):
+        assert time.time() == expected_time
 
 
 @pytest.mark.parametrize(
