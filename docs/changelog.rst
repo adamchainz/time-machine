@@ -45,6 +45,16 @@ Changelog
 
   `PR #560 <https://github.com/adamchainz/time-machine/pull/560>`__.
 
+* Make the dependency on `dateutil <https://dateutil.readthedocs.io/en/stable/>`__ optional.
+  If dateutil is not installed, time-machine will not parse ``str`` destinations passed to ``travel()``.
+  To include dateutil support, install with the ``dateutil`` extra:
+
+  .. code-block:: sh
+
+      python -m pip install time-machine[dateutil]
+
+  `PR #576 <https://github.com/adamchainz/time-machine/pull/576>`__.
+
 * Rename the ``Coordinates`` class to ``Traveller``, to match the recommended context manager variable name.
 
   Thanks to Matt Wang in `PR #535 <https://github.com/adamchainz/time-machine/pull/535>`__.

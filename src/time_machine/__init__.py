@@ -17,7 +17,6 @@ from unittest import TestCase, mock
 from zoneinfo import ZoneInfo
 
 import _time_machine
-from dateutil.parser import parse as parse_datetime
 
 # time.clock_gettime and time.CLOCK_REALTIME not always available
 # e.g. on builds against old macOS = official Python.org installer
@@ -34,6 +33,13 @@ try:
 except ImportError:  # pragma: no cover
     # Windows
     HAVE_TZSET = False
+
+try:
+    from dateutil.parser import parse as parse_datetime
+
+    HAVE_DATEUTIL = True
+except ImportError:  # pragma: no cover
+    HAVE_DATEUTIL = False
 
 try:
     import pytest
@@ -108,7 +114,7 @@ def extract_timestamp_tzname(
         timestamp = dt.datetime.combine(
             dest, dt.time(0, 0), tzinfo=dt.timezone.utc
         ).timestamp()
-    elif isinstance(dest, str):
+    elif HAVE_DATEUTIL and isinstance(dest, str):
         timestamp = parse_datetime(dest).timestamp()
     else:
         raise TypeError(f"Unsupported destination {dest!r}")

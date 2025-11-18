@@ -632,13 +632,13 @@ wheels = [
 name = "time-machine"
 version = "2.19.0"
 source = { editable = "." }
-dependencies = [
-    { name = "python-dateutil" },
-]
 
 [package.optional-dependencies]
 cli = [
     { name = "tokenize-rt" },
+]
+dateutil = [
+    { name = "python-dateutil" },
 ]
 
 [package.dev-dependencies]
@@ -658,10 +658,10 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "python-dateutil" },
+    { name = "python-dateutil", marker = "extra == 'dateutil'", specifier = ">=2.8.2" },
     { name = "tokenize-rt", marker = "extra == 'cli'" },
 ]
-provides-extras = ["cli"]
+provides-extras = ["cli", "dateutil"]
 
 [package.metadata.requires-dev]
 docs = [

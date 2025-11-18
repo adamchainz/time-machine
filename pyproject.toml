@@ -39,11 +39,11 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
 ]
-dependencies = [
-  "python-dateutil",
-]
 optional-dependencies.cli = [
   "tokenize-rt",
+]
+optional-dependencies.dateutil = [
+  "python-dateutil>=2.8.2",
 ]
 urls.Changelog = "https://time-machine.readthedocs.io/en/latest/changelog.html"
 urls.Documentation = "https://time-machine.readthedocs.io/"
