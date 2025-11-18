@@ -2,6 +2,9 @@
 Changelog
 =========
 
+3.0.0 (2025-11-18)
+------------------
+
 * Remove mocking of ``time.monotonic()`` and ``time.monotonic_ns()``.
 
   This mocking caused too many issues, such as causing freezes in asyncio event loops (`Issue #387 <https://github.com/adamchainz/time-machine/issues/387>`__), preventing pytest-durations from timing tests correctly (`Issue #505 <https://github.com/adamchainz/time-machine/issues/505>`__), and triggering timeouts in psycopg (`Issue #509 <https://github.com/adamchainz/time-machine/issues/509>`__).
