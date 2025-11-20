@@ -93,10 +93,10 @@ jobs:
 
   build:
     name: Build wheels on ${{ matrix.os }}
-    if:
-      startsWith(github.ref, 'refs/tags/')
-      || github.ref == 'refs/heads/main'
-      || contains(github.event.pull_request.labels.*.name, 'Build')
+    # if:
+    #   startsWith(github.ref, 'refs/tags/')
+    #   || github.ref == 'refs/heads/main'
+    #   || contains(github.event.pull_request.labels.*.name, 'Build')
 
     strategy:
       matrix:
