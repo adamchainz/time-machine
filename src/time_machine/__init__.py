@@ -13,7 +13,7 @@ from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
 from typing import Any, TypeAlias, TypeVar, cast, overload
-from unittest import TestCase, mock
+from unittest import TestCase
 from zoneinfo import ZoneInfo
 
 import _time_machine
@@ -203,14 +203,8 @@ class Traveller:
 
 
 traveller_stack: list[Traveller] = []
-
-# During time travel, patch the uuid module's time-based generation function to
-# None, which makes it use time.time(). Otherwise it makes a system call to
-# find the current datetime. The time it finds is stored in generated UUID1
-# values.
-uuid_generate_time_attr = "_generate_time_safe"
-uuid_generate_time_patcher = mock.patch.object(uuid, uuid_generate_time_attr, new=None)
-uuid_uuid_create_patcher = mock.patch.object(uuid, "_UuidCreate", new=None)
+original_uuid_generate_time_safe = None
+original_uuid_uuid_create = None
 
 
 class travel:
@@ -223,8 +217,18 @@ class travel:
     def start(self) -> Traveller:
         if not traveller_stack:
             _time_machine.patch()
-            uuid_generate_time_patcher.start()
-            uuid_uuid_create_patcher.start()
+
+            # During time travel, patch the uuid module's time-based generation function to
+            # None, which makes it use time.time(). Otherwise it makes a system call to
+            # find the current datetime. The time it finds is stored in generated UUID1
+            # values.
+            global original_uuid_generate_time_safe
+            global original_uuid_uuid_create
+
+            original_uuid_generate_time_safe = uuid._generate_time_safe  # type: ignore[attr-defined]
+            original_uuid_uuid_create = uuid._UuidCreate  # type: ignore[attr-defined]
+            uuid._generate_time_safe = None  # type: ignore[attr-defined]
+            uuid._UuidCreate = None  # type: ignore[attr-defined]
 
         traveller = Traveller(
             destination_timestamp=self.destination_timestamp,
@@ -241,8 +245,14 @@ class travel:
 
         if not traveller_stack:
             _time_machine.unpatch()
-            uuid_generate_time_patcher.stop()
-            uuid_uuid_create_patcher.stop()
+
+            global original_uuid_generate_time_safe
+            global original_uuid_uuid_create
+
+            uuid._generate_time_safe = original_uuid_generate_time_safe  # type: ignore[attr-defined]
+            uuid._UuidCreate = original_uuid_uuid_create  # type: ignore[attr-defined]
+            original_uuid_generate_time_safe = None
+            original_uuid_uuid_create = None
 
     def __enter__(self) -> Traveller:
         return self.start()

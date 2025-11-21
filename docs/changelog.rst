@@ -2,6 +2,11 @@
 Changelog
 =========
 
+* Optimize patching of ``uuid`` module.
+  By avoiding using ``unittest.mock``, this small overhead from starting ``time_machine.travel()`` has been reduced about 20x, from ~600ns to ~30ns by one benchmark.
+
+  `PR #585 <https://github.com/adamchainz/time-machine/pull/585>`__.
+
 3.0.0 (2025-11-18)
 ------------------
 
