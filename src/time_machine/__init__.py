@@ -48,6 +48,13 @@ except ImportError:  # pragma: no cover
 else:
     HAVE_PYTEST = True
 
+try:
+    import pytz
+
+    HAVE_PYTZ = True
+except ImportError:  # pragma: no cover
+    HAVE_PYTZ = False
+
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
 # Windows' time epoch is not unix epoch but in 1601. This constant helps us
@@ -107,6 +114,9 @@ def extract_timestamp_tzname(
             tzname = "UTC"
         elif dest.tzinfo is None:
             dest = dest.replace(tzinfo=dt.timezone.utc)
+        elif HAVE_PYTZ and isinstance(dest.tzinfo, pytz.BaseTzInfo):
+            raise TypeError("pytz timezones are not supported.")
+
         timestamp = dest.timestamp()
     elif isinstance(dest, dt.timedelta):
         timestamp = time_module.time() + dest.total_seconds()

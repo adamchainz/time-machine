@@ -15,6 +15,7 @@ from unittest import SkipTest, TestCase, mock
 from zoneinfo import ZoneInfo
 
 import pytest
+import pytz
 from dateutil import tz
 
 import time_machine
@@ -461,6 +462,12 @@ def test_destination_datetime_tzinfo_zoneinfo_windows():
     dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
     with pretend_windows_no_tzset, mock_have_tzset_false, time_machine.travel(dest):
         assert time.timezone == orig_timezone
+
+
+def test_destination_datetime_tzinfo_pytz():
+    dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=pytz.timezone("Africa/Addis_Ababa"))
+    with pytest.raises(TypeError, match="pytz timezones are not supported."):
+        time_machine.extract_timestamp_tzname(dest)
 
 
 @time_machine.travel(int(EPOCH + 77))
