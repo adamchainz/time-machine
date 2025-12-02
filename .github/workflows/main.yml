@@ -29,7 +29,7 @@ jobs:
         - '3.14t'
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - uses: actions/setup-python@v6
       with:
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: tests
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
@@ -114,7 +114,7 @@ jobs:
       }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: astral-sh/setup-uv@v7
 
@@ -149,7 +149,7 @@ jobs:
         id-token: write
 
       steps:
-        - uses: actions/checkout@v5
+        - uses: actions/checkout@v6
 
         - name: get dist artifacts
           uses: actions/download-artifact@v6
