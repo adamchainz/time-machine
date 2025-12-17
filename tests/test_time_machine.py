@@ -14,6 +14,7 @@ from textwrap import dedent
 from unittest import SkipTest, TestCase, mock
 from zoneinfo import ZoneInfo
 
+import freezegun
 import pytest
 from dateutil import tz
 
@@ -988,6 +989,22 @@ def test_time_machine_attribute_error(func, args):
         func(*args)
 
     assert excinfo.value.args == (f"'tuple' object has no attribute '{func.__name__}'",)
+
+
+# freeezegun conflict tests
+
+
+def test_errors_if_freezegun_active_first():
+    with (
+        freezegun.freeze_time("2000-01-01"),
+        pytest.raises(RuntimeError) as excinfo,
+        time_machine.travel(EPOCH),
+    ):
+        pass  # pragma: no cover
+
+    assert excinfo.value.args == (
+        "time-machine cannot start when freezegun is active.",
+    )
 
 
 # pytest plugin tests

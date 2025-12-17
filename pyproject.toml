@@ -54,6 +54,7 @@ entry-points.pytest11.time_machine = "time_machine"
 [dependency-groups]
 test = [
   "coverage[toml]",
+  "freezegun",
   "pytest",
   "pytest-randomly",
   "python-dateutil",

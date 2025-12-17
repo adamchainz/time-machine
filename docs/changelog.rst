@@ -2,6 +2,12 @@
 Changelog
 =========
 
+* Raise ``RuntimeError`` when attempting to start time travelling if `freezegun <https://pypi.org/project/freezegun/>`__ is active.
+
+  This change should help avoid surprises when migrating complex test suites from freezegun to time-machine.
+
+  `PR #590 <https://github.com/adamchainz/time-machine/pull/590>`__.
+
 3.1.0 (2025-11-21)
 ------------------
 
