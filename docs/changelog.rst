@@ -2,6 +2,9 @@
 Changelog
 =========
 
+3.2.0 (2025-12-17)
+------------------
+
 * Add :attr:`time_machine.naive_mode` to control how time-machine interprets naive datetimes.
 
   The default mode is ``MIXED``, which preserves existing behaviour: naive ``datetime`` objects and ``date`` objects are interpreted as UTC, while naive datetime strings are interpreted as local time.
