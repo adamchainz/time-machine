@@ -35,7 +35,7 @@ Main API
   It may be:
 
   * A |datetime.datetime|__.
-    If it is naive, it will be assumed to have the UTC timezone.
+    If it is naive, it will have a timezone added per the current :attr:`naive_mode` value (which defaults to ``MIXED``, which treats naive datetimes as UTC).
     If it has ``tzinfo`` set to a |zoneinfo-instance|__ or |datetime.UTC|__, the current timezone will also be mocked.
 
     .. |datetime.datetime| replace:: ``datetime.datetime``
@@ -48,7 +48,7 @@ Main API
     __ https://docs.python.org/3/library/datetime.html#datetime.UTC
 
   * A |datetime.date|__.
-    This will be converted to a UTC datetime with the time 00:00:00.
+    This will be converted to a datetime with the time 00:00:00, and the timezone set per the current :attr:`naive_mode` value (defaults to MIXED, which treats dates as UTC).
 
     .. |datetime.date| replace:: ``datetime.date``
     __ https://docs.python.org/3/library/datetime.html#datetime.date
@@ -291,6 +291,69 @@ Main API
 
           traveller.shift(-dt.timedelta(seconds=10))
           assert time.time() == 90
+
+.. attribute:: naive_mode
+
+   The ``naive_mode`` attribute controls how naive datetimes are interpreted.
+   It takes a value from the ``NaiveMode`` enum:
+
+   .. class:: NaiveMode
+
+      .. attribute:: MIXED
+
+         Naive ``datetime`` objects and ``date`` objects are interpreted as UTC.
+         Naive datetime strings are interpreted as local time.
+
+         This mode is the default for backward compatibility with existing behaviour.
+
+      .. attribute:: UTC
+
+         Naive datetimes are interpreted as UTC, regardless of input type.
+
+         This mode provides consistency across all input types, but is inconsistent with Python's default behaviour for naive datetimes.
+
+      .. attribute:: LOCAL
+
+         All naive datetimes are interpreted as local time.
+
+         This mode represents Python’s default behaviour for naive datetimes, as well as how freezegun interprets them.
+         It’s especially useful when migrating tests from freezegun to time-machine.
+
+      .. attribute:: ERROR
+
+          Using a naive datetime raises a ``RuntimeError``.
+          This includes ``dt.date`` objects, as they do not have timezone information.
+
+          This mode prevents your test suite from changing meaning depending on the timezone of the machine it is run on.
+          Use it for maximum reproducibility.
+
+   To use a different mode, set the ``time_machine.naive_mode`` attribute to your chosen value, like:
+
+   .. code-block:: python
+
+      import time_machine
+
+      time_machine.naive_mode = time_machine.NaiveMode.LOCAL
+
+   This is probably best done at the start of your test suite, such as within module-level code in a |pytest conftest.py file|__.
+
+   .. |pytest conftest.py file| replace:: pytest ``conftest.py`` file
+   __ https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fixtures-across-multiple-files
+
+   To temporarily set a different mode, use |mock.patch.object()|__:
+
+   .. |mock.patch.object()| replace:: ``unittest.mock.patch.object()``
+   __ https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch.object
+
+   .. code-block:: python
+
+      from unittest import mock
+      import time_machine
+
+      with mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR):
+          # Code within this block will use the ERROR mode
+          with time_machine.travel(...):
+              ...
 
 Escape hatch API
 ================
