@@ -215,6 +215,14 @@ class travel:
         self.tick = tick
 
     def start(self) -> Traveller:
+        if "freezegun" in sys.modules:  # pragma: no branch
+            from freezegun.api import freeze_factories
+
+            if freeze_factories:
+                raise RuntimeError(
+                    "time-machine cannot start when freezegun is active."
+                )
+
         if not traveller_stack:
             _time_machine.patch()
 
