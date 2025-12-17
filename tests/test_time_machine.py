@@ -591,6 +591,7 @@ def test_destination_string_dateutil(string, expected_time):
 )
 @pytest.mark.parametrize("destination", ["1970-01-01 00:00", "1970-01-01"])
 def test_destination_string_naive(local_tz, expected_offset, destination):
+    # MIXED mode (default) - strings are interpreted as local time
     with change_local_timezone(local_tz), time_machine.travel(destination):
         assert time.time() == EPOCH + expected_offset
 
@@ -1005,6 +1006,181 @@ def test_errors_if_freezegun_active_first():
     assert excinfo.value.args == (
         "time-machine cannot start when freezegun is active.",
     )
+
+
+# naive_mode tests
+
+
+def test_naive_mode_default_is_mixed():
+    # MIXED for backwards compatibility
+    assert time_machine.naive_mode == time_machine.NaiveMode.MIXED
+
+
+def test_naive_mode_mixed_datetime():
+    naive_dt = dt.datetime(1970, 1, 1, 0, 2, 0)
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.MIXED),
+        time_machine.travel(naive_dt),
+    ):
+        assert time.time() == EPOCH + 120.0
+
+
+def test_naive_mode_mixed_date():
+    date = dt.date(1970, 1, 1)
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.MIXED),
+        time_machine.travel(date),
+    ):
+        assert time.time() == EPOCH
+
+
+@pytest.mark.parametrize(
+    "local_tz", ["UTC", "America/Chicago", "Europe/London", "Asia/Tokyo"]
+)
+def test_naive_mode_mixed_string(local_tz):
+    naive_string = "1970-01-01 00:00:00"
+
+    with change_local_timezone(local_tz):
+        expected_timestamp = dt.datetime(1970, 1, 1, 0, 0, 0).timestamp()
+
+    with (
+        change_local_timezone(local_tz),
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.MIXED),
+        time_machine.travel(naive_string),
+    ):
+        assert time.time() == expected_timestamp
+
+
+def test_naive_mode_utc_datetime():
+    naive_dt = dt.datetime(1970, 1, 1, 0, 2, 0)
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.UTC),
+        time_machine.travel(naive_dt),
+    ):
+        assert time.time() == EPOCH + 120.0
+
+
+def test_naive_mode_utc_date():
+    date = dt.date(1970, 1, 1)
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.UTC),
+        time_machine.travel(date),
+    ):
+        assert time.time() == EPOCH
+
+
+@pytest.mark.parametrize(
+    "local_tz", ["UTC", "America/Chicago", "Europe/London", "Asia/Tokyo"]
+)
+def test_naive_mode_local_datetime(local_tz):
+    naive_dt = dt.datetime(1970, 1, 1, 0, 0, 0)
+    with change_local_timezone(local_tz):
+        expected_timestamp = naive_dt.timestamp()
+
+    with (
+        change_local_timezone(local_tz),
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.LOCAL),
+        time_machine.travel(naive_dt),
+    ):
+        assert time.time() == expected_timestamp
+
+
+@pytest.mark.parametrize(
+    "local_tz", ["UTC", "America/Chicago", "Europe/London", "Asia/Tokyo"]
+)
+def test_naive_mode_local_date(local_tz):
+    date = dt.date(1970, 1, 1)
+
+    with change_local_timezone(local_tz):
+        expected_timestamp = dt.datetime.combine(date, dt.time()).timestamp()
+
+    with (
+        change_local_timezone(local_tz),
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.LOCAL),
+        time_machine.travel(date),
+    ):
+        assert time.time() == expected_timestamp
+
+
+def test_naive_mode_error_datetime():
+    naive_dt = dt.datetime(1970, 1, 1, 0, 2, 0)
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR),
+        pytest.raises(
+            RuntimeError,
+            match="Naive datetime provided while time_machine.naive_mode is set to ERROR",
+        ),
+    ):
+        time_machine.travel(naive_dt).start()
+
+
+def test_naive_mode_error_date():
+    date = dt.date(1970, 1, 1)
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR),
+        pytest.raises(
+            RuntimeError,
+            match="date object provided while time_machine.naive_mode is set to ERROR",
+        ),
+    ):
+        time_machine.travel(date).start()
+
+
+def test_naive_mode_error_aware_datetime_works():
+    aware_dt = dt.datetime(1970, 1, 1, 0, 2, 0, tzinfo=dt.timezone.utc)
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR),
+        time_machine.travel(aware_dt),
+    ):
+        assert time.time() == EPOCH + 120.0
+
+
+def test_naive_mode_utc_string():
+    naive_string = "1970-01-01 00:02:00"
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.UTC),
+        time_machine.travel(naive_string),
+    ):
+        assert time.time() == EPOCH + 120.0
+
+
+@pytest.mark.parametrize(
+    "local_tz", ["UTC", "America/Chicago", "Europe/London", "Asia/Tokyo"]
+)
+def test_naive_mode_local_string(local_tz):
+    naive_string = "1970-01-01 00:00:00"
+
+    # Calculate what timestamp we expect by using Python's normal behavior
+    with change_local_timezone(local_tz):
+        expected_timestamp = dt.datetime(1970, 1, 1, 0, 0, 0).timestamp()
+
+    with (
+        change_local_timezone(local_tz),
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.LOCAL),
+        time_machine.travel(naive_string),
+    ):
+        assert time.time() == expected_timestamp
+
+
+def test_naive_mode_error_string():
+    naive_string = "1970-01-01 00:02:00"
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR),
+        pytest.raises(
+            RuntimeError,
+            match="Naive datetime string provided while time_machine.naive_mode is set to ERROR",
+        ),
+    ):
+        time_machine.travel(naive_string).start()
+
+
+def test_naive_mode_error_string_aware_works():
+    aware_string = "1970-01-01 00:02:00+00:00"
+    with (
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR),
+        time_machine.travel(aware_string),
+    ):
+        assert time.time() == EPOCH + 120.0
 
 
 # pytest plugin tests

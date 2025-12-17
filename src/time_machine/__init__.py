@@ -9,6 +9,7 @@ import time as time_module
 import uuid
 from collections.abc import Awaitable, Callable, Generator
 from collections.abc import Generator as TypingGenerator
+from enum import Enum
 from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
@@ -17,6 +18,14 @@ from unittest import TestCase
 from zoneinfo import ZoneInfo
 
 import _time_machine
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+
+    def assert_never(_: Any) -> None:  # pragma: no cover
+        pass
+
 
 # time.clock_gettime and time.CLOCK_REALTIME not always available
 # e.g. on builds against old macOS = official Python.org installer
@@ -83,6 +92,16 @@ TestCaseType = TypeVar("TestCaseType", bound=type[TestCase])
 _TimeTuple = tuple[int, int, int, int, int, int, int, int, int]
 
 
+class NaiveMode(Enum):
+    MIXED = 1
+    UTC = 2
+    LOCAL = 3
+    ERROR = 4
+
+
+naive_mode = NaiveMode.MIXED
+
+
 def extract_timestamp_tzname(
     destination: DestinationType,
 ) -> tuple[float, str | None]:
@@ -106,14 +125,34 @@ def extract_timestamp_tzname(
         elif dest.tzinfo == dt.timezone.utc:
             tzname = "UTC"
         elif dest.tzinfo is None:
-            dest = dest.replace(tzinfo=dt.timezone.utc)
+            if naive_mode == NaiveMode.MIXED or naive_mode == NaiveMode.UTC:
+                dest = dest.replace(tzinfo=dt.timezone.utc)
+            elif naive_mode == NaiveMode.LOCAL:
+                pass
+            elif naive_mode == NaiveMode.ERROR:
+                raise RuntimeError(
+                    "Naive datetime provided while time_machine.naive_mode is set to ERROR. "
+                    "Please provide a timezone-aware datetime."
+                )
+            else:  # pragma: no cover
+                assert_never(naive_mode)
         timestamp = dest.timestamp()
     elif isinstance(dest, dt.timedelta):
         timestamp = time_module.time() + dest.total_seconds()
     elif isinstance(dest, dt.date):
-        timestamp = dt.datetime.combine(
-            dest, dt.time(0, 0), tzinfo=dt.timezone.utc
-        ).timestamp()
+        if naive_mode == NaiveMode.MIXED or naive_mode == NaiveMode.UTC:
+            timestamp = dt.datetime.combine(
+                dest, dt.time(0, 0), tzinfo=dt.timezone.utc
+            ).timestamp()
+        elif naive_mode == NaiveMode.LOCAL:
+            timestamp = dt.datetime.combine(dest, dt.time(0, 0)).timestamp()
+        elif naive_mode == NaiveMode.ERROR:
+            raise RuntimeError(
+                "date object provided while time_machine.naive_mode is set to ERROR. "
+                "Please provide a timezone-aware datetime."
+            )
+        else:  # pragma: no cover
+            assert_never(naive_mode)
     elif isinstance(dest, str):
         try:
             parsed = dt.datetime.fromisoformat(dest)
@@ -126,6 +165,21 @@ def extract_timestamp_tzname(
             else:
                 raise exc
 
+        if parsed.tzinfo is None:
+            if naive_mode == NaiveMode.MIXED:
+                # Keep as naive, for backwards compatibility
+                pass
+            elif naive_mode == NaiveMode.UTC:
+                parsed = parsed.replace(tzinfo=dt.timezone.utc)
+            elif naive_mode == NaiveMode.LOCAL:
+                pass
+            elif naive_mode == NaiveMode.ERROR:
+                raise RuntimeError(
+                    "Naive datetime string provided while time_machine.naive_mode is set to ERROR. "
+                    "Please provide a timezone-aware datetime string."
+                )
+            else:  # pragma: no cover
+                assert_never(naive_mode)
         timestamp = parsed.timestamp()
     else:
         raise TypeError(f"Unsupported destination {dest!r}")
