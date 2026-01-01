@@ -45,7 +45,7 @@ jobs:
       run: uvx --with tox-uv tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
 
     - name: Upload coverage data
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: coverage-data-${{ matrix.python-version }}
         path: '${{ github.workspace }}/.coverage.*'
@@ -70,7 +70,7 @@ jobs:
         run: uv pip install --system coverage[toml]
 
       - name: Download data
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: ${{ github.workspace }}
           pattern: coverage-data-*
@@ -86,7 +86,7 @@ jobs:
 
       - name: Upload HTML report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: html-report
           path: htmlcov
@@ -133,7 +133,7 @@ jobs:
 
       - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} dist/
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: dist-${{ matrix.os }}
           path: dist
@@ -152,7 +152,7 @@ jobs:
         - uses: actions/checkout@v6
 
         - name: get dist artifacts
-          uses: actions/download-artifact@v6
+          uses: actions/download-artifact@v7
           with:
             merge-multiple: true
             pattern: dist-*
