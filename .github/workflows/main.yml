@@ -92,7 +92,7 @@ jobs:
           path: htmlcov
 
   build:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels for ${{ matrix.os }}-${{ matrix.arch }}
     if:
       startsWith(github.ref, 'refs/tags/')
       || github.ref == 'refs/heads/main'
