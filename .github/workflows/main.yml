@@ -99,11 +99,25 @@ jobs:
       || contains(github.event.pull_request.labels.*.name, 'Build')
 
     strategy:
+      fail-fast: false
       matrix:
-        os:
-        - linux
-        - macos
-        - windows
+        include:
+        - os: linux
+          arch: aarch64
+        - os: linux
+          arch: i686
+        - os: linux
+          arch: x86_64
+        - os: macos
+          arch: arm64
+        - os: macos
+          arch: x86_64
+        - os: windows
+          arch: AMD64
+        - os: windows
+          arch: x86
+        - os: windows
+          arch: ARM64
 
     runs-on:
       ${{
@@ -125,11 +139,11 @@ jobs:
           platforms: all
 
       - name: Build sdist
-        if: ${{ matrix.os == 'linux' }}
+        if: matrix.os == 'linux' && matrix.arch == 'x86_64'
         run: uv build --sdist
 
       - name: Build wheels
-        run: uvx --from cibuildwheel==3.3.0 cibuildwheel --output-dir dist
+        run: uvx --from cibuildwheel==3.3.1 cibuildwheel --output-dir dist
 
       - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} dist/
 
