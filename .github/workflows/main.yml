@@ -92,23 +92,38 @@ jobs:
           path: htmlcov
 
   build:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels for ${{ matrix.os }}-${{ matrix.arch }}
     if:
       startsWith(github.ref, 'refs/tags/')
       || github.ref == 'refs/heads/main'
       || contains(github.event.pull_request.labels.*.name, 'Build')
 
     strategy:
+      fail-fast: false
       matrix:
-        os:
-        - linux
-        - macos
-        - windows
+        include:
+        - os: linux
+          arch: aarch64
+        - os: linux
+          arch: i686
+        - os: linux
+          arch: x86_64
+        - os: macos
+          arch: arm64
+        - os: macos
+          arch: x86_64
+        - os: windows
+          arch: AMD64
+        - os: windows
+          arch: x86
+        - os: windows
+          arch: ARM64
 
     runs-on:
       ${{
         (matrix.os == 'linux' && 'ubuntu-24.04')
-        || (matrix.os == 'macos' && 'macos-15')
+        || (matrix.os == 'macos' && matrix.arch == 'arm64' && 'macos-15')
+        || (matrix.os == 'macos' && matrix.arch == 'x86_64' && 'macos-15-intel')
         || (matrix.os == 'windows' && 'windows-2022')
         || 'unknown'
       }}
@@ -125,17 +140,17 @@ jobs:
           platforms: all
 
       - name: Build sdist
-        if: ${{ matrix.os == 'linux' }}
+        if: matrix.os == 'linux' && matrix.arch == 'x86_64'
         run: uv build --sdist
 
       - name: Build wheels
-        run: uvx --from cibuildwheel==3.3.0 cibuildwheel --output-dir dist
+        run: uvx --from cibuildwheel==3.3.1 cibuildwheel --output-dir dist
 
       - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} dist/
 
       - uses: actions/upload-artifact@v6
         with:
-          name: dist-${{ matrix.os }}
+          name: dist-${{ matrix.os }}-${{ matrix.arch }}
           path: dist
 
   release:

@@ -83,9 +83,6 @@ enable = [
   # Enable free-threaded wheels on Python 3.13 (where it was experimental)
   "cpython-freethreading",
 ]
-linux.archs = [ "x86_64", "i686", "aarch64" ]
-macos.archs = [ "x86_64", "universal2" ]
-windows.archs = [ "AMD64", "x86", "ARM64" ]
 
 [tool.ruff]
 lint.select = [
