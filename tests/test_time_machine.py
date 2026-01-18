@@ -905,6 +905,10 @@ def time_from_uuid1(value: uuid.UUID) -> dt.datetime:
     return dt.datetime(1582, 10, 15) + dt.timedelta(microseconds=value.time // 10)
 
 
+def time_from_uuid7(value: uuid.UUID) -> dt.datetime:
+    return dt.datetime.fromtimestamp((value.int >> 80) / 1000)
+
+
 def test_uuid1():
     """
     Test that the uuid.uuid1() methods generate values for the destination.
@@ -915,6 +919,25 @@ def test_uuid1():
 
     with time_machine.travel(destination, tick=False):
         assert time_from_uuid1(uuid.uuid1()) == destination
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 14),
+    reason="Only valid on Python 3.14+",
+)
+def test_uuid7_future() -> None:
+    """
+    Test that we can go back in time after setting a future date.
+    Normally UUID7 would disallow this, since it keeps track of
+    the _last_timestamp_v7, but we override that now.
+    """
+    destination_future = dt.datetime(2056, 2, 6, 14, 3, 21)
+    with time_machine.travel(destination_future, tick=False):
+        assert time_from_uuid7(uuid.uuid7()) == destination_future
+
+    destination_past = dt.datetime(1978, 7, 6, 23, 6, 31)
+    with time_machine.travel(destination_past, tick=False):
+        assert time_from_uuid7(uuid.uuid7()) == destination_past
 
 
 # error handling tests

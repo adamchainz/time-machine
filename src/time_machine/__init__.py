@@ -286,6 +286,7 @@ class travel:
             original_uuid_uuid_create = uuid._UuidCreate  # type: ignore[attr-defined]
             uuid._generate_time_safe = None  # type: ignore[attr-defined]
             uuid._UuidCreate = None  # type: ignore[attr-defined]
+            uuid._last_timestamp_v7 = None  # type: ignore[attr-defined]
 
         traveller = Traveller(
             destination_timestamp=self.destination_timestamp,
