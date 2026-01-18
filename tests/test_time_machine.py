@@ -931,6 +931,9 @@ def test_uuid7_future() -> None:
     Normally UUID7 would disallow this, since it keeps track of
     the _last_timestamp_v7, but we override that now.
     """
+    if not hasattr(uuid, "uuid7"):
+        pytest.skip("uuid.uuid7 is not available")
+
     destination_future = dt.datetime(2056, 2, 6, 14, 3, 21)
     with time_machine.travel(destination_future, tick=False):
         assert time_from_uuid7(uuid.uuid7()) == destination_future
