@@ -906,7 +906,7 @@ def time_from_uuid1(value: uuid.UUID) -> dt.datetime:
 
 
 def time_from_uuid7(value: uuid.UUID) -> dt.datetime:
-    return dt.datetime.fromtimestamp((value.int >> 80) / 1000)
+    return dt.datetime.fromtimestamp(value.time / 1000)
 
 
 def test_uuid1():
