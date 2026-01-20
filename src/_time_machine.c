@@ -771,6 +771,5 @@ static struct PyModuleDef _time_machine_module = {PyModuleDef_HEAD_INIT,
 PyMODINIT_FUNC
 PyInit__time_machine(void)
 {
-    PyObject *result = PyModuleDef_Init(&_time_machine_module);
-    return result;
+    return PyModuleDef_Init(&_time_machine_module);
 }
