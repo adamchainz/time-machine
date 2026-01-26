@@ -112,6 +112,8 @@ jobs:
           arch: x86_64
         - os: windows
           arch: AMD64
+        - os: windows
+          arch: ARM64
 
     runs-on:
       ${{
@@ -119,6 +121,7 @@ jobs:
         || (matrix.os == 'linux' && 'ubuntu-24.04')
         || (matrix.os == 'macos' && matrix.arch == 'arm64' && 'macos-15')
         || (matrix.os == 'macos' && matrix.arch == 'x86_64' && 'macos-15-intel')
+        || (matrix.os == 'windows' && matrix.arch == 'ARM64' && 'windows-11-arm')
         || (matrix.os == 'windows' && 'windows-2022')
         || 'unknown'
       }}
