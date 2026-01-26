@@ -76,6 +76,7 @@ build = { requires-python = ">=3.14" }
 sphinx-build-compatibility = { git = "https://github.com/readthedocs/sphinx-build-compatibility", rev = "4f304bd4562cdc96316f4fec82b264ca379d23e0" }
 
 [tool.cibuildwheel]
+archs = [ "auto64" ]
 build = [
   "cp314-*",
   "cp314t-*",

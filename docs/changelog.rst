@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Stop shipping wheels for 32-bit Linux and Windows.
+
+  `PR #605 <https://github.com/adamchainz/time-machine/pull/605>`__.
+
 3.2.0 (2025-12-17)
 ------------------
 
