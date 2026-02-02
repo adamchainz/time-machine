@@ -139,14 +139,6 @@ addopts = """\
     """
 xfail_strict = true
 
-[tool.coverage.run]
-branch = true
-parallel = true
-source = [
-  "time_machine",
-  "tests",
-]
-
 [tool.coverage.paths]
 source = [
   "src",
@@ -155,6 +147,14 @@ source = [
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = [
+  "time_machine",
+  "tests",
+]
 
 [tool.mypy]
 enable_error_code = [
