@@ -69,11 +69,9 @@ build = [
   "cibuildwheel>=3.3.1",
 ]
 
-[tool.uv.dependency-groups]
-build = { requires-python = ">=3.14" }
-
-[tool.uv.sources]
-sphinx-build-compatibility = { git = "https://github.com/readthedocs/sphinx-build-compatibility", rev = "4f304bd4562cdc96316f4fec82b264ca379d23e0" }
+[tool.uv]
+dependency-groups.build = { requires-python = ">=3.14" }
+sources.sphinx-build-compatibility = { git = "https://github.com/readthedocs/sphinx-build-compatibility", rev = "4f304bd4562cdc96316f4fec82b264ca379d23e0" }
 
 [tool.cibuildwheel]
 archs = [ "auto64" ]
@@ -131,30 +129,26 @@ lint.isort.required-imports = [ "from __future__ import annotations" ]
 [tool.pyproject-fmt]
 max_supported_python = "3.14"
 
-[tool.pytest.ini_options]
-addopts = """\
+[tool.pytest]
+ini_options.addopts = """\
     --strict-config
     --strict-markers
     -p pytester
     """
-xfail_strict = true
+ini_options.xfail_strict = true
 
-[tool.coverage.paths]
-source = [
+[tool.coverage]
+run.branch = true
+run.parallel = true
+run.source = [
+  "tests",
+  "time_machine",
+]
+paths.source = [
   "src",
   ".tox/**/site-packages",
 ]
-
-[tool.coverage.report]
-show_missing = true
-
-[tool.coverage.run]
-branch = true
-parallel = true
-source = [
-  "time_machine",
-  "tests",
-]
+report.show_missing = true
 
 [tool.mypy]
 enable_error_code = [
@@ -166,10 +160,7 @@ mypy_path = "src/"
 namespace_packages = false
 strict = true
 warn_unreachable = true
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-allow_untyped_defs = true
+overrides = [ { module = "tests.*", allow_untyped_defs = true } ]
 
 [tool.rstcheck]
 ignore_directives = [
