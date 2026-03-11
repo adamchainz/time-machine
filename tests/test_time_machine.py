@@ -905,6 +905,10 @@ def time_from_uuid1(value: uuid.UUID) -> dt.datetime:
     return dt.datetime(1582, 10, 15) + dt.timedelta(microseconds=value.time // 10)
 
 
+def time_from_uuid7(value: uuid.UUID) -> dt.datetime:
+    return dt.datetime.fromtimestamp(value.time / 1000)
+
+
 def test_uuid1():
     """
     Test that the uuid.uuid1() methods generate values for the destination.
@@ -915,6 +919,38 @@ def test_uuid1():
 
     with time_machine.travel(destination, tick=False):
         assert time_from_uuid1(uuid.uuid1()) == destination
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 14),
+    reason="Only valid on Python 3.14+",
+)
+def test_uuid7() -> None:
+    """
+    Test that we can go back in time after setting a future date.
+    Normally UUID7 would disallow this, since it keeps track of
+    the _last_timestamp_v7, but we override that now.
+    """
+    if not hasattr(uuid, "uuid7"):
+        pytest.skip("uuid.uuid7 is not available")
+
+    destination_future = dt.datetime(2056, 2, 6, 14, 3, 21)
+    destination_present = dt.datetime(2025, 1, 1)
+    destination_past = dt.datetime(1978, 7, 6, 23, 6, 31)
+
+    with time_machine.travel(destination_future, tick=False):
+        assert time_from_uuid7(uuid.uuid7()) == destination_future
+
+    with time_machine.travel(destination_past, tick=False):
+        assert time_from_uuid7(uuid.uuid7()) == destination_past
+
+    # Verify stack does not interfere
+    with time_machine.travel(destination_present, tick=False):
+        with time_machine.travel(destination_future, tick=False):
+            assert time_from_uuid7(uuid.uuid7()) == destination_future
+
+        with time_machine.travel(destination_past, tick=False):
+            assert time_from_uuid7(uuid.uuid7()) == destination_past
 
 
 # error handling tests
@@ -1231,6 +1267,23 @@ def test_fixture_shift_without_move_to(time_machine):
     assert excinfo.value.args == (
         "Initialize time_machine with move_to() before using shift().",
     )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 14),
+    reason="Only valid on Python 3.14+",
+)
+def test_uuid7_fixture(time_machine):
+    if not hasattr(uuid, "uuid7"):
+        pytest.skip("uuid.uuid7 is not available")
+
+    destination_future = dt.datetime(2056, 2, 6, 14, 3, 21)
+    time_machine.move_to(destination_future, tick=False)
+    assert time_from_uuid7(uuid.uuid7()) == destination_future
+
+    destination_past = dt.datetime(1978, 7, 6, 23, 6, 31)
+    time_machine.move_to(destination_past, tick=False)
+    assert time_from_uuid7(uuid.uuid7()) == destination_past
 
 
 def test_marker_function(testdir):
