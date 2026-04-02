@@ -413,6 +413,16 @@ def utcnow() -> dt.datetime:
     return dt.datetime.fromtimestamp(time(), dt.timezone.utc).replace(tzinfo=None)
 
 
+def date_today() -> dt.date:
+    # Convert timestamp to date in local timezone
+    return dt.datetime.fromtimestamp(time()).date()
+
+
+def datetime_today() -> dt.datetime:
+    # Convert timestamp to datetime in local timezone
+    return dt.datetime.fromtimestamp(time())
+
+
 # time module
 
 
@@ -544,10 +554,21 @@ class _EscapeHatchDatetimeDatetime:
         result: dt.datetime = _time_machine.original_utcnow()
         return result
 
+    def today(self) -> dt.datetime:
+        result: dt.datetime = _time_machine.original_datetime_today()
+        return result
+
+
+class _EscapeHatchDatetimeDate:
+    def today(self) -> dt.date:
+        result: dt.date = _time_machine.original_date_today()
+        return result
+
 
 class _EscapeHatchDatetime:
     def __init__(self) -> None:
         self.datetime = _EscapeHatchDatetimeDatetime()
+        self.date = _EscapeHatchDatetimeDate()
 
 
 class _EscapeHatchTime:
