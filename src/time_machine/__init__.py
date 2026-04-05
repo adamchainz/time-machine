@@ -242,6 +242,8 @@ class Traveller:
             self._tick = tick
 
     def _start(self) -> None:
+        # Reset UUID7 module's last timestamp cache
+        uuid._last_timestamp_v7 = None  # type: ignore[attr-defined]
         if HAVE_TZSET and self._destination_tzname is not None:
             self._orig_tz = os.environ.get("TZ")
             os.environ["TZ"] = self._destination_tzname
