@@ -55,7 +55,7 @@ entry-points.pytest11.time_machine = "time_machine"
 test = [
   "coverage[toml]",
   "freezegun",
-  "pytest",
+  "pytest>=9",
   "pytest-randomly",
   "python-dateutil",
 ]
@@ -142,12 +142,8 @@ warn_unreachable = true
 overrides = [ { module = "tests.*", allow_untyped_defs = true } ]
 
 [tool.pytest]
-ini_options.addopts = """\
-    --strict-config
-    --strict-markers
-    -p pytester
-    """
-ini_options.xfail_strict = true
+strict = true
+addopts = [ "-p", "pytester" ]
 
 [tool.coverage]
 run.branch = true
