@@ -965,7 +965,7 @@ docs = [
 test = [
     { name = "coverage", extras = ["toml"] },
     { name = "freezegun" },
-    { name = "pytest" },
+    { name = "pytest", specifier = ">=9" },
     { name = "pytest-randomly" },
     { name = "python-dateutil" },
 ]
