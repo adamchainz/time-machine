@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Build with frame pointers enabled, preparation for `PEP 831 <https://peps.python.org/pep-0831/>`__.
+
+  `PR #627 <https://github.com/adamchainz/time-machine/issues/627>`__.
+
 * Stop shipping wheels for 32-bit Linux and Windows.
 
   `PR #605 <https://github.com/adamchainz/time-machine/pull/605>`__.
