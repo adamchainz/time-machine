@@ -34,6 +34,10 @@ Changelog
 
 * Stop shipping wheels for free-threaded Python 3.13 since `cibuildwheel 4.0.0 dropped support for building them <https://iscinumpy.dev/post/cibuildwheel-4-0-0/>`__.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to update ``freeze_time()`` calls that pass ``tick``.
+
+  Thanks to George-Cristian Birzan for the report in `Issue #609 <https://github.com/adamchainz/time-machine/issues/609>`__ and tanren for the fix in `PR #636 <https://github.com/adamchainz/time-machine/pull/636>`__.
+
 3.2.0 (2025-12-17)
 ------------------
 
