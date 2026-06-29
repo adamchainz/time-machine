@@ -84,7 +84,8 @@ The changes the tool makes are:
 * ``from freezegun import freeze_time`` -> ``from time_machine import travel``
 
 * In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(..., tick=False)``.
-  This change is only applied when ``freeze_time()`` is called with a single positional argument.
+  This change is applied when ``freeze_time()`` is called with a single positional argument, optionally with a ``tick`` keyword argument.
+  An existing ``tick`` argument is kept as-is, rather than adding ``tick=False``.
   In context managers, it’s only applied when the result isn’t assigned to a variable with ``as``.
 
 The tool is open to extension to cover other compatible changes—PRs welcome!
