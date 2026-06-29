@@ -245,10 +245,9 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
 
 
 def migratable_call(node: ast.Call) -> bool:
-    return (
-        len(node.args) == 1
-        # We could allow tick being set, as long as we didn't then add it
-        and len(node.keywords) == 0
+    return len(node.args) == 1 and (
+        len(node.keywords) == 0
+        or (len(node.keywords) == 1 and node.keywords[0].arg == "tick")
     )
 
 
@@ -362,8 +361,10 @@ def switch_to_travel(
 
 def add_tick_false(tokens: list[Token], i: int, node: ast.Call) -> None:
     """
-    Add `tick=False` to the function call.
+    Add `tick=False` to the function call, unless `tick` is already set.
     """
+    if any(keyword.arg == "tick" for keyword in node.keywords):
+        return
     j = find_last_token(tokens, i, node=node)
     tokens.insert(j, Token(name=CODE, src=", tick=False"))
 
