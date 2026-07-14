@@ -999,6 +999,72 @@ def test_uuid1():
         assert time_from_uuid1(uuid.uuid1()) == destination
 
 
+# subinterpreter tests
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 13), reason="subinterpreter API added in Python 3.13"
+)
+def test_subinterpreters():
+    """
+    Test that time-machine works in (isolated) subinterpreters, which each
+    import _time_machine separately, including after destroying the
+    interpreter that first imported it. Run in a subprocess so that the first
+    import happens within a subinterpreter.
+    """
+    code = dedent(
+        """
+        import sys
+
+        SUB_CODE = '''
+        import datetime as dt
+        import time
+        import time_machine
+
+        with time_machine.travel(0.0, tick=False):
+            assert time.time() == 0.0
+            assert time.time_ns() == 0
+            assert time.gmtime().tm_year == 1970
+            assert dt.datetime.now(dt.timezone.utc) == dt.datetime(
+                1970, 1, 1, tzinfo=dt.timezone.utc
+            )
+        '''
+
+        if sys.version_info >= (3, 14):
+            from concurrent import interpreters
+
+            for _ in range(2):
+                interp = interpreters.create()
+                try:
+                    interp.exec(SUB_CODE)
+                finally:
+                    interp.close()
+        else:
+            import _interpreters
+
+            for _ in range(2):
+                interp_id = _interpreters.create()
+                try:
+                    excinfo = _interpreters.exec(interp_id, SUB_CODE)
+                    if excinfo is not None:
+                        raise RuntimeError(excinfo.formatted)
+                finally:
+                    _interpreters.destroy(interp_id)
+
+        print("OK")
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "OK\n"
+
+
 # error handling tests
 
 
@@ -1102,7 +1168,7 @@ def test_time_machine_attribute_error(func, args):
     ):
         func(*args)
 
-    assert excinfo.value.args == ("'tuple' object has no attribute 'traveller_stack'",)
+    assert excinfo.value.args == ("'tuple' object has no attribute '_time_machine'",)
 
 
 # freeezegun conflict tests

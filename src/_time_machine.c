@@ -9,6 +9,12 @@ typedef struct {
     PyObject *time_module;
     PyObject *datetime_class;
     PyObject *timezone_utc;
+    PyObject *str_traveller_stack;
+    PyObject *str_time_ns;
+    PyObject *str_replace;
+    PyObject *str_fromtimestamp;
+    PyObject *tzinfo_kwnames;
+    PyObject *nanoseconds_per_second;
     // time.CLOCK_REALTIME, not always available, e.g. on builds against
     // old macOS = official Python.org installer
     int have_clock_realtime;
@@ -50,43 +56,47 @@ get_time_machine_state(PyObject *module)
 
 /*
     Helpers for the patched functions. These functions are swapped into other
-    modules' functions, so they don't receive this module as 'self' and
-    instead find its state through sys.modules.
+    modules' functions, so they don't receive this module as 'self'. Instead
+    they find the time_machine module through sys.modules and this module's
+    state through its `_time_machine` attribute. This finds the state of the
+    current interpreter's copy of the module, so all cached objects are only
+    used within the interpreter that created them.
 */
 
-// Constants used by the patched functions, initialized on first module exec
-// and deliberately never freed, since the patched functions cannot access
-// module state.
-static PyObject *str_traveller_stack = NULL;
-static PyObject *str_time_ns = NULL;
-static PyObject *str_replace = NULL;
-static PyObject *str_fromtimestamp = NULL;
-static PyObject *tzinfo_kwnames = NULL;
-static PyObject *nanoseconds_per_second = NULL;
-
-static _time_machine_state *
-_time_machine_get_module_state(void)
-{
-    PyObject *module = PyImport_ImportModule("_time_machine");
-    if (module == NULL) {
-        return NULL;  // Propagate ImportError
-    }
-    void *state = PyModule_GetState(module);
-    // The reference in sys.modules keeps the module, and thus its state, alive.
-    Py_DECREF(module);
-    return (_time_machine_state *)state;
-}
-
-/* Call time_machine.traveller_stack[-1].time_ns() */
+/*
+    Import the time_machine module and fetch this module's state through it.
+    On success, return a new reference to the time_machine module and set
+    *state.
+*/
 static PyObject *
-_time_machine_traveller_time_ns(void)
+_time_machine_get_context(_time_machine_state **state)
 {
     PyObject *time_machine_module = PyImport_ImportModule("time_machine");
     if (time_machine_module == NULL) {
         return NULL;  // Propagate ImportError
     }
-    PyObject *traveller_stack = PyObject_GetAttr(time_machine_module, str_traveller_stack);
-    Py_DECREF(time_machine_module);
+    PyObject *c_module = PyObject_GetAttrString(time_machine_module, "_time_machine");
+    if (c_module == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;  // Propagate AttributeError
+    }
+    *state = (_time_machine_state *)PyModule_GetState(c_module);
+    // The references in sys.modules and the time_machine module keep this
+    // module, and thus its state, alive.
+    Py_DECREF(c_module);
+    if (*state == NULL) {
+        Py_DECREF(time_machine_module);
+        return NULL;
+    }
+    return time_machine_module;
+}
+
+/* Call time_machine.traveller_stack[-1].time_ns() */
+static PyObject *
+_time_machine_traveller_time_ns(PyObject *time_machine_module, _time_machine_state *state)
+{
+    PyObject *traveller_stack =
+        PyObject_GetAttr(time_machine_module, state->str_traveller_stack);
     if (traveller_stack == NULL) {
         return NULL;  // Propagate AttributeError
     }
@@ -98,20 +108,20 @@ _time_machine_traveller_time_ns(void)
     }
 
     PyObject *result = PyObject_VectorcallMethod(
-        str_time_ns, &traveller, 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
+        state->str_time_ns, &traveller, 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
     Py_DECREF(traveller);
     return result;
 }
 
 /* Compute time_machine.traveller_stack[-1].time_ns() / NANOSECONDS_PER_SECOND */
 static PyObject *
-_time_machine_traveller_time(void)
+_time_machine_traveller_time(PyObject *time_machine_module, _time_machine_state *state)
 {
-    PyObject *time_ns = _time_machine_traveller_time_ns();
+    PyObject *time_ns = _time_machine_traveller_time_ns(time_machine_module, state);
     if (time_ns == NULL) {
         return NULL;
     }
-    PyObject *result = PyNumber_TrueDivide(time_ns, nanoseconds_per_second);
+    PyObject *result = PyNumber_TrueDivide(time_ns, state->nanoseconds_per_second);
     Py_DECREF(time_ns);
     return result;
 }
@@ -143,14 +153,21 @@ _time_machine_now(
         tz = args[0];
     }
 
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
+        return NULL;
+    }
+
     // cls.fromtimestamp(traveller_time, tz)
-    PyObject *timestamp = _time_machine_traveller_time();
+    PyObject *timestamp = _time_machine_traveller_time(time_machine_module, state);
+    Py_DECREF(time_machine_module);
     if (timestamp == NULL) {
         return NULL;
     }
     PyObject *stack[3] = {(PyObject *)type, timestamp, tz};
     PyObject *result = PyObject_VectorcallMethod(
-        str_fromtimestamp, stack, 3 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
+        state->str_fromtimestamp, stack, 3 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
     Py_DECREF(timestamp);
     return result;
 }
@@ -180,19 +197,23 @@ Call datetime.datetime.now() after patching.");
 static PyObject *
 _time_machine_utcnow(PyObject *cls, PyObject *args)
 {
-    _time_machine_state *state = _time_machine_get_module_state();
-    if (state == NULL) {
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
         return NULL;
     }
 
     // cls.fromtimestamp(traveller_time, timezone.utc)
-    PyObject *timestamp = _time_machine_traveller_time();
+    PyObject *timestamp = _time_machine_traveller_time(time_machine_module, state);
+    Py_DECREF(time_machine_module);
     if (timestamp == NULL) {
         return NULL;
     }
     PyObject *fromtimestamp_stack[3] = {cls, timestamp, state->timezone_utc};
-    PyObject *aware = PyObject_VectorcallMethod(
-        str_fromtimestamp, fromtimestamp_stack, 3 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
+    PyObject *aware = PyObject_VectorcallMethod(state->str_fromtimestamp,
+        fromtimestamp_stack,
+        3 | PY_VECTORCALL_ARGUMENTS_OFFSET,
+        NULL);
     Py_DECREF(timestamp);
     if (aware == NULL) {
         return NULL;
@@ -201,7 +222,7 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
     // aware.replace(tzinfo=None)
     PyObject *stack[2] = {aware, Py_None};
     PyObject *result = PyObject_VectorcallMethod(
-        str_replace, stack, 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, tzinfo_kwnames);
+        state->str_replace, stack, 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, state->tzinfo_kwnames);
     Py_DECREF(aware);
     return result;
 }
@@ -234,14 +255,21 @@ Call datetime.datetime.utcnow() after patching.");
 static PyObject *
 _time_machine_today(PyObject *cls, PyObject *args)
 {
-    PyObject *timestamp = _time_machine_traveller_time();
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
+        return NULL;
+    }
+
+    PyObject *timestamp = _time_machine_traveller_time(time_machine_module, state);
+    Py_DECREF(time_machine_module);
     if (timestamp == NULL) {
         return NULL;
     }
 
     PyObject *stack[2] = {cls, timestamp};
     PyObject *result = PyObject_VectorcallMethod(
-        str_fromtimestamp, stack, 2 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
+        state->str_fromtimestamp, stack, 2 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
     Py_DECREF(timestamp);
     return result;
 }
@@ -251,8 +279,9 @@ _time_machine_today(PyObject *cls, PyObject *args)
 static PyObject *
 _time_machine_clock_gettime(PyObject *self, PyObject *args)
 {
-    _time_machine_state *state = _time_machine_get_module_state();
-    if (state == NULL) {
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
         return NULL;
     }
 
@@ -271,12 +300,15 @@ _time_machine_clock_gettime(PyObject *self, PyObject *args)
         int overflow = 0;
         long clk_id = PyLong_AsLongAndOverflow(clk_id_obj, &overflow);
         if (!overflow && state->have_clock_realtime && clk_id == state->clock_realtime) {
-            return _time_machine_traveller_time();
+            PyObject *result = _time_machine_traveller_time(time_machine_module, state);
+            Py_DECREF(time_machine_module);
+            return result;
         }
         // Fall through: non-realtime clocks, and out-of-range values, get the
         // original function's behaviour, including its error messages.
     }
 
+    Py_DECREF(time_machine_module);
     return state->original_clock_gettime(state->time_module, args);
 }
 
@@ -304,8 +336,9 @@ Call time.clock_gettime() after patching.");
 static PyObject *
 _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
 {
-    _time_machine_state *state = _time_machine_get_module_state();
-    if (state == NULL) {
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
         return NULL;
     }
 
@@ -324,12 +357,15 @@ _time_machine_clock_gettime_ns(PyObject *self, PyObject *args)
         int overflow = 0;
         long clk_id = PyLong_AsLongAndOverflow(clk_id_obj, &overflow);
         if (!overflow && state->have_clock_realtime && clk_id == state->clock_realtime) {
-            return _time_machine_traveller_time_ns();
+            PyObject *result = _time_machine_traveller_time_ns(time_machine_module, state);
+            Py_DECREF(time_machine_module);
+            return result;
         }
         // Fall through: non-realtime clocks, and out-of-range values, get the
         // original function's behaviour, including its error messages.
     }
 
+    Py_DECREF(time_machine_module);
     return state->original_clock_gettime_ns(state->time_module, args);
 }
 
@@ -357,18 +393,21 @@ Call time.clock_gettime_ns() after patching.");
 static PyObject *
 _time_machine_gmtime(PyObject *self, PyObject *args)
 {
-    _time_machine_state *state = _time_machine_get_module_state();
-    if (state == NULL) {
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
         return NULL;
     }
 
     Py_ssize_t nargs = PyTuple_GET_SIZE(args);
     if (nargs > 1 || (nargs == 1 && PyTuple_GET_ITEM(args, 0) != Py_None)) {
         // Pass through, including invalid arguments for their error messages.
+        Py_DECREF(time_machine_module);
         return state->original_gmtime(state->time_module, args);
     }
 
-    PyObject *timestamp = _time_machine_traveller_time();
+    PyObject *timestamp = _time_machine_traveller_time(time_machine_module, state);
+    Py_DECREF(time_machine_module);
     if (timestamp == NULL) {
         return NULL;
     }
@@ -406,18 +445,21 @@ Call time.gmtime() after patching.");
 static PyObject *
 _time_machine_localtime(PyObject *self, PyObject *args)
 {
-    _time_machine_state *state = _time_machine_get_module_state();
-    if (state == NULL) {
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
         return NULL;
     }
 
     Py_ssize_t nargs = PyTuple_GET_SIZE(args);
     if (nargs > 1 || (nargs == 1 && PyTuple_GET_ITEM(args, 0) != Py_None)) {
         // Pass through, including invalid arguments for their error messages.
+        Py_DECREF(time_machine_module);
         return state->original_localtime(state->time_module, args);
     }
 
-    PyObject *timestamp = _time_machine_traveller_time();
+    PyObject *timestamp = _time_machine_traveller_time(time_machine_module, state);
+    Py_DECREF(time_machine_module);
     if (timestamp == NULL) {
         return NULL;
     }
@@ -455,19 +497,22 @@ Call time.localtime() after patching.");
 static PyObject *
 _time_machine_strftime(PyObject *self, PyObject *args)
 {
-    _time_machine_state *state = _time_machine_get_module_state();
-    if (state == NULL) {
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
         return NULL;
     }
 
     Py_ssize_t nargs = PyTuple_GET_SIZE(args);
     if (nargs < 1 || nargs > 2 || (nargs == 2 && PyTuple_GET_ITEM(args, 1) != Py_None)) {
         // Pass through, including invalid arguments for their error messages.
+        Py_DECREF(time_machine_module);
         return state->original_strftime(state->time_module, args);
     }
 
     // time.strftime(format, time.localtime(traveller_time))
-    PyObject *timestamp = _time_machine_traveller_time();
+    PyObject *timestamp = _time_machine_traveller_time(time_machine_module, state);
+    Py_DECREF(time_machine_module);
     if (timestamp == NULL) {
         return NULL;
     }
@@ -515,7 +560,14 @@ Call time.strftime() after patching.");
 static PyObject *
 _time_machine_time(PyObject *self, PyObject *args)
 {
-    return _time_machine_traveller_time();
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
+        return NULL;
+    }
+    PyObject *result = _time_machine_traveller_time(time_machine_module, state);
+    Py_DECREF(time_machine_module);
+    return result;
 }
 
 static PyObject *
@@ -542,7 +594,14 @@ Call time.time() after patching.");
 static PyObject *
 _time_machine_time_ns(PyObject *self, PyObject *args)
 {
-    return _time_machine_traveller_time_ns();
+    _time_machine_state *state;
+    PyObject *time_machine_module = _time_machine_get_context(&state);
+    if (time_machine_module == NULL) {
+        return NULL;
+    }
+    PyObject *result = _time_machine_traveller_time_ns(time_machine_module, state);
+    Py_DECREF(time_machine_module);
+    return result;
 }
 
 static PyObject *
@@ -750,46 +809,39 @@ _time_machine_exec(PyObject *module)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    if (str_traveller_stack == NULL) {
-        str_traveller_stack = PyUnicode_InternFromString("traveller_stack");
-        if (str_traveller_stack == NULL) {
-            goto error;
-        }
+    state->str_traveller_stack = PyUnicode_InternFromString("traveller_stack");
+    if (state->str_traveller_stack == NULL) {
+        goto error;
     }
-    if (str_time_ns == NULL) {
-        str_time_ns = PyUnicode_InternFromString("time_ns");
-        if (str_time_ns == NULL) {
-            goto error;
-        }
+
+    state->str_time_ns = PyUnicode_InternFromString("time_ns");
+    if (state->str_time_ns == NULL) {
+        goto error;
     }
-    if (str_replace == NULL) {
-        str_replace = PyUnicode_InternFromString("replace");
-        if (str_replace == NULL) {
-            goto error;
-        }
+
+    state->str_replace = PyUnicode_InternFromString("replace");
+    if (state->str_replace == NULL) {
+        goto error;
     }
-    if (str_fromtimestamp == NULL) {
-        str_fromtimestamp = PyUnicode_InternFromString("fromtimestamp");
-        if (str_fromtimestamp == NULL) {
-            goto error;
-        }
+
+    state->str_fromtimestamp = PyUnicode_InternFromString("fromtimestamp");
+    if (state->str_fromtimestamp == NULL) {
+        goto error;
     }
-    if (tzinfo_kwnames == NULL) {
-        PyObject *str_tzinfo = PyUnicode_InternFromString("tzinfo");
-        if (str_tzinfo == NULL) {
-            goto error;
-        }
-        tzinfo_kwnames = PyTuple_Pack(1, str_tzinfo);
-        Py_DECREF(str_tzinfo);
-        if (tzinfo_kwnames == NULL) {
-            goto error;
-        }
+
+    PyObject *str_tzinfo = PyUnicode_InternFromString("tzinfo");
+    if (str_tzinfo == NULL) {
+        goto error;
     }
-    if (nanoseconds_per_second == NULL) {
-        nanoseconds_per_second = PyLong_FromLong(1000000000L);
-        if (nanoseconds_per_second == NULL) {
-            goto error;
-        }
+    state->tzinfo_kwnames = PyTuple_Pack(1, str_tzinfo);
+    Py_DECREF(str_tzinfo);
+    if (state->tzinfo_kwnames == NULL) {
+        goto error;
+    }
+
+    state->nanoseconds_per_second = PyLong_FromLong(1000000000L);
+    if (state->nanoseconds_per_second == NULL) {
+        goto error;
     }
 
     state->datetime_module = PyImport_ImportModule("datetime");
@@ -920,6 +972,12 @@ error:
     Py_CLEAR(state->datetime_module);
     Py_CLEAR(state->datetime_class);
     Py_CLEAR(state->timezone_utc);
+    Py_CLEAR(state->str_traveller_stack);
+    Py_CLEAR(state->str_time_ns);
+    Py_CLEAR(state->str_replace);
+    Py_CLEAR(state->str_fromtimestamp);
+    Py_CLEAR(state->tzinfo_kwnames);
+    Py_CLEAR(state->nanoseconds_per_second);
     Py_CLEAR(state->datetime_datetime_now);
     Py_CLEAR(state->datetime_datetime_utcnow);
     Py_CLEAR(state->date_today);
@@ -941,6 +999,12 @@ _time_machine_traverse(PyObject *module, visitproc visit, void *arg)
     Py_VISIT(state->datetime_module);
     Py_VISIT(state->datetime_class);
     Py_VISIT(state->timezone_utc);
+    Py_VISIT(state->str_traveller_stack);
+    Py_VISIT(state->str_time_ns);
+    Py_VISIT(state->str_replace);
+    Py_VISIT(state->str_fromtimestamp);
+    Py_VISIT(state->tzinfo_kwnames);
+    Py_VISIT(state->nanoseconds_per_second);
     Py_VISIT(state->datetime_datetime_now);
     Py_VISIT(state->datetime_datetime_utcnow);
     Py_VISIT(state->date_today);
@@ -962,6 +1026,12 @@ _time_machine_clear(PyObject *module)
     Py_CLEAR(state->datetime_module);
     Py_CLEAR(state->datetime_class);
     Py_CLEAR(state->timezone_utc);
+    Py_CLEAR(state->str_traveller_stack);
+    Py_CLEAR(state->str_time_ns);
+    Py_CLEAR(state->str_replace);
+    Py_CLEAR(state->str_fromtimestamp);
+    Py_CLEAR(state->tzinfo_kwnames);
+    Py_CLEAR(state->nanoseconds_per_second);
     Py_CLEAR(state->datetime_datetime_now);
     Py_CLEAR(state->datetime_datetime_utcnow);
     Py_CLEAR(state->date_today);
@@ -977,6 +1047,11 @@ _time_machine_clear(PyObject *module)
 }
 
 static PyModuleDef_Slot _time_machine_slots[] = {{Py_mod_exec, _time_machine_exec},
+// On Python 3.12+, declare support for isolated subinterpreters, which may
+// each import this module.
+#if PY_VERSION_HEX >= 0x030c0000
+    {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
+#endif
 // On Python 3.13+, declare free-threaded support.
 // https://py-free-threading.github.io/porting-extensions/#declaring-free-threaded-support
 #ifdef Py_GIL_DISABLED
