@@ -10,6 +10,8 @@ Changelog
 
   `PR #605 <https://github.com/adamchainz/time-machine/pull/605>`__.
 
+* Stop shipping wheels for free-threaded Python 3.13 since `cibuildwheel 4.0.0 dropped support for building them <https://iscinumpy.dev/post/cibuildwheel-4-0-0/>__.
+
 3.2.0 (2025-12-17)
 ------------------
 
