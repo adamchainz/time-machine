@@ -84,10 +84,6 @@ build = [
   "cp310-*",
 ]
 archs = [ "auto64" ]
-enable = [
-  # Enable free-threaded wheels on Python 3.13 (where it was experimental)
-  "cpython-freethreading",
-]
 
 [tool.ruff]
 lint.select = [
