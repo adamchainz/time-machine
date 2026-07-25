@@ -156,7 +156,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                 ret[ast_start_offset(node)].append(
                     partial(replace_import_from, node=node)
                 )
-            case ast.FunctionDef():
+            case ast.FunctionDef() | ast.AsyncFunctionDef():
                 for decorator in node.decorator_list:
                     if (
                         isinstance(decorator, ast.Call)

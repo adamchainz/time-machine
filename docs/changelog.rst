@@ -38,6 +38,10 @@ Changelog
 
   Thanks to George-Cristian Birzan for the report in `Issue #609 <https://github.com/adamchainz/time-machine/issues/609>`__ and tanren for the fix in `PR #636 <https://github.com/adamchainz/time-machine/pull/636>`__.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to rewrite ``freeze_time()`` decorators on async functions.
+
+  Thanks to George-Cristian Birzan for the report in `Issue #608 <https://github.com/adamchainz/time-machine/issues/608>`__ and Sanjay Santhanam for the fix in `PR #640 <https://github.com/adamchainz/time-machine/pull/640>`__.
+
 3.2.0 (2025-12-17)
 ------------------
 
