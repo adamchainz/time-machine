@@ -293,6 +293,42 @@ class TestMigrateContents:
             """,
         )
 
+    def test_async_function_decorator_name(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            async def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            async def test_function():
+                pass
+            """,
+        )
+
+    def test_async_function_decorator_attr(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time("2023-01-01")
+            async def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            async def test_function():
+                pass
+            """,
+        )
+
     def test_class_decorator_attr_unrelated(self):
         check_noop(
             """

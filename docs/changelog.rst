@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Fix the migration CLI to rewrite ``freeze_time`` decorators on ``async def`` functions.
+
+  `Issue #608 <https://github.com/adamchainz/time-machine/issues/608>`__.
+
 * Build with frame pointers enabled, preparation for `PEP 831 <https://peps.python.org/pep-0831/>`__.
 
   `PR #627 <https://github.com/adamchainz/time-machine/issues/627>`__.
