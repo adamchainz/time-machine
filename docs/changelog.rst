@@ -2,6 +2,14 @@
 Changelog
 =========
 
+* Mock ``datetime.date.today()`` directly, for Python 3.15 support.
+
+  Previously time-machine was mocked only indirectly, since CPython implemented it by calling ``cls.fromtimestamp(time.time())``.
+  Python 3.15 added a fast path that reads the system clock directly (`CPython Issue #130980 <https://github.com/python/cpython/pull/130980>`__), so time travel no longer affected it, which the new mock fixes.
+  Consequently, there are new :ref:`escape hatch <escape-hatch>` functions: ``escape_hatch.datetime.date.today()`` and ``escape_hatch.datetime.datetime.today()``.
+
+  Thanks to Miro Hrončok and Karolina Surma for the report in `Issue #610 <https://github.com/adamchainz/time-machine/issues/610>`__, Lumír 'Frenzy' Balhar for the fix in `PR #618 <https://github.com/adamchainz/time-machine/pull/618>`__, and Maurycy Pawłowski-Wieroński for review
+
 * Build with frame pointers enabled, preparation for `PEP 831 <https://peps.python.org/pep-0831/>`__.
 
   `PR #627 <https://github.com/adamchainz/time-machine/issues/627>`__.

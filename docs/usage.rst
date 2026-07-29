@@ -357,6 +357,8 @@ Main API
           with time_machine.travel(...):
               ...
 
+.. _escape-hatch:
+
 Escape hatch API
 ================
 
