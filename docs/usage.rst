@@ -373,9 +373,17 @@ The functions are:
 
   Returns ``True`` if ``time_machine.travel()`` is active, ``False`` otherwise.
 
+* ``escape_hatch.datetime.date.today()``
+
+  Wraps the real ``datetime.date.today()``.
+
 * ``escape_hatch.datetime.datetime.now()``
 
   Wraps the real ``datetime.datetime.now()``.
+
+* ``escape_hatch.datetime.datetime.today()``
+
+  Wraps the real ``datetime.datetime.today()``.
 
 * ``escape_hatch.datetime.datetime.utcnow()``
 
