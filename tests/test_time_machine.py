@@ -1317,6 +1317,17 @@ class TestEscapeHatch:
         with time_machine.travel(EPOCH):
             assert time_machine.escape_hatch.is_travelling() is True
 
+    def test_date_today(self):
+        real_today = dt.date.today()
+
+        with time_machine.travel(EPOCH):
+            eh_today = time_machine.escape_hatch.datetime.date.today()
+            assert eh_today >= real_today
+
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.datetime.date.today()
+        assert excinfo.value.args == ("Not currently time-travelling.",)
+
     def test_datetime_now(self):
         real_now = dt.datetime.now()
 
@@ -1334,6 +1345,17 @@ class TestEscapeHatch:
         with time_machine.travel(EPOCH):
             eh_now = time_machine.escape_hatch.datetime.datetime.now(tz=dt.timezone.utc)
             assert eh_now >= real_now
+
+    def test_datetime_today(self):
+        real_today = dt.datetime.today()
+
+        with time_machine.travel(EPOCH):
+            eh_today = time_machine.escape_hatch.datetime.datetime.today()
+            assert eh_today >= real_today
+
+        with pytest.raises(ValueError) as excinfo:
+            time_machine.escape_hatch.datetime.datetime.today()
+        assert excinfo.value.args == ("Not currently time-travelling.",)
 
     def test_datetime_utcnow(self):
         real_now = dt.datetime.utcnow()

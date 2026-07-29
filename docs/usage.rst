@@ -89,7 +89,9 @@ Main API
 
   All datetime functions in the standard library are mocked to move to the destination current datetime:
 
+  * ``datetime.date.today()``
   * ``datetime.datetime.now()``
+  * ``datetime.datetime.today()``
   * ``datetime.datetime.utcnow()``
   * ``time.clock_gettime()`` (only for ``CLOCK_REALTIME``)
   * ``time.clock_gettime_ns()`` (only for ``CLOCK_REALTIME``)
@@ -355,6 +357,8 @@ Main API
           with time_machine.travel(...):
               ...
 
+.. _escape-hatch:
+
 Escape hatch API
 ================
 
@@ -373,9 +377,17 @@ The functions are:
 
   Returns ``True`` if ``time_machine.travel()`` is active, ``False`` otherwise.
 
+* ``escape_hatch.datetime.date.today()``
+
+  Wraps the real ``datetime.date.today()``.
+
 * ``escape_hatch.datetime.datetime.now()``
 
   Wraps the real ``datetime.datetime.now()``.
+
+* ``escape_hatch.datetime.datetime.today()``
+
+  Wraps the real ``datetime.datetime.today()``.
 
 * ``escape_hatch.datetime.datetime.utcnow()``
 

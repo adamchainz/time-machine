@@ -535,9 +535,21 @@ if HAVE_PYTEST:  # pragma: no branch
 # escape hatch
 
 
+class _EscapeHatchDatetimeDate:
+    def today(self) -> dt.date:
+        # date.today() is equivalent to datetime.now().date().
+        result: dt.datetime = _time_machine.original_now(None)
+        return result.date()
+
+
 class _EscapeHatchDatetimeDatetime:
     def now(self, tz: dt.tzinfo | None = None) -> dt.datetime:
         result: dt.datetime = _time_machine.original_now(tz)
+        return result
+
+    def today(self) -> dt.datetime:
+        # datetime.today() is equivalent to datetime.now() without a timezone.
+        result: dt.datetime = _time_machine.original_now(None)
         return result
 
     def utcnow(self) -> dt.datetime:
@@ -547,6 +559,7 @@ class _EscapeHatchDatetimeDatetime:
 
 class _EscapeHatchDatetime:
     def __init__(self) -> None:
+        self.date = _EscapeHatchDatetimeDate()
         self.datetime = _EscapeHatchDatetimeDatetime()
 
 
