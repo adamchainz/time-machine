@@ -8,7 +8,6 @@ typedef struct {
     PyObject *datetime_module;
     PyObject *time_module;
     PyObject *datetime_class;
-    PyObject *date_class;
     PyCFunctionObject *datetime_datetime_now;
     PyCFunctionObject *datetime_datetime_utcnow;
     PyCFunctionObject *date_today;
@@ -27,7 +26,6 @@ typedef struct {
 #endif
     PyCFunction original_utcnow;
     PyCFunction original_date_today;
-    PyCFunction original_datetime_today;
     PyCFunction original_clock_gettime;
     PyCFunction original_clock_gettime_ns;
     PyCFunction original_gmtime;
@@ -136,7 +134,8 @@ Call datetime.datetime.utcnow() after patching.");
 
 /* datetime.date.today() and datetime.datetime.today()
  * Note: datetime.datetime doesn't define its own today(), it inherits from date.
- * So we patch date.today() with a wrapper that checks the calling class type.
+ * So we patch date.today() with a wrapper that calls cls.fromtimestamp(), which
+ * returns the right type for date, datetime, and subclasses of either.
  */
 
 static PyObject *
@@ -146,83 +145,19 @@ _time_machine_today(PyObject *cls, PyObject *args)
     if (time_machine_module == NULL) {
         return NULL;  // Propagate ImportError
     }
-    PyObject *datetime_module = PyImport_ImportModule("datetime");
-    if (datetime_module == NULL) {
-        Py_DECREF(time_machine_module);
-        return NULL;  // Propagate ImportError
-    }
-    PyObject *datetime_class = PyObject_GetAttrString(datetime_module, "datetime");
-    if (datetime_class == NULL) {
-        Py_DECREF(datetime_module);
-        Py_DECREF(time_machine_module);
-        return NULL;  // Propagate AttributeError
-    }
 
-    /* Check if cls is datetime.datetime (or subclass) vs just date */
-    int is_datetime = PyObject_IsSubclass(cls, datetime_class);
-    if (is_datetime == -1) {
-        Py_DECREF(datetime_class);
-        Py_DECREF(datetime_module);
-        Py_DECREF(time_machine_module);
-        return NULL;  // Propagate error
-    }
-
-    const char *func_name = (is_datetime == 1) ? "datetime_today" : "date_today";
-    PyObject *time_machine_func = PyObject_GetAttrString(time_machine_module, func_name);
-    if (time_machine_func == NULL) {
-        Py_DECREF(datetime_class);
-        Py_DECREF(datetime_module);
-        Py_DECREF(time_machine_module);
-        return NULL;  // Propagate AttributeError
-    }
-
-    PyObject *result = PyObject_CallObject(time_machine_func, args);
-
-    Py_DECREF(time_machine_func);
-    Py_DECREF(datetime_class);
-    Py_DECREF(datetime_module);
+    PyObject *timestamp = PyObject_CallMethod(time_machine_module, "time", NULL);
     Py_DECREF(time_machine_module);
-
-    return result;
-}
-
-static PyObject *
-_time_machine_original_date_today(PyObject *module, PyObject *args)
-{
-    _time_machine_state *state = get_time_machine_state(module);
-
-    if (state->original_date_today == NULL) {
-        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
+    if (timestamp == NULL) {
         return NULL;
     }
 
-    PyObject *result = state->original_date_today(state->date_class, args);
+    PyObject *result = PyObject_CallMethod(cls, "fromtimestamp", "O", timestamp);
+
+    Py_DECREF(timestamp);
 
     return result;
 }
-PyDoc_STRVAR(original_date_today_doc,
-    "original_date_today() -> date\n\
-\n\
-Call datetime.date.today() after patching.");
-
-static PyObject *
-_time_machine_original_datetime_today(PyObject *module, PyObject *args)
-{
-    _time_machine_state *state = get_time_machine_state(module);
-
-    if (state->original_datetime_today == NULL) {
-        PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
-        return NULL;
-    }
-
-    PyObject *result = state->original_datetime_today(state->datetime_class, args);
-
-    return result;
-}
-PyDoc_STRVAR(original_datetime_today_doc,
-    "original_datetime_today() -> datetime\n\
-\n\
-Call datetime.datetime.today() after patching.");
 
 /* time.clock_gettime() */
 
@@ -540,6 +475,9 @@ _time_machine_patch(PyObject *module, PyObject *unused)
     if (state->original_time)
         Py_RETURN_NONE;
 
+    state->original_date_today = state->date_today->m_ml->ml_meth;
+    state->date_today->m_ml->ml_meth = _time_machine_today;
+
 #if PY_VERSION_HEX >= 0x030d00a4
     state->original_now =
         (PyCFunctionFastWithKeywords)state->datetime_datetime_now->m_ml->ml_meth;
@@ -551,15 +489,6 @@ _time_machine_patch(PyObject *module, PyObject *unused)
 
     state->original_utcnow = state->datetime_datetime_utcnow->m_ml->ml_meth;
     state->datetime_datetime_utcnow->m_ml->ml_meth = _time_machine_utcnow;
-
-    /* Patch today() - since datetime.datetime.today() inherits from date.today(),
-     * we only need to patch date.today() once. Save both originals first for
-     * the escape hatch, then patch with a unified wrapper that dispatches based
-     * on the calling class type.
-     */
-    state->original_date_today = state->date_today->m_ml->ml_meth;
-    state->original_datetime_today = state->date_today->m_ml->ml_meth;
-    state->date_today->m_ml->ml_meth = _time_machine_today;
 
     /*
         time.clock_gettime(), only available on Unix platforms.
@@ -622,7 +551,6 @@ _time_machine_unpatch(PyObject *module, PyObject *unused)
 
     state->date_today->m_ml->ml_meth = state->original_date_today;
     state->original_date_today = NULL;
-    state->original_datetime_today = NULL;
 
     /*
         time.clock_gettime(), only available on Unix platforms.
@@ -673,14 +601,6 @@ static PyMethodDef module_functions[] = {
         (PyCFunction)_time_machine_original_utcnow,
         METH_NOARGS,
         original_utcnow_doc},
-    {"original_date_today",
-        (PyCFunction)_time_machine_original_date_today,
-        METH_NOARGS,
-        original_date_today_doc},
-    {"original_datetime_today",
-        (PyCFunction)_time_machine_original_datetime_today,
-        METH_NOARGS,
-        original_datetime_today_doc},
 #if PY_VERSION_HEX >= 0x030d00a2
     {"original_clock_gettime",
         (PyCFunction)_time_machine_original_clock_gettime,
@@ -752,13 +672,13 @@ _time_machine_exec(PyObject *module)
         goto error;
     }
 
-    state->date_class = PyObject_GetAttrString(state->datetime_module, "date");
-    if (state->date_class == NULL) {
+    PyObject *date_class = PyObject_GetAttrString(state->datetime_module, "date");
+    if (date_class == NULL) {
         goto error;
     }
 
-    state->date_today =
-        (PyCFunctionObject *)PyObject_GetAttrString(state->date_class, "today");
+    state->date_today = (PyCFunctionObject *)PyObject_GetAttrString(date_class, "today");
+    Py_DECREF(date_class);
     if (state->date_today == NULL) {
         goto error;
     }
@@ -826,7 +746,6 @@ _time_machine_exec(PyObject *module)
 error:
     Py_CLEAR(state->datetime_module);
     Py_CLEAR(state->datetime_class);
-    Py_CLEAR(state->date_class);
     Py_CLEAR(state->datetime_datetime_now);
     Py_CLEAR(state->datetime_datetime_utcnow);
     Py_CLEAR(state->date_today);
@@ -847,7 +766,6 @@ _time_machine_traverse(PyObject *module, visitproc visit, void *arg)
     _time_machine_state *state = get_time_machine_state(module);
     Py_VISIT(state->datetime_module);
     Py_VISIT(state->datetime_class);
-    Py_VISIT(state->date_class);
     Py_VISIT(state->datetime_datetime_now);
     Py_VISIT(state->datetime_datetime_utcnow);
     Py_VISIT(state->date_today);
@@ -868,7 +786,6 @@ _time_machine_clear(PyObject *module)
     _time_machine_state *state = get_time_machine_state(module);
     Py_CLEAR(state->datetime_module);
     Py_CLEAR(state->datetime_class);
-    Py_CLEAR(state->date_class);
     Py_CLEAR(state->datetime_datetime_now);
     Py_CLEAR(state->datetime_datetime_utcnow);
     Py_CLEAR(state->date_today);

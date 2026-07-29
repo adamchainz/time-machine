@@ -413,16 +413,6 @@ def utcnow() -> dt.datetime:
     return dt.datetime.fromtimestamp(time(), dt.timezone.utc).replace(tzinfo=None)
 
 
-def date_today() -> dt.date:
-    # Convert timestamp to date in local timezone
-    return dt.datetime.fromtimestamp(time()).date()
-
-
-def datetime_today() -> dt.datetime:
-    # Convert timestamp to datetime in local timezone
-    return dt.datetime.fromtimestamp(time())
-
-
 # time module
 
 
@@ -547,8 +537,9 @@ if HAVE_PYTEST:  # pragma: no branch
 
 class _EscapeHatchDatetimeDate:
     def today(self) -> dt.date:
-        result: dt.date = _time_machine.original_date_today()
-        return result
+        # date.today() is equivalent to datetime.now().date().
+        result: dt.datetime = _time_machine.original_now(None)
+        return result.date()
 
 
 class _EscapeHatchDatetimeDatetime:
@@ -557,7 +548,8 @@ class _EscapeHatchDatetimeDatetime:
         return result
 
     def today(self) -> dt.datetime:
-        result: dt.datetime = _time_machine.original_datetime_today()
+        # datetime.today() is equivalent to datetime.now() without a timezone.
+        result: dt.datetime = _time_machine.original_now(None)
         return result
 
     def utcnow(self) -> dt.datetime:
