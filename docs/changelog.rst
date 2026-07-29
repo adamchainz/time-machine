@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Support Python 3.15.
+
+  `PR #631 <https://github.com/adamchainz/time-machine/pull/631>`__.
+
 * Mock ``datetime.date.today()`` directly, for Python 3.15 support.
 
   Previously time-machine was mocked only indirectly, since CPython implemented it by calling ``cls.fromtimestamp(time.time())``.
