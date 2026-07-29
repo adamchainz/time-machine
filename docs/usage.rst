@@ -89,7 +89,9 @@ Main API
 
   All datetime functions in the standard library are mocked to move to the destination current datetime:
 
+  * ``datetime.date.today()``
   * ``datetime.datetime.now()``
+  * ``datetime.datetime.today()``
   * ``datetime.datetime.utcnow()``
   * ``time.clock_gettime()`` (only for ``CLOCK_REALTIME``)
   * ``time.clock_gettime_ns()`` (only for ``CLOCK_REALTIME``)
