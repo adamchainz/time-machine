@@ -27,14 +27,6 @@ else:
         pass
 
 
-# time.clock_gettime and time.CLOCK_REALTIME not always available
-# e.g. on builds against old macOS = official Python.org installer
-try:
-    from time import CLOCK_REALTIME
-except ImportError:
-    # Dummy value that won't compare equal to any value
-    CLOCK_REALTIME = sys.maxsize  # type: ignore[misc]
-
 try:
     from time import tzset
 
@@ -200,9 +192,6 @@ class Traveller:
         self._destination_tzname = destination_tzname
         self._tick = tick
         self._requested = False
-
-    def time(self) -> float:
-        return self.time_ns() / NANOSECONDS_PER_SECOND
 
     def time_ns(self) -> int:
         if not self._tick:
@@ -400,69 +389,6 @@ class travel:
                     return wrapped(*args, **kwargs)
 
             return cast(_F, wrapper)
-
-
-# datetime module
-
-
-def now(tz: dt.tzinfo | None = None) -> dt.datetime:
-    return dt.datetime.fromtimestamp(time(), tz)
-
-
-def utcnow() -> dt.datetime:
-    return dt.datetime.fromtimestamp(time(), dt.timezone.utc).replace(tzinfo=None)
-
-
-# time module
-
-
-def clock_gettime(clk_id: int) -> float:
-    if clk_id != CLOCK_REALTIME:
-        result: float = _time_machine.original_clock_gettime(clk_id)
-        return result
-    return time()
-
-
-def clock_gettime_ns(clk_id: int) -> int:
-    if clk_id != CLOCK_REALTIME:
-        result: int = _time_machine.original_clock_gettime_ns(clk_id)
-        return result
-    return time_ns()
-
-
-def gmtime(secs: float | None = None) -> struct_time:
-    result: struct_time
-    if secs is not None:
-        result = _time_machine.original_gmtime(secs)
-    else:
-        result = _time_machine.original_gmtime(traveller_stack[-1].time())
-    return result
-
-
-def localtime(secs: float | None = None) -> struct_time:
-    result: struct_time
-    if secs is not None:
-        result = _time_machine.original_localtime(secs)
-    else:
-        result = _time_machine.original_localtime(traveller_stack[-1].time())
-    return result
-
-
-def strftime(format: str, t: _TimeTuple | struct_time | None = None) -> str:
-    result: str
-    if t is not None:
-        result = _time_machine.original_strftime(format, t)
-    else:
-        result = _time_machine.original_strftime(format, localtime())
-    return result
-
-
-def time() -> float:
-    return traveller_stack[-1].time()
-
-
-def time_ns() -> int:
-    return traveller_stack[-1].time_ns()
 
 
 # pytest plugin
