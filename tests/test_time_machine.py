@@ -9,7 +9,6 @@ import time
 import typing
 import uuid
 from contextlib import contextmanager
-from importlib.util import module_from_spec, spec_from_file_location
 from textwrap import dedent
 from unittest import SkipTest, TestCase, mock
 from zoneinfo import ZoneInfo
@@ -52,28 +51,6 @@ def change_local_timezone(local_tz: str | None) -> typing.Iterator[None]:
         time.tzset()
 
 
-@pytest.mark.skipif(
-    not hasattr(time, "CLOCK_REALTIME"), reason="No time.CLOCK_REALTIME"
-)
-def test_import_without_clock_realtime():
-    orig = time.CLOCK_REALTIME
-    del time.CLOCK_REALTIME
-    try:
-        # Recipe for importing from path as documented in importlib
-        spec = spec_from_file_location(
-            f"{__name__}.time_machine_without_clock_realtime", time_machine.__file__
-        )
-        assert spec is not None
-        module = module_from_spec(spec)
-        # typeshed says exec_module does not always exist:
-        spec.loader.exec_module(module)  # type: ignore[union-attr]
-
-    finally:
-        time.CLOCK_REALTIME = orig  # type: ignore[misc]
-
-    # No assertions - testing for coverage only
-
-
 # datetime module
 
 
@@ -107,6 +84,37 @@ def test_datetime_now_arg():
     )
 
 
+def test_datetime_now_too_many_args():
+    with time_machine.travel(EPOCH):
+        with pytest.raises(TypeError) as excinfo:
+            dt.datetime.now(dt.timezone.utc, "extra")  # type: ignore[call-arg]
+        assert "now() takes at most 1 argument" in excinfo.value.args[0]
+
+
+def test_datetime_now_invalid_kwarg():
+    with time_machine.travel(EPOCH):
+        with pytest.raises(TypeError) as excinfo:
+            dt.datetime.now(bad=dt.timezone.utc)  # type: ignore[call-arg]
+        assert "got an unexpected keyword argument 'bad'" in excinfo.value.args[0]
+
+
+def test_datetime_now_tz_given_twice():
+    with time_machine.travel(EPOCH):
+        with pytest.raises(TypeError) as excinfo:
+            dt.datetime.now(dt.timezone.utc, tz=dt.timezone.utc)  # type: ignore[misc]
+        assert excinfo.value.args == ("now() takes at most 1 argument (2 given)",)
+
+
+def test_datetime_now_subclass():
+    class DatetimeSubclass(dt.datetime):
+        pass
+
+    with time_machine.travel(EPOCH):
+        now = DatetimeSubclass.now()
+        assert isinstance(now, DatetimeSubclass)
+        assert now.year == 1970
+
+
 def test_datetime_utcnow():
     with time_machine.travel(EPOCH):
         now = dt.datetime.utcnow()
@@ -125,6 +133,17 @@ def test_datetime_utcnow_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         now = dt.datetime.utcnow()
         assert now.microsecond == 0
+
+
+def test_datetime_utcnow_subclass():
+    class DatetimeSubclass(dt.datetime):
+        pass
+
+    with time_machine.travel(EPOCH):
+        now = DatetimeSubclass.utcnow()
+        assert isinstance(now, DatetimeSubclass)
+        assert now.year == 1970
+        assert now.tzinfo is None
 
 
 def test_date_today():
@@ -149,6 +168,20 @@ def test_time_clock_gettime_realtime():
     now = time.clock_gettime(time.CLOCK_REALTIME)
     assert isinstance(now, float)
     assert now >= LIBRARY_EPOCH
+
+
+@py_have_clock_gettime
+def test_time_clock_gettime_invalid_clk_id():
+    with time_machine.travel(EPOCH), pytest.raises(OSError):
+        time.clock_gettime(99999)
+
+
+@py_have_clock_gettime
+def test_time_clock_gettime_float_clk_id():
+    # Non-int clk_id values get the original function's behaviour, even if
+    # they compare equal to CLOCK_REALTIME.
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.clock_gettime(float(time.CLOCK_REALTIME))  # type: ignore[arg-type]
 
 
 @py_have_clock_gettime
@@ -179,6 +212,20 @@ def test_time_clock_gettime_ns_realtime():
     now = time.clock_gettime_ns(time.CLOCK_REALTIME)
     assert isinstance(now, int)
     assert now >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
+
+
+@py_have_clock_gettime
+def test_time_clock_gettime_ns_invalid_clk_id():
+    with time_machine.travel(EPOCH), pytest.raises(OSError):
+        time.clock_gettime_ns(99999)
+
+
+@py_have_clock_gettime
+def test_time_clock_gettime_ns_float_clk_id():
+    # Non-int clk_id values get the original function's behaviour, even if
+    # they compare equal to CLOCK_REALTIME.
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.clock_gettime_ns(float(time.CLOCK_REALTIME))  # type: ignore[arg-type]
 
 
 @py_have_clock_gettime
@@ -220,6 +267,16 @@ def test_time_gmtime_arg():
         assert local_time.tm_mday == 1
 
 
+def test_time_gmtime_invalid_arg():
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.gmtime("not-a-number")  # type: ignore[arg-type]
+
+
+def test_time_gmtime_too_many_args():
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.gmtime(EPOCH, EPOCH)  # type: ignore[call-arg]
+
+
 def test_time_localtime():
     with time_machine.travel(EPOCH):
         local_time = time.localtime()
@@ -244,6 +301,16 @@ def test_time_localtime_arg():
         assert local_time.tm_mday == 1
 
 
+def test_time_localtime_invalid_arg():
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.localtime("not-a-number")  # type: ignore[arg-type]
+
+
+def test_time_localtime_too_many_args():
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.localtime(EPOCH, EPOCH)  # type: ignore[call-arg]
+
+
 def test_time_strftime_format():
     with time_machine.travel(EPOCH):
         assert time.strftime("%Y-%m-%d") == "1970-01-01"
@@ -261,6 +328,21 @@ def test_time_strftime_format_t():
             time.strftime("%Y-%m-%d", time.localtime(EPOCH_PLUS_ONE_YEAR))
             == "1971-01-01"
         )
+
+
+def test_time_strftime_no_args():
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.strftime()  # type: ignore[call-arg]
+
+
+def test_time_strftime_too_many_args():
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.strftime("%Y", time.localtime(EPOCH), "extra")  # type: ignore[call-arg]
+
+
+def test_time_strftime_invalid_tuple():
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.strftime("%Y", ("not", "a", "valid", "tuple"))  # type: ignore[arg-type]
 
 
 def test_time_time():
@@ -942,6 +1024,37 @@ def test_c_extension_init_import_error():
     assert result.stdout == "import of datetime halted; None in sys.modules\n"
 
 
+@py_have_clock_gettime
+def test_c_extension_init_without_clock_realtime():
+    # time.CLOCK_REALTIME is not always available, e.g. on builds against old
+    # macOS = official Python.org installer. The C extension checks for it at
+    # import time; without it, time.clock_gettime() passes through to the real
+    # clock even while time travelling.
+    code = dedent(
+        """\
+        import time
+        clock_realtime = time.CLOCK_REALTIME
+        del time.CLOCK_REALTIME
+
+        import time_machine
+
+        with time_machine.travel(0.0, tick=False):
+            assert time.time() == 0.0
+            assert time.clock_gettime(clock_realtime) > 0.0
+        print("ok")
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    assert result.stdout == "ok\n"
+
+
 @pytest.mark.parametrize(
     "func, args",
     [
@@ -989,7 +1102,7 @@ def test_time_machine_attribute_error(func, args):
     ):
         func(*args)
 
-    assert excinfo.value.args == (f"'tuple' object has no attribute '{func.__name__}'",)
+    assert excinfo.value.args == ("'tuple' object has no attribute 'traveller_stack'",)
 
 
 # freeezegun conflict tests

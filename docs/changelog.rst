@@ -14,6 +14,16 @@ Changelog
 
   Thanks to Miro Hrončok and Karolina Surma for the report in `Issue #610 <https://github.com/adamchainz/time-machine/issues/610>`__, Lumír 'Frenzy' Balhar for the fix in `PR #618 <https://github.com/adamchainz/time-machine/pull/618>`__, and Maurycy Pawłowski-Wieroński for review
 
+* Move the intermediary functions that patched functions call from Python to C.
+  This change reduces the overhead of calling patched functions like ``time.time()`` while time travelling, making them around 10-20% faster.
+
+  `PR #643 <https://github.com/adamchainz/time-machine/pull/643>`__.
+
+* Fix returning ``datetime`` subclasses from their ``now()`` and ``utcnow()`` methods while time travelling.
+  Previously, time-machine would always return a plain ``datetime.datetime`` instance, rather than the subclass.
+
+  `PR #643 <https://github.com/adamchainz/time-machine/pull/643>`__.
+
 * Build with frame pointers enabled, preparation for `PEP 831 <https://peps.python.org/pep-0831/>`__.
 
   `PR #627 <https://github.com/adamchainz/time-machine/issues/627>`__.
