@@ -246,6 +246,42 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_attr_tick(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_attr_tick_false(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
     def test_function_decorator_name_unrelated(self):
         check_noop(
             """
@@ -288,6 +324,24 @@ class TestMigrateContents:
             import time_machine
 
             @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_name_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=True)
             def test_function():
                 pass
             """,
@@ -447,6 +501,26 @@ class TestMigrateContents:
             class TestClass(TestBase):
                 def setUp(self):
                     print("I look like a unittest class!")
+            """,
+        )
+
+    def test_class_decorator_attr_unittest_class_base_name_tick(self):
+        check_transformed(
+            """
+            import freezegun
+            from django.test import SimpleTestCase
+
+            @freezegun.freeze_time("2023-01-01", tick=True)
+            class TestClass(SimpleTestCase):
+                pass
+            """,
+            """
+            import time_machine
+            from django.test import SimpleTestCase
+
+            @time_machine.travel("2023-01-01", tick=True)
+            class TestClass(SimpleTestCase):
+                pass
             """,
         )
 
@@ -635,6 +709,22 @@ class TestMigrateContents:
             import time_machine
 
             with time_machine.travel("2023-01-01", tick=False):
+                pass
+            """,
+        )
+
+    def test_with_attr_tick(self):
+        check_transformed(
+            """
+            import freezegun
+
+            with freezegun.freeze_time("2023-01-01", tick=True):
+                pass
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=True):
                 pass
             """,
         )
