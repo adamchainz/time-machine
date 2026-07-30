@@ -14,6 +14,14 @@ Changelog
 
   Thanks to Miro Hrončok and Karolina Surma for the report in `Issue #610 <https://github.com/adamchainz/time-machine/issues/610>`__, Lumír 'Frenzy' Balhar for the fix in `PR #618 <https://github.com/adamchainz/time-machine/pull/618>`__, and Maurycy Pawłowski-Wieroński for review
 
+* Support isolated subinterpreters, as created by |concurrent.interpreters|__ on Python 3.14+.
+  Previously, importing time-machine in an isolated subinterpreter failed with an ``ImportError``.
+
+  .. |concurrent.interpreters| replace:: ``concurrent.interpreters``
+  __ https://docs.python.org/3.14/library/concurrent.interpreters.html
+
+  `PR #644 <https://github.com/adamchainz/time-machine/pull/644>`__.
+
 * Move the intermediary functions that patched functions call from Python to C.
   This change reduces the overhead of calling patched functions like ``time.time()`` while time travelling, making them around 10-20% faster.
 
