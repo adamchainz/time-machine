@@ -1065,6 +1065,70 @@ def test_subinterpreters():
     assert result.stdout == "OK\n"
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 13), reason="subinterpreter API added in Python 3.13"
+)
+def test_subinterpreters_not_travelling_see_real_time():
+    """
+    Patching applies process-wide, but interpreters that are not travelling
+    fall back to the original functions and see the real time, whether or not
+    they have imported time_machine.
+    """
+    code = dedent(
+        f"""
+        import sys
+        import time
+
+        import time_machine
+
+        SUB_CODE = '''
+        import datetime as dt
+        import time
+        assert time.time() >= {LIBRARY_EPOCH}, time.time()
+        assert dt.datetime.now().year >= 2020
+        assert dt.date.today().year >= 2020
+        import time_machine
+        assert time.time() >= {LIBRARY_EPOCH}, time.time()
+        '''
+
+        with time_machine.travel(0.0, tick=False):
+            assert time.time() == 0.0
+
+            if sys.version_info >= (3, 14):
+                from concurrent import interpreters
+
+                interp = interpreters.create()
+                try:
+                    interp.exec(SUB_CODE)
+                finally:
+                    interp.close()
+            else:
+                import _interpreters
+
+                interp_id = _interpreters.create()
+                try:
+                    excinfo = _interpreters.exec(interp_id, SUB_CODE)
+                    if excinfo is not None:
+                        raise RuntimeError(excinfo.formatted)
+                finally:
+                    _interpreters.destroy(interp_id)
+
+            assert time.time() == 0.0
+
+        print("OK")
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "OK\n"
+
+
 # error handling tests
 
 
@@ -1122,53 +1186,37 @@ def test_c_extension_init_without_clock_realtime():
 
 
 @pytest.mark.parametrize(
-    "func, args",
+    "bad_value",
     [
-        (dt.datetime.now, ()),
-        (dt.datetime.utcnow, ()),
-        (time.gmtime, ()),
-        (time.clock_gettime, (time.CLOCK_REALTIME,)),
-        (time.clock_gettime_ns, (time.CLOCK_REALTIME,)),
-        (time.localtime, ()),
-        (time.strftime, ("%Y-%m-%d",)),
-        (time.time, ()),
-        (time.time_ns, ()),
+        pytest.param(None, id="import blocked"),
+        pytest.param((), id="broken module"),
     ],
 )
-def test_time_machine_import_error(func, args):
-    with (
-        time_machine.travel(EPOCH),
-        mock.patch.dict(sys.modules, {"time_machine": None}),
-        pytest.raises(ModuleNotFoundError) as excinfo,
-    ):
-        func(*args)
+def test_fallback_time_machine_unavailable(bad_value):
+    """
+    If the time_machine module is unavailable or broken in the calling
+    interpreter, patched functions fall back to the original functions and
+    return the real time.
+    """
+    with time_machine.travel(EPOCH):
+        with mock.patch.dict(sys.modules, {"time_machine": bad_value}):
+            assert time.time() >= LIBRARY_EPOCH
+            assert time.time_ns() >= int(LIBRARY_EPOCH * NANOSECONDS_PER_SECOND)
+            assert time.gmtime().tm_year >= 2020
+            assert time.localtime().tm_year >= 2020
+            assert int(time.strftime("%Y")) >= 2020
+            if hasattr(time, "clock_gettime"):
+                assert time.clock_gettime(time.CLOCK_REALTIME) >= LIBRARY_EPOCH
+                assert time.clock_gettime_ns(time.CLOCK_REALTIME) >= int(
+                    LIBRARY_EPOCH * NANOSECONDS_PER_SECOND
+                )
+            assert dt.datetime.now().year >= 2020
+            assert dt.datetime.now(dt.timezone.utc).year >= 2020
+            assert dt.datetime.utcnow().year >= 2020
+            assert dt.date.today().year >= 2020
 
-    assert excinfo.value.args == ("import of time_machine halted; None in sys.modules",)
-
-
-@pytest.mark.parametrize(
-    "func, args",
-    [
-        (dt.datetime.now, ()),
-        (dt.datetime.utcnow, ()),
-        (time.gmtime, ()),
-        (time.clock_gettime, (time.CLOCK_REALTIME,)),
-        (time.clock_gettime_ns, (time.CLOCK_REALTIME,)),
-        (time.localtime, ()),
-        (time.strftime, ("%Y-%m-%d",)),
-        (time.time, ()),
-        (time.time_ns, ()),
-    ],
-)
-def test_time_machine_attribute_error(func, args):
-    with (
-        time_machine.travel(EPOCH),
-        mock.patch.dict(sys.modules, {"time_machine": ()}),
-        pytest.raises(AttributeError) as excinfo,
-    ):
-        func(*args)
-
-    assert excinfo.value.args == ("'tuple' object has no attribute '_time_machine'",)
+        # Still travelling once time_machine is reachable again.
+        assert time.time() == pytest.approx(EPOCH, abs=10.0)
 
 
 # freeezegun conflict tests

@@ -25,9 +25,12 @@ Changelog
   `PR #643 <https://github.com/adamchainz/time-machine/pull/643>`__.
 
 * Support isolated subinterpreters, as created by |concurrent.interpreters|__ on Python 3.14+, on Python 3.12+.
+  Previously, importing time-machine in an isolated subinterpreter failed with an ``ImportError``.
 
   .. |concurrent.interpreters| replace:: ``concurrent.interpreters``
   __ https://docs.python.org/3.14/library/concurrent.interpreters.html
+
+  One interpreter may time travel at a time, whilst patched functions called in other interpreters fall back to the original functions and return the real time.
 
 * Build with frame pointers enabled, preparation for `PEP 831 <https://peps.python.org/pep-0831/>`__.
 
