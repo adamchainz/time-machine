@@ -177,11 +177,46 @@ Call datetime.datetime.now() after patching.");
 
 /* datetime.datetime.utcnow() */
 
+/* Return aware.replace(tzinfo=None), stealing the reference to aware. */
+static PyObject *
+_time_machine_drop_tzinfo(PyObject *aware)
+{
+    PyObject *stack[2] = {aware, Py_None};
+    PyObject *result = PyObject_VectorcallMethod(
+        str_replace, stack, 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, tzinfo_kwnames);
+    Py_DECREF(aware);
+    return result;
+}
+
+/*
+    Copy Python 3.12’s DeprecationWarning for datetime.datetime.utcnow().
+    Returns 0 on success, -1 with an exception set, like PyErr_WarnEx().
+*/
+static int
+_time_machine_warn_utcnow_deprecated(Py_ssize_t stacklevel)
+{
+#if PY_VERSION_HEX >= 0x030c0000
+    return PyErr_WarnEx(PyExc_DeprecationWarning,
+        "datetime.datetime.utcnow() is deprecated and scheduled for removal in "
+        "a future version. Use timezone-aware objects to represent datetimes "
+        "in UTC: datetime.datetime.now(datetime.UTC).",
+        stacklevel);
+#else
+    (void)stacklevel;
+    return 0;
+#endif
+}
+
 static PyObject *
 _time_machine_utcnow(PyObject *cls, PyObject *args)
 {
     _time_machine_state *state = _time_machine_get_module_state();
     if (state == NULL) {
+        return NULL;
+    }
+
+    // Warn as the original function would, pointing at its caller.
+    if (_time_machine_warn_utcnow_deprecated(1) < 0) {
         return NULL;
     }
 
@@ -199,11 +234,7 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
     }
 
     // aware.replace(tzinfo=None)
-    PyObject *stack[2] = {aware, Py_None};
-    PyObject *result = PyObject_VectorcallMethod(
-        str_replace, stack, 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, tzinfo_kwnames);
-    Py_DECREF(aware);
-    return result;
+    return _time_machine_drop_tzinfo(aware);
 }
 
 static PyObject *
@@ -211,19 +242,37 @@ _time_machine_original_utcnow(PyObject *module, PyObject *args)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
-    if (state->original_utcnow == NULL) {
+    if (state->original_now == NULL) {
         PyErr_SetString(PyExc_ValueError, "Not currently time-travelling.");
         return NULL;
     }
 
-    PyObject *result = state->original_utcnow(state->datetime_class, args);
+    /*
+        Warn pointing at the caller of the Python wrapper in time_machine that
+        calls this function (stacklevel 2), rather than the wrapper itself.
+    */
+    if (_time_machine_warn_utcnow_deprecated(2) < 0) {
+        return NULL;
+    }
 
-    return result;
+    /*
+        Calling the original datetime.datetime.utcnow() would raise a second,
+        misattributed DeprecationWarning on Python 3.12+. Use the original
+        datetime.datetime.now(timezone.utc) instead, which is equivalent apart
+        from returning an aware datetime.
+    */
+    PyObject *now_args[1] = {state->timezone_utc};
+    PyObject *aware = state->original_now(state->datetime_class, now_args, 1, NULL);
+    if (aware == NULL) {
+        return NULL;
+    }
+
+    return _time_machine_drop_tzinfo(aware);
 }
 PyDoc_STRVAR(original_utcnow_doc,
     "original_utcnow() -> datetime\n\
 \n\
-Call datetime.datetime.utcnow() after patching.");
+Return what datetime.datetime.utcnow() would, after patching.");
 
 /* datetime.date.today() and datetime.datetime.today()
  * Note: datetime.datetime doesn't define its own today(), it inherits from date.
