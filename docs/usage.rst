@@ -15,6 +15,12 @@ This document covers time-machine’s API.
     Also beware that other processes are not affected.
     For example, if you call datetime functions on a database server, they will return the real time.
 
+    Similarly, each interpreter’s time travelling only affects itself, when using |concurrent.interpreters|__.
+    Patched functions called in interpreters that are not travelling fall back to the original functions and return the real time.
+
+    .. |concurrent.interpreters| replace:: ``concurrent.interpreters``
+    __ https://docs.python.org/3.14/library/concurrent.interpreters.html
+
 Main API
 ========
 
