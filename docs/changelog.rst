@@ -42,6 +42,11 @@ Changelog
 
   Thanks to George-Cristian Birzan for the report in `Issue #608 <https://github.com/adamchainz/time-machine/issues/608>`__ and Sanjay Santhanam for the fix in `PR #640 <https://github.com/adamchainz/time-machine/pull/640>`__.
 
+* Fix the :ref:`Migration CLI <migration-cli>` to leave relative imports called ``freezegun`` alone.
+  Previously it rewrote ``from .freezegun import freeze_time``, which imports from a local module that happens to share freezegun’s name.
+
+  `PR #645 <https://github.com/adamchainz/time-machine/pull/645>`__.
+
 3.2.0 (2025-12-17)
 ------------------
 

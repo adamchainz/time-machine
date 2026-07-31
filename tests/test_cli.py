@@ -171,6 +171,11 @@ class TestMigrateContents:
             "from libfaketime import freeze_time",
         )
 
+    def test_import_from_relative(self):
+        check_noop(
+            "from .freezegun import freeze_time",
+        )
+
     def test_import_from_freezegun_aliased(self):
         check_noop(
             "from freezegun import freeze_time as ft",
