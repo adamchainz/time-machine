@@ -987,6 +987,19 @@ def time_from_uuid1(value: uuid.UUID) -> dt.datetime:
     return dt.datetime(1582, 10, 15) + dt.timedelta(microseconds=value.time // 10)
 
 
+time_from_uuid6 = time_from_uuid1
+
+
+def time_from_uuid7(value: uuid.UUID) -> dt.datetime:
+    return dt.datetime(1970, 1, 1) + dt.timedelta(milliseconds=value.time)
+
+
+uuid_generators = [pytest.param(uuid.uuid1, time_from_uuid1, id="uuid1")]
+if sys.version_info >= (3, 14):
+    uuid_generators.append(pytest.param(uuid.uuid6, time_from_uuid6, id="uuid6"))
+    uuid_generators.append(pytest.param(uuid.uuid7, time_from_uuid7, id="uuid7"))
+
+
 def test_uuid1():
     """
     Test that the uuid.uuid1() methods generate values for the destination.
@@ -997,6 +1010,89 @@ def test_uuid1():
 
     with time_machine.travel(destination, tick=False):
         assert time_from_uuid1(uuid.uuid1()) == destination
+
+
+@pytest.mark.parametrize(("generate", "time_from"), uuid_generators)
+def test_uuid_travel_backwards(generate, time_from):
+    future = dt.datetime(2056, 2, 6, 14, 3, 21)
+    past = dt.datetime(1978, 7, 6, 23, 6, 31)
+
+    with time_machine.travel(future, tick=False):
+        assert time_from(generate()) == future
+
+    with time_machine.travel(past, tick=False):
+        assert time_from(generate()) == past
+
+
+@pytest.mark.parametrize(("generate", "time_from"), uuid_generators)
+def test_uuid_travel_backwards_nested(generate, time_from):
+    future = dt.datetime(2056, 2, 6, 14, 3, 21)
+    past = dt.datetime(1978, 7, 6, 23, 6, 31)
+
+    with time_machine.travel(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=False):
+        with time_machine.travel(future, tick=False):
+            assert time_from(generate()) == future
+
+        assert time_from(generate()) == EPOCH_PLUS_ONE_YEAR_DATETIME.replace(
+            tzinfo=None
+        )
+
+        with time_machine.travel(past, tick=False):
+            assert time_from(generate()) == past
+
+
+@pytest.mark.parametrize(("generate", "time_from"), uuid_generators)
+def test_uuid_shift_backwards(generate, time_from):
+    destination = dt.datetime(2056, 2, 6, 14, 3, 21)
+
+    with time_machine.travel(destination, tick=False) as traveller:
+        assert time_from(generate()) == destination
+
+        traveller.shift(-dt.timedelta(days=1))
+
+        assert time_from(generate()) == destination - dt.timedelta(days=1)
+
+
+@pytest.mark.parametrize(("generate", "time_from"), uuid_generators)
+def test_uuid_move_to_backwards(generate, time_from):
+    future = dt.datetime(2056, 2, 6, 14, 3, 21)
+    past = dt.datetime(1978, 7, 6, 23, 6, 31)
+
+    with time_machine.travel(future, tick=False) as traveller:
+        assert time_from(generate()) == future
+
+        traveller.move_to(past)
+
+        assert time_from(generate()) == past
+
+
+@pytest.mark.parametrize(("generate", "time_from"), uuid_generators)
+def test_uuid_after_travel(generate, time_from):
+    """
+    Travelling to the future should not leave the uuid module stuck there
+    after time travel has stopped.
+    """
+    with time_machine.travel(dt.datetime(2056, 2, 6, 14, 3, 21), tick=False):
+        generate()
+
+    now = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+    assert abs(time_from(generate()) - now) < dt.timedelta(seconds=10)
+
+
+@pytest.mark.parametrize(("generate", "time_from"), uuid_generators)
+def test_uuid_monotonic_within_travel(generate, time_from):
+    """
+    Resetting the cached timestamps should not break the ordering guarantee
+    for values generated at a single point in time.
+    """
+    destination = dt.datetime(2056, 2, 6, 14, 3, 21)
+
+    with time_machine.travel(destination, tick=False):
+        first = generate()
+        second = generate()
+
+    assert time_from(first) == destination
+    assert first < second
 
 
 # error handling tests

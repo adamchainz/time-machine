@@ -67,6 +67,21 @@ SYSTEM_EPOCH_TIMESTAMP_NS = int(
     * NANOSECONDS_PER_SECOND
 )
 
+# uuid1(), uuid6(), and uuid7() cache the timestamp of the last value they
+# generated in a module-level global, and never generate a value before it.
+# We therefore clear those caches when we travel backwards in time, so that
+# those functions generate values with correct timestamps.
+_uuid_dict = uuid.__dict__
+_uuid_reset = {"_last_timestamp": None}
+if sys.version_info >= (3, 14):
+    _uuid_reset["_last_timestamp_v6"] = None
+    _uuid_reset["_last_timestamp_v7"] = None
+
+
+def _reset_uuid_timestamps() -> None:
+    _uuid_dict.update(_uuid_reset)
+
+
 DestinationBaseType: TypeAlias = (
     int | float | dt.datetime | dt.timedelta | dt.date | str
 )
@@ -217,6 +232,11 @@ class Traveller:
 
         self._destination_timestamp_ns += int(total_seconds * NANOSECONDS_PER_SECOND)
 
+        if total_seconds < 0:
+            # Moving forwards leaves the cached uuid timestamps in the past, so
+            # only pay for resetting them when moving backwards.
+            _reset_uuid_timestamps()
+
     def move_to(
         self,
         destination: DestinationType,
@@ -231,6 +251,8 @@ class Traveller:
             self._tick = tick
 
     def _start(self) -> None:
+        _reset_uuid_timestamps()
+
         if HAVE_TZSET and self._destination_tzname is not None:
             self._orig_tz = os.environ.get("TZ")
             os.environ["TZ"] = self._destination_tzname
@@ -288,6 +310,8 @@ class travel:
 
     def stop(self) -> None:
         traveller_stack.pop()._stop()
+
+        _reset_uuid_timestamps()
 
         if not traveller_stack:
             _time_machine.unpatch()
