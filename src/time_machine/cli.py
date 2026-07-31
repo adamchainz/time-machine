@@ -147,7 +147,8 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                 freezegun_import_seen = True
                 ret[ast_start_offset(node)].append(replace_import)
             case ast.ImportFrom() if (
-                node.module == "freezegun"
+                node.level == 0
+                and node.module == "freezegun"
                 and len(node.names) == 1
                 and (alias := node.names[0]).name == "freeze_time"
                 and alias.asname is None
