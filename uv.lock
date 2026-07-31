@@ -860,7 +860,7 @@ wheels = [
 
 [[package]]
 name = "time-machine"
-version = "3.2.0"
+version = "3.3.0"
 source = { editable = "." }
 
 [package.optional-dependencies]

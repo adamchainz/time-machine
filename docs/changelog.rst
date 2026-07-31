@@ -2,6 +2,9 @@
 Changelog
 =========
 
+3.3.0 (2026-07-31)
+------------------
+
 * Support Python 3.15.
 
   `PR #631 <https://github.com/adamchainz/time-machine/pull/631>`__.
