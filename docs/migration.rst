@@ -81,7 +81,9 @@ The changes the tool makes are:
 
 * ``import freezegun`` -> ``import time_machine``
 
-* ``from freezegun import freeze_time`` -> ``from time_machine import travel``
+* ``from freezegun import freeze_time`` -> ``import time_machine``
+
+* ``from freezegun import freeze_time, FakeDate`` -> ``import time_machine`` plus ``from freezegun import FakeDate``, keeping the other imported names.
 
 * In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(...)``.
   This change is applied only when ``freeze_time()`` is called with a single positional argument and up to one keyword argument, ``tick``.

@@ -182,8 +182,81 @@ class TestMigrateContents:
         )
 
     def test_import_from_freezegun_multiple(self):
-        check_noop(
+        check_transformed(
             "from freezegun import freeze_time, FakeDate",
+            "import time_machine\nfrom freezegun import FakeDate",
+        )
+
+    def test_import_from_freezegun_multiple_aliased(self):
+        check_transformed(
+            "from freezegun import freeze_time, FakeDate as FD",
+            "import time_machine\nfrom freezegun import FakeDate as FD",
+        )
+
+    def test_import_from_freezegun_multiple_only_aliased_freeze_time(self):
+        check_noop(
+            "from freezegun import freeze_time as ft, FakeDate",
+        )
+
+    def test_import_from_freezegun_multiple_parenthesized(self):
+        check_transformed(
+            """\
+            from freezegun import (
+                freeze_time,
+                FakeDate,
+            )
+            """,
+            """\
+            import time_machine
+            from freezegun import FakeDate
+            """,
+        )
+
+    def test_import_from_freezegun_multiple_indented(self):
+        check_transformed(
+            """\
+            def f():
+                from freezegun import freeze_time, FakeDate
+            """,
+            """\
+            def f():
+                import time_machine
+                from freezegun import FakeDate
+            """,
+        )
+
+    def test_import_from_freezegun_multiple_indented_not_first_statement(self):
+        check_transformed(
+            """\
+            def f():
+                x = 1
+                from freezegun import freeze_time, FakeDate
+            """,
+            """\
+            def f():
+                x = 1
+                import time_machine
+                from freezegun import FakeDate
+            """,
+        )
+
+    def test_import_from_freezegun_multiple_used(self):
+        check_transformed(
+            """\
+            from freezegun import freeze_time, FakeDate
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """\
+            import time_machine
+            from freezegun import FakeDate
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
         )
 
     def test_import_from_freezegun(self):
