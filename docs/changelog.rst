@@ -2,6 +2,17 @@
 Changelog
 =========
 
+* Fix the standard |uuid|__ library functions ``uuid1()``, ``uuid6()``, and ``uuid7()`` to correctly generate values for the destination when time travels backwards.
+  These functions cache the timestamp of the value they generated most recently, and never generate a value stamped before it.
+  Previously, after time-travelling backwards, these functions would keep generating values stamped for the cached timestamp, rather than the new destination.
+  The caches are now reset whenever time travel starts, stops, or moves backwards.
+
+  .. |uuid| replace:: ``uuid``
+  __ https://docs.python.org/3/library/uuid.html
+
+  `PR #648 <https://github.com/adamchainz/time-machine/pull/648>`__.
+  Thanks to Diego Carrasco for the report in `Issue #601 <https://github.com/adamchainz/time-machine/issues/601>`__ and initial work in `PR #597 <https://github.com/adamchainz/time-machine/pull/597>`__.
+
 * Support Python 3.15.
 
   `PR #631 <https://github.com/adamchainz/time-machine/pull/631>`__.
