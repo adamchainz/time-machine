@@ -19,6 +19,7 @@ from tokenize_rt import (
 
 CODE = "CODE"
 DEDENT = "DEDENT"
+INDENT = "INDENT"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -149,13 +150,22 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
             case ast.ImportFrom() if (
                 node.level == 0
                 and node.module == "freezegun"
-                and len(node.names) == 1
-                and (alias := node.names[0]).name == "freeze_time"
-                and alias.asname is None
+                and any(
+                    alias.name == "freeze_time" and alias.asname is None
+                    for alias in node.names
+                )
             ):
                 freeze_time_import_seen = True
                 ret[ast_start_offset(node)].append(
-                    partial(replace_import_from, node=node)
+                    partial(
+                        replace_import_from,
+                        node=node,
+                        keep=[
+                            unparse_alias(alias)
+                            for alias in node.names
+                            if alias.name != "freeze_time" or alias.asname is not None
+                        ],
+                    )
                 )
             case ast.FunctionDef() | ast.AsyncFunctionDef():
                 for decorator in node.decorator_list:
@@ -329,9 +339,34 @@ def replace_import(tokens: list[Token], i: int) -> None:
     tokens[i] = Token(name="NAME", src="time_machine")
 
 
-def replace_import_from(tokens: list[Token], i: int, node: ast.ImportFrom) -> None:
+def unparse_alias(alias: ast.alias) -> str:
+    if alias.asname is not None:
+        return f"{alias.name} as {alias.asname}"
+    return alias.name
+
+
+def replace_import_from(
+    tokens: list[Token], i: int, node: ast.ImportFrom, keep: list[str]
+) -> None:
+    """
+    Replace a from-import of freeze_time with `import time_machine`, re-adding
+    a from-import of any other names that were imported alongside it.
+    """
     j = find_last_token(tokens, i, node=node)
-    tokens[i : j + 1] = [Token(name=CODE, src="import time_machine")]
+    src = "import time_machine"
+    if keep:
+        src += f"\n{line_indent(tokens, i)}from {node.module} import {', '.join(keep)}"
+    tokens[i : j + 1] = [Token(name=CODE, src=src)]
+
+
+def line_indent(tokens: list[Token], i: int) -> str:
+    """
+    Return the whitespace indenting the line that the given token starts.
+    """
+    if i > 0 and tokens[i - 1].name in (INDENT, UNIMPORTANT_WS):
+        # no types for tokenize-rt
+        return tokens[i - 1].src  # type: ignore [no-any-return]
+    return ""
 
 
 def switch_to_travel(

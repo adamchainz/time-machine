@@ -47,6 +47,11 @@ Changelog
 
   `PR #645 <https://github.com/adamchainz/time-machine/pull/645>`__.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to rewrite from-imports that import ``freeze_time`` alongside other names.
+  For example, ``from freezegun import freeze_time, FakeDate`` now becomes ``import time_machine`` plus ``from freezegun import FakeDate``.
+
+  `PR #647 <https://github.com/adamchainz/time-machine/pull/647>`__.
+
 3.2.0 (2025-12-17)
 ------------------
 
