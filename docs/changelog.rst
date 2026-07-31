@@ -35,6 +35,18 @@ Changelog
 
   `PR #643 <https://github.com/adamchainz/time-machine/pull/643>`__.
 
+* Fix hiding of the ``DeprecationWarning`` from |datetime.utcnow()|__ on Python 3.12+ while time travelling.
+  Previously, the mocked version of the function did not raise the warning at all, so deprecated calls could pass unnoticed in tests.
+  The warning is attributed to the calling code, like the real function does.
+
+  .. |datetime.utcnow()| replace:: ``datetime.utcnow()``
+  __ https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
+
+  The :ref:`escape hatch <escape-hatch>` function ``escape_hatch.datetime.datetime.utcnow()`` also now attributes its warning to the calling code, rather than to a line within time-machine.
+
+  `PR #649 <https://github.com/adamchainz/time-machine/pull/>`__.
+  Thanks to Tamir Duberstein for the report in `Issue #445 <https://github.com/adamchainz/time-machine/issues/445>`__ and Anders Kaseorg for the initial implementation in `PR #486 <https://github.com/adamchainz/time-machine/pull/486>`__.
+
 * Build with frame pointers enabled, preparation for `PEP 831 <https://peps.python.org/pep-0831/>`__.
 
   `PR #627 <https://github.com/adamchainz/time-machine/issues/627>`__.

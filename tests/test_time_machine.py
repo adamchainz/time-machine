@@ -8,7 +8,9 @@ import sys
 import time
 import typing
 import uuid
+import warnings
 from contextlib import contextmanager
+from pathlib import Path
 from textwrap import dedent
 from unittest import SkipTest, TestCase, mock
 from zoneinfo import ZoneInfo
@@ -30,6 +32,24 @@ LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
 py_have_clock_gettime = pytest.mark.skipif(
     not hasattr(time, "clock_gettime"), reason="Doesn't have clock_gettime"
 )
+py_utcnow_deprecated = pytest.mark.skipif(
+    sys.version_info < (3, 12), reason="utcnow() not deprecated before Python 3.12"
+)
+py_utcnow_not_deprecated = pytest.mark.skipif(
+    sys.version_info >= (3, 12), reason="utcnow() deprecated on Python 3.12+"
+)
+
+
+file_source = Path(__file__).read_text().splitlines()
+
+
+def assert_warned_here(record: warnings.WarningMessage) -> None:
+    """
+    Assert the warning was attributed to a line marked with a trailing
+    “# warns here” comment, rather than to time-machine’s own code.
+    """
+    assert record.filename == __file__
+    assert file_source[record.lineno - 1].endswith("# warns here")
 
 
 def sleep_one_cycle(clock: int) -> None:
@@ -127,6 +147,27 @@ def test_datetime_utcnow():
         assert now.microsecond == 0
         assert now.tzinfo is None
     assert dt.datetime.utcnow() >= LIBRARY_EPOCH_DATETIME
+
+
+@py_utcnow_deprecated
+def test_datetime_utcnow_deprecation_warning():
+    with pytest.warns(DeprecationWarning) as unpatched_records:
+        dt.datetime.utcnow()  # warns here
+    assert_warned_here(unpatched_records[0])
+
+    with time_machine.travel(EPOCH), pytest.warns(DeprecationWarning) as records:
+        dt.datetime.utcnow()  # warns here
+
+    assert len(records) == 1
+    assert str(records[0].message) == str(unpatched_records[0].message)
+    assert_warned_here(records[0])
+
+
+@py_utcnow_not_deprecated
+def test_datetime_utcnow_no_deprecation_warning():
+    with time_machine.travel(EPOCH), warnings.catch_warnings():
+        warnings.simplefilter("error")
+        dt.datetime.utcnow()
 
 
 def test_datetime_utcnow_no_tick():
@@ -1576,6 +1617,25 @@ class TestEscapeHatch:
         with pytest.raises(ValueError) as excinfo:
             time_machine.escape_hatch.datetime.datetime.utcnow()
         assert excinfo.value.args == ("Not currently time-travelling.",)
+
+    @py_utcnow_deprecated
+    def test_datetime_utcnow_deprecation_warning(self):
+        with pytest.warns(DeprecationWarning) as unpatched_records:
+            dt.datetime.utcnow()  # warns here
+        assert_warned_here(unpatched_records[0])
+
+        with time_machine.travel(EPOCH), pytest.warns(DeprecationWarning) as records:
+            time_machine.escape_hatch.datetime.datetime.utcnow()  # warns here
+
+        assert len(records) == 1
+        assert str(records[0].message) == str(unpatched_records[0].message)
+        assert_warned_here(records[0])
+
+    @py_utcnow_not_deprecated
+    def test_datetime_utcnow_no_deprecation_warning(self):
+        with time_machine.travel(EPOCH), warnings.catch_warnings():
+            warnings.simplefilter("error")
+            time_machine.escape_hatch.datetime.datetime.utcnow()
 
     @py_have_clock_gettime
     def test_time_clock_gettime(self):
