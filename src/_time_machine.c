@@ -14,7 +14,10 @@ typedef struct {
     PyObject *str_replace;
     PyObject *str_fromtimestamp;
     PyObject *tzinfo_kwnames;
+    PyObject *microsecond_kwnames;
     PyObject *nanoseconds_per_second;
+    PyObject *nanoseconds_per_microsecond;
+    PyObject *microseconds_per_second;
     PyCFunctionObject *datetime_datetime_now;
     PyCFunctionObject *datetime_datetime_utcnow;
     PyCFunctionObject *date_today;
@@ -190,6 +193,67 @@ _time_machine_traveller_time(PyObject *traveller, _time_machine_state *state)
     return result;
 }
 
+/* Compute traveller.time_ns() // NANOSECONDS_PER_SECOND */
+static PyObject *
+_time_machine_traveller_seconds(PyObject *traveller, _time_machine_state *state)
+{
+    PyObject *time_ns = _time_machine_traveller_time_ns(traveller, state);
+    if (time_ns == NULL) {
+        return NULL;
+    }
+    PyObject *result = PyNumber_FloorDivide(time_ns, state->nanoseconds_per_second);
+    Py_DECREF(time_ns);
+    return result;
+}
+
+/*
+    Build the exact datetime for the traveller's current time:
+
+        cls.fromtimestamp(seconds, tz).replace(microsecond=microseconds)
+*/
+static PyObject *
+_time_machine_traveller_datetime(
+    PyObject *cls, PyObject *tz, PyObject *traveller, _time_machine_state *state)
+{
+    PyObject *time_ns = _time_machine_traveller_time_ns(traveller, state);
+    if (time_ns == NULL) {
+        return NULL;
+    }
+    PyObject *total_microseconds =
+        PyNumber_FloorDivide(time_ns, state->nanoseconds_per_microsecond);
+    Py_DECREF(time_ns);
+    if (total_microseconds == NULL) {
+        return NULL;
+    }
+    PyObject *seconds_microseconds =
+        PyNumber_Divmod(total_microseconds, state->microseconds_per_second);
+    Py_DECREF(total_microseconds);
+    if (seconds_microseconds == NULL) {
+        return NULL;
+    }
+    PyObject *seconds = PyTuple_GET_ITEM(seconds_microseconds, 0);
+    PyObject *microseconds = PyTuple_GET_ITEM(seconds_microseconds, 1);
+
+    PyObject *fromtimestamp_stack[3] = {cls, seconds, tz};
+    PyObject *whole_second = PyObject_VectorcallMethod(state->str_fromtimestamp,
+        fromtimestamp_stack,
+        3 | PY_VECTORCALL_ARGUMENTS_OFFSET,
+        NULL);
+    if (whole_second == NULL) {
+        Py_DECREF(seconds_microseconds);
+        return NULL;
+    }
+
+    PyObject *replace_stack[2] = {whole_second, microseconds};
+    PyObject *result = PyObject_VectorcallMethod(state->str_replace,
+        replace_stack,
+        1 | PY_VECTORCALL_ARGUMENTS_OFFSET,
+        state->microsecond_kwnames);
+    Py_DECREF(whole_second);
+    Py_DECREF(seconds_microseconds);
+    return result;
+}
+
 /* datetime.datetime.now() */
 
 static PyObject *
@@ -225,16 +289,9 @@ _time_machine_now(
         tz = args[0];
     }
 
-    // cls.fromtimestamp(traveller_time, tz)
-    PyObject *timestamp = _time_machine_traveller_time(traveller, state);
+    PyObject *result =
+        _time_machine_traveller_datetime((PyObject *)type, tz, traveller, state);
     Py_DECREF(traveller);
-    if (timestamp == NULL) {
-        return NULL;
-    }
-    PyObject *stack[3] = {(PyObject *)type, timestamp, tz};
-    PyObject *result = PyObject_VectorcallMethod(
-        state->str_fromtimestamp, stack, 3 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
-    Py_DECREF(timestamp);
     return result;
 }
 
@@ -304,18 +361,9 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
         return NULL;
     }
 
-    // cls.fromtimestamp(traveller_time, timezone.utc)
-    PyObject *timestamp = _time_machine_traveller_time(traveller, state);
+    PyObject *aware =
+        _time_machine_traveller_datetime(cls, state->timezone_utc, traveller, state);
     Py_DECREF(traveller);
-    if (timestamp == NULL) {
-        return NULL;
-    }
-    PyObject *fromtimestamp_stack[3] = {cls, timestamp, state->timezone_utc};
-    PyObject *aware = PyObject_VectorcallMethod(state->str_fromtimestamp,
-        fromtimestamp_stack,
-        3 | PY_VECTORCALL_ARGUMENTS_OFFSET,
-        NULL);
-    Py_DECREF(timestamp);
     if (aware == NULL) {
         return NULL;
     }
@@ -516,7 +564,7 @@ _time_machine_gmtime(PyObject *self, PyObject *args)
         return original_gmtime(self, args);
     }
 
-    PyObject *timestamp = _time_machine_traveller_time(traveller, state);
+    PyObject *timestamp = _time_machine_traveller_seconds(traveller, state);
     Py_DECREF(traveller);
     if (timestamp == NULL) {
         return NULL;
@@ -567,7 +615,7 @@ _time_machine_localtime(PyObject *self, PyObject *args)
         return original_localtime(self, args);
     }
 
-    PyObject *timestamp = _time_machine_traveller_time(traveller, state);
+    PyObject *timestamp = _time_machine_traveller_seconds(traveller, state);
     Py_DECREF(traveller);
     if (timestamp == NULL) {
         return NULL;
@@ -618,8 +666,8 @@ _time_machine_strftime(PyObject *self, PyObject *args)
         return original_strftime(self, args);
     }
 
-    // time.strftime(format, time.localtime(traveller_time))
-    PyObject *timestamp = _time_machine_traveller_time(traveller, state);
+    // time.strftime(format, time.localtime(traveller_seconds))
+    PyObject *timestamp = _time_machine_traveller_seconds(traveller, state);
     Py_DECREF(traveller);
     if (timestamp == NULL) {
         return NULL;
@@ -988,6 +1036,26 @@ _time_machine_exec(PyObject *module)
         goto error;
     }
 
+    PyObject *str_microsecond = PyUnicode_InternFromString("microsecond");
+    if (str_microsecond == NULL) {
+        goto error;
+    }
+    state->microsecond_kwnames = PyTuple_Pack(1, str_microsecond);
+    Py_DECREF(str_microsecond);
+    if (state->microsecond_kwnames == NULL) {
+        goto error;
+    }
+
+    state->nanoseconds_per_microsecond = PyLong_FromLong(1000L);
+    if (state->nanoseconds_per_microsecond == NULL) {
+        goto error;
+    }
+
+    state->microseconds_per_second = PyLong_FromLong(1000000L);
+    if (state->microseconds_per_second == NULL) {
+        goto error;
+    }
+
     state->datetime_module = PyImport_ImportModule("datetime");
     if (state->datetime_module == NULL) {
         goto error;
@@ -1119,7 +1187,10 @@ error:
     Py_CLEAR(state->str_replace);
     Py_CLEAR(state->str_fromtimestamp);
     Py_CLEAR(state->tzinfo_kwnames);
+    Py_CLEAR(state->microsecond_kwnames);
     Py_CLEAR(state->nanoseconds_per_second);
+    Py_CLEAR(state->nanoseconds_per_microsecond);
+    Py_CLEAR(state->microseconds_per_second);
     Py_CLEAR(state->datetime_datetime_now);
     Py_CLEAR(state->datetime_datetime_utcnow);
     Py_CLEAR(state->date_today);
@@ -1146,7 +1217,10 @@ _time_machine_traverse(PyObject *module, visitproc visit, void *arg)
     Py_VISIT(state->str_replace);
     Py_VISIT(state->str_fromtimestamp);
     Py_VISIT(state->tzinfo_kwnames);
+    Py_VISIT(state->microsecond_kwnames);
     Py_VISIT(state->nanoseconds_per_second);
+    Py_VISIT(state->nanoseconds_per_microsecond);
+    Py_VISIT(state->microseconds_per_second);
     Py_VISIT(state->datetime_datetime_now);
     Py_VISIT(state->datetime_datetime_utcnow);
     Py_VISIT(state->date_today);
@@ -1173,7 +1247,10 @@ _time_machine_clear(PyObject *module)
     Py_CLEAR(state->str_replace);
     Py_CLEAR(state->str_fromtimestamp);
     Py_CLEAR(state->tzinfo_kwnames);
+    Py_CLEAR(state->microsecond_kwnames);
     Py_CLEAR(state->nanoseconds_per_second);
+    Py_CLEAR(state->nanoseconds_per_microsecond);
+    Py_CLEAR(state->microseconds_per_second);
     Py_CLEAR(state->datetime_datetime_now);
     Py_CLEAR(state->datetime_datetime_utcnow);
     Py_CLEAR(state->date_today);

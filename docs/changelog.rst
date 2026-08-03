@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix small rounding errors in destination calculations.
+
+  Previously, time-machine computed destinations in floating-point seconds, which could lead to small rounding errors: up to a few hundred nanoseconds for present-day destinations, growing to several microseconds by the year 2500.
+  This change fixes the pipeline to use integer nanoseconds throughout, so time-travel is precise for any supported date.
+
+  `PR #651 <https://github.com/adamchainz/time-machine/pull/651>`__.
+
 3.3.0 (2026-07-31)
 ------------------
 
