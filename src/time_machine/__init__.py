@@ -109,9 +109,23 @@ class NaiveMode(Enum):
 naive_mode = NaiveMode.MIXED
 
 
+def _datetime_to_ns(destination: dt.datetime) -> int:
+    # timestamp() on a whole-second datetime returns an integer-valued float,
+    # exact for any supported year since UTC offsets are whole seconds, so the
+    # nanosecond timestamp can be computed with exact integer arithmetic.
+    seconds = int(destination.replace(microsecond=0).timestamp())
+    return seconds * NANOSECONDS_PER_SECOND + destination.microsecond * 1_000
+
+
+def _timedelta_to_ns(delta: dt.timedelta) -> int:
+    return (
+        delta.days * 86_400 + delta.seconds
+    ) * NANOSECONDS_PER_SECOND + delta.microseconds * 1_000
+
+
 def extract_timestamp_tzname(
     destination: DestinationType,
-) -> tuple[float, str | None]:
+) -> tuple[int, str | None]:
     dest: DestinationBaseType
     if isinstance(destination, Generator):
         dest = next(destination)
@@ -120,12 +134,12 @@ def extract_timestamp_tzname(
     else:
         dest = destination
 
-    timestamp: float
+    timestamp_ns: int
     tzname: str | None = None
     if isinstance(dest, int):
-        timestamp = float(dest)
+        timestamp_ns = dest * NANOSECONDS_PER_SECOND
     elif isinstance(dest, float):
-        timestamp = dest
+        timestamp_ns = round(dest * NANOSECONDS_PER_SECOND)
     elif isinstance(dest, dt.datetime):
         if isinstance(dest.tzinfo, ZoneInfo):
             tzname = dest.tzinfo.key
@@ -143,16 +157,16 @@ def extract_timestamp_tzname(
                 )
             else:  # pragma: no cover
                 assert_never(naive_mode)
-        timestamp = dest.timestamp()
+        timestamp_ns = _datetime_to_ns(dest)
     elif isinstance(dest, dt.timedelta):
-        timestamp = time_module.time() + dest.total_seconds()
+        timestamp_ns = time_module.time_ns() + _timedelta_to_ns(dest)
     elif isinstance(dest, dt.date):
         if naive_mode == NaiveMode.MIXED or naive_mode == NaiveMode.UTC:
-            timestamp = dt.datetime.combine(
-                dest, dt.time(0, 0), tzinfo=dt.timezone.utc
-            ).timestamp()
+            timestamp_ns = _datetime_to_ns(
+                dt.datetime.combine(dest, dt.time(0, 0), tzinfo=dt.timezone.utc)
+            )
         elif naive_mode == NaiveMode.LOCAL:
-            timestamp = dt.datetime.combine(dest, dt.time(0, 0)).timestamp()
+            timestamp_ns = _datetime_to_ns(dt.datetime.combine(dest, dt.time(0, 0)))
         elif naive_mode == NaiveMode.ERROR:
             raise RuntimeError(
                 "date object provided while time_machine.naive_mode is set to ERROR. "
@@ -187,23 +201,21 @@ def extract_timestamp_tzname(
                 )
             else:  # pragma: no cover
                 assert_never(naive_mode)
-        timestamp = parsed.timestamp()
+        timestamp_ns = _datetime_to_ns(parsed)
     else:
         raise TypeError(f"Unsupported destination {dest!r}")
 
-    return timestamp, tzname
+    return timestamp_ns, tzname
 
 
 class Traveller:
     def __init__(
         self,
-        destination_timestamp: float,
+        destination_timestamp_ns: int,
         destination_tzname: str | None,
         tick: bool,
     ) -> None:
-        self._destination_timestamp_ns = int(
-            destination_timestamp * NANOSECONDS_PER_SECOND
-        )
+        self._destination_timestamp_ns = destination_timestamp_ns
         self._destination_tzname = destination_tzname
         self._tick = tick
         self._requested = False
@@ -224,15 +236,17 @@ class Traveller:
 
     def shift(self, delta: dt.timedelta | int | float) -> None:
         if isinstance(delta, dt.timedelta):
-            total_seconds = delta.total_seconds()
-        elif isinstance(delta, (int, float)):
-            total_seconds = delta
+            delta_ns = _timedelta_to_ns(delta)
+        elif isinstance(delta, int):
+            delta_ns = delta * NANOSECONDS_PER_SECOND
+        elif isinstance(delta, float):
+            delta_ns = round(delta * NANOSECONDS_PER_SECOND)
         else:
             raise TypeError(f"Unsupported type for delta argument: {delta!r}")
 
-        self._destination_timestamp_ns += int(total_seconds * NANOSECONDS_PER_SECOND)
+        self._destination_timestamp_ns += delta_ns
 
-        if total_seconds < 0:
+        if delta_ns < 0:
             # Moving forwards leaves the cached uuid timestamps in the past, so
             # only pay for resetting them when moving backwards.
             _reset_uuid_timestamps()
@@ -243,8 +257,9 @@ class Traveller:
         tick: bool | None = None,
     ) -> None:
         self._stop()
-        timestamp, self._destination_tzname = extract_timestamp_tzname(destination)
-        self._destination_timestamp_ns = int(timestamp * NANOSECONDS_PER_SECOND)
+        self._destination_timestamp_ns, self._destination_tzname = (
+            extract_timestamp_tzname(destination)
+        )
         self._requested = False
         self._start()
         if tick is not None:
@@ -274,8 +289,8 @@ original_uuid_uuid_create = None
 
 class travel:
     def __init__(self, destination: DestinationType, *, tick: bool = True) -> None:
-        self.destination_timestamp, self.destination_tzname = extract_timestamp_tzname(
-            destination
+        self.destination_timestamp_ns, self.destination_tzname = (
+            extract_timestamp_tzname(destination)
         )
         self.tick = tick
 
@@ -299,7 +314,7 @@ class travel:
             uuid._UuidCreate = None  # type: ignore[attr-defined]
 
         traveller = Traveller(
-            destination_timestamp=self.destination_timestamp,
+            destination_timestamp_ns=self.destination_timestamp_ns,
             destination_tzname=self.destination_tzname,
             tick=self.tick,
         )
