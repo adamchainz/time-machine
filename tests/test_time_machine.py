@@ -712,7 +712,7 @@ def test_destination_string_dateutil(string, expected_time):
     [
         ("UTC", 0),
         ("Europe/Amsterdam", -3600),
-        ("US/Eastern", 5 * 3600),
+        ("America/New_York", 5 * 3600),
     ],
 )
 @pytest.mark.parametrize("destination", ["1970-01-01 00:00", "1970-01-01"])
