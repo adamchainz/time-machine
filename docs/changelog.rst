@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Use integer nanoseconds throughout the internal destination pipeline.
+  Previously, destinations passed through a floating-point timestamp before conversion to integer nanoseconds, which could lose sub-second precision: a few hundred nanoseconds for present-day destinations, growing to several microseconds by the year 2500.
+  Now ``datetime``, ``date``, string, and ``timedelta`` destinations, and ``timedelta`` values passed to ``shift()``, convert to integer nanoseconds with exact arithmetic, so functions like ``datetime.now()`` return the destination exactly, at any supported date.
+  ``int`` and ``float`` destinations, and ``int`` and ``float`` values passed to ``shift()``, now convert with rounding rather than truncation.
+  As part of this change, the undocumented function ``time_machine.extract_timestamp_tzname()`` now returns a tuple of ``(integer nanosecond timestamp, timezone name)``, rather than ``(float timestamp, timezone name)``, and ``travel`` instances store their destination on an attribute named ``destination_timestamp_ns`` rather than ``destination_timestamp``.
+
 3.3.0 (2026-07-31)
 ------------------
 

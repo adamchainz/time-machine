@@ -138,6 +138,14 @@ def test_datetime_now_subclass():
         assert now.year == 1970
 
 
+def test_datetime_now_distant_destination_exact():
+    # Microsecond precision survives destinations far from the epoch, which a
+    # floating-point timestamp could not represent.
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    with time_machine.travel(destination, tick=False):
+        assert dt.datetime.now(dt.timezone.utc) == destination
+
+
 def test_datetime_utcnow():
     with time_machine.travel(EPOCH):
         now = dt.datetime.utcnow()
@@ -177,6 +185,12 @@ def test_datetime_utcnow_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         now = dt.datetime.utcnow()
         assert now.microsecond == 0
+
+
+def test_datetime_utcnow_distant_destination_exact():
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    with time_machine.travel(destination, tick=False):
+        assert dt.datetime.utcnow() == destination.replace(tzinfo=None)
 
 
 def test_datetime_utcnow_subclass():
@@ -301,6 +315,16 @@ def test_time_gmtime_no_args_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         local_time = time.gmtime()
         assert local_time.tm_sec == 0
+
+
+def test_time_gmtime_no_args_distant_destination():
+    # The struct fields stay exact for distant destinations, since gmtime()
+    # receives whole integer seconds.
+    destination = dt.datetime(2500, 1, 1, microsecond=3, tzinfo=dt.timezone.utc)
+    with time_machine.travel(destination, tick=False):
+        local_time = time.gmtime()
+    assert (local_time.tm_year, local_time.tm_mon, local_time.tm_mday) == (2500, 1, 1)
+    assert (local_time.tm_hour, local_time.tm_min, local_time.tm_sec) == (0, 0, 0)
 
 
 def test_time_gmtime_arg():
@@ -445,6 +469,12 @@ def test_time_time_ns():
 def test_time_time_ns_no_tick():
     with time_machine.travel(EPOCH, tick=False):
         assert time.time_ns() == int(EPOCH * NANOSECONDS_PER_SECOND)
+
+
+def test_time_time_ns_distant_destination_exact():
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    with time_machine.travel(destination, tick=False):
+        assert time.time_ns() == 16_725_225_600_000_001_000
 
 
 # all supported forms
@@ -593,6 +623,12 @@ def test_destination_datetime_tzinfo_zoneinfo_windows():
 @time_machine.travel(int(EPOCH + 77))
 def test_destination_int():
     assert time.time() == int(EPOCH + 77)
+
+
+@time_machine.travel(4.1, tick=False)
+def test_destination_float_rounded():
+    # Truncating 4.1 * 10**9 would give 4_099_999_999
+    assert time.time_ns() == 4_100_000_000
 
 
 @time_machine.travel(EPOCH_DATETIME.replace(tzinfo=None) + dt.timedelta(seconds=120))
@@ -897,6 +933,62 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
         pass
 
 
+# extract_timestamp_tzname() tests
+
+
+def test_extract_timestamp_tzname_int():
+    assert time_machine.extract_timestamp_tzname(2) == (
+        2 * NANOSECONDS_PER_SECOND,
+        None,
+    )
+
+
+def test_extract_timestamp_tzname_float_rounded():
+    # Truncating 4.1 * 10**9 would give 4_099_999_999
+    assert time_machine.extract_timestamp_tzname(4.1) == (4_100_000_000, None)
+
+
+def test_extract_timestamp_tzname_datetime_utc():
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    assert time_machine.extract_timestamp_tzname(destination) == (
+        16_725_225_600_000_001_000,
+        "UTC",
+    )
+
+
+def test_extract_timestamp_tzname_datetime_zoneinfo():
+    destination = dt.datetime(2020, 4, 29, 12, tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+    assert time_machine.extract_timestamp_tzname(destination) == (
+        int(destination.timestamp()) * NANOSECONDS_PER_SECOND,
+        "Africa/Addis_Ababa",
+    )
+
+
+def test_extract_timestamp_tzname_date():
+    assert time_machine.extract_timestamp_tzname(dt.date(1970, 1, 2)) == (
+        86_400 * NANOSECONDS_PER_SECOND,
+        None,
+    )
+
+
+def test_extract_timestamp_tzname_timedelta():
+    delta_ns = 3_600 * NANOSECONDS_PER_SECOND
+    before_ns = time.time_ns()
+    timestamp_ns, tzname = time_machine.extract_timestamp_tzname(
+        dt.timedelta(seconds=3_600)
+    )
+    after_ns = time.time_ns()
+    assert tzname is None
+    assert before_ns + delta_ns <= timestamp_ns <= after_ns + delta_ns
+
+
+def test_extract_timestamp_tzname_string():
+    assert time_machine.extract_timestamp_tzname("1970-01-01 00:02 +0000") == (
+        120 * NANOSECONDS_PER_SECOND,
+        None,
+    )
+
+
 # shift() tests
 
 
@@ -906,10 +998,24 @@ def test_shift_with_timedelta():
         assert time.time() == EPOCH + (3600.0 * 24)
 
 
+def test_shift_timedelta_distant_exact():
+    # timedelta.total_seconds() cannot represent this delta exactly.
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.shift(dt.timedelta(days=150_000, microseconds=1))
+        assert time.time_ns() == 12_960_000_000_000_001_000
+
+
 def test_shift_integer_delta():
     with time_machine.travel(EPOCH, tick=False) as traveller:
         traveller.shift(10)
         assert time.time() == EPOCH + 10
+
+
+def test_shift_float_delta_rounded():
+    # Truncating 4.1 * 10**9 would give 4_099_999_999
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        traveller.shift(4.1)
+        assert time.time_ns() == 4_100_000_000
 
 
 def test_shift_negative_delta():
