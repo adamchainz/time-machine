@@ -9,6 +9,7 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from functools import partial
 
 from tokenize_rt import (
+    NON_CODING_TOKENS,
     UNIMPORTANT_WS,
     Offset,
     Token,
@@ -129,15 +130,48 @@ def fixup_dedent_tokens(tokens: list[Token]) -> None:  # pragma: no cover
 TokenFunc = Callable[[list[Token], int], None]
 
 
+class FreezerFunction:
+    """
+    Details of a function taking pytest-freezegun / pytest-freezer’s
+    ``freezer`` fixture as an argument.
+    """
+
+    __slots__ = ("lineno", "end_lineno", "marker_seen")
+
+    def __init__(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef, *, marker_seen: bool
+    ) -> None:
+        assert node.end_lineno is not None
+        self.lineno = node.lineno
+        self.end_lineno = node.end_lineno
+        self.marker_seen = marker_seen
+
+
+class TravellerVar:
+    """
+    Details of a variable bound with ``as`` to a migrated freeze_time()
+    context manager.
+    """
+
+    __slots__ = ("name", "lineno", "end_lineno")
+
+    def __init__(self, name: str, node: ast.With) -> None:
+        assert node.end_lineno is not None
+        self.name = name
+        self.lineno = node.lineno
+        self.end_lineno = node.end_lineno
+
+
 def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
     """
     Visit the AST and return a list of callbacks to apply to the tokens.
-    This is a placeholder function; actual implementation would depend on
-    the specific migration logic.
     """
     ret: defaultdict[Offset, list[TokenFunc]] = defaultdict(list)
     freezegun_import_seen = False
     freeze_time_import_seen = False
+    freezer_functions: list[FreezerFunction] = []
+    marker_class_methods: set[ast.FunctionDef | ast.AsyncFunctionDef] = set()
+    traveller_vars: list[TravellerVar] = []
     for node in ast.walk(tree):
         match node:
             case ast.Import() if (
@@ -168,36 +202,133 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                     )
                 )
             case ast.FunctionDef() | ast.AsyncFunctionDef():
+                marker_seen = node in marker_class_methods
                 for decorator in node.decorator_list:
-                    maybe_migrate_call(
-                        ret,
-                        decorator,
-                        freezegun_import_seen=freezegun_import_seen,
-                        freeze_time_import_seen=freeze_time_import_seen,
+                    if maybe_migrate_marker(ret, decorator):
+                        marker_seen = True
+                    else:
+                        maybe_migrate_call(
+                            ret,
+                            decorator,
+                            freezegun_import_seen=freezegun_import_seen,
+                            freeze_time_import_seen=freeze_time_import_seen,
+                            freezer_functions=freezer_functions,
+                        )
+
+                freezer_args = [
+                    arg
+                    for arg in (*node.args.args, *node.args.kwonlyargs)
+                    if arg.arg == "freezer"
+                ]
+                if freezer_args:
+                    for arg in freezer_args:
+                        ret[ast_start_offset(arg)].append(replace_freezer)
+                    freezer_functions.append(
+                        FreezerFunction(node, marker_seen=marker_seen)
                     )
 
-            case ast.ClassDef() if node.decorator_list and looks_like_unittest_class(
-                node
-            ):
+            case ast.ClassDef() if node.decorator_list:
+                unittest_class = looks_like_unittest_class(node)
                 for decorator in node.decorator_list:
-                    maybe_migrate_call(
-                        ret,
-                        decorator,
-                        freezegun_import_seen=freezegun_import_seen,
-                        freeze_time_import_seen=freeze_time_import_seen,
-                    )
+                    if maybe_migrate_marker(ret, decorator):
+                        marker_class_methods.update(
+                            stmt
+                            for stmt in node.body
+                            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        )
+                    elif unittest_class:
+                        maybe_migrate_call(
+                            ret,
+                            decorator,
+                            freezegun_import_seen=freezegun_import_seen,
+                            freeze_time_import_seen=freeze_time_import_seen,
+                            freezer_functions=freezer_functions,
+                        )
 
             case ast.With():
                 for item in node.items:
-                    if item.optional_vars is None:
-                        maybe_migrate_call(
-                            ret,
-                            item.context_expr,
-                            freezegun_import_seen=freezegun_import_seen,
-                            freeze_time_import_seen=freeze_time_import_seen,
-                        )
+                    match item.optional_vars:
+                        case None:
+                            maybe_migrate_call(
+                                ret,
+                                item.context_expr,
+                                freezegun_import_seen=freezegun_import_seen,
+                                freeze_time_import_seen=freeze_time_import_seen,
+                                freezer_functions=freezer_functions,
+                            )
+                        case ast.Name(id=name) as binding:
+                            if traveller_var_uses_compatible(
+                                node, binding
+                            ) and maybe_migrate_call(
+                                ret,
+                                item.context_expr,
+                                freezegun_import_seen=freezegun_import_seen,
+                                freeze_time_import_seen=freeze_time_import_seen,
+                                freezer_functions=freezer_functions,
+                            ):
+                                traveller_vars.append(TravellerVar(name, node))
+
+            case ast.Expr(
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id=receiver) as receiver_node,
+                        attr="tick",
+                    )
+                ) as call_node
+            ) if migratable_tick_call(call_node):
+                # tick() is only migrated as a statement, since shift() does
+                # not return the new time.
+                if receiver == "freezer" and find_freezer_function(
+                    freezer_functions, call_node
+                ):
+                    ret[ast_start_offset(receiver_node)].append(replace_freezer)
+                    ret[ast_start_offset(receiver_node)].append(
+                        partial(replace_tick_with_shift, node=call_node)
+                    )
+                elif any(
+                    traveller_var.name == receiver
+                    and (
+                        traveller_var.lineno
+                        <= call_node.lineno
+                        <= traveller_var.end_lineno
+                    )
+                    for traveller_var in traveller_vars
+                ):
+                    ret[ast_start_offset(receiver_node)].append(
+                        partial(replace_tick_with_shift, node=call_node)
+                    )
+
+            case ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id="freezer") as receiver_node,
+                    attr="move_to",
+                )
+            ) if (
+                len(node.args) == 1
+                and not node.keywords
+                and (freezer_function := find_freezer_function(freezer_functions, node))
+                is not None
+            ):
+                ret[ast_start_offset(receiver_node)].append(replace_freezer)
+                if not freezer_function.marker_seen:
+                    ret[ast_start_offset(node)].append(
+                        partial(add_tick_false, node=node)
+                    )
 
     return ret
+
+
+def find_freezer_function(
+    freezer_functions: list[FreezerFunction], node: ast.expr
+) -> FreezerFunction | None:
+    """
+    Find the innermost function with a freezer fixture argument containing the
+    given node, if any.
+    """
+    for function in reversed(freezer_functions):
+        if function.lineno <= node.lineno <= function.end_lineno:
+            return function
+    return None
 
 
 def maybe_migrate_call(
@@ -206,13 +337,14 @@ def maybe_migrate_call(
     *,
     freezegun_import_seen: bool,
     freeze_time_import_seen: bool,
-) -> None:
+    freezer_functions: list[FreezerFunction],
+) -> bool:
     """
     Add the callbacks to rewrite the given expression, if it is a migratable
-    call to freezegun’s freeze_time().
+    call to freezegun’s freeze_time(), returning whether that was the case.
     """
     if not isinstance(node, ast.Call) or not migratable_call(node):
-        return
+        return False
 
     func = node.func
     if not (
@@ -229,17 +361,96 @@ def maybe_migrate_call(
             and func.id == "freeze_time"
         )
     ):
-        return
+        return False
+
+    if find_freezer_function(freezer_functions, node) is not None:
+        # Inside a function whose freezer argument is renamed to
+        # time_machine, shadowing the module, so a rewritten call would not
+        # resolve to it.
+        return False
 
     ret[ast_start_offset(func)].append(partial(switch_to_travel, node=func))
     if not any(kw.arg == "tick" for kw in node.keywords):
         ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
+    return True
+
+
+def traveller_var_uses_compatible(node: ast.With, binding: ast.Name) -> bool:
+    """
+    Check that a variable bound with ``as`` to a freeze_time() context manager
+    is only used in ways that work the same on time-machine’s Traveller:
+    move_to() calls, and tick() calls as statements, since shift() does not
+    return the new time.
+    """
+    name = binding.id
+    allowed = {binding}
+    for subnode in ast.walk(node):
+        match subnode:
+            case ast.Expr(
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id=receiver) as receiver_node,
+                        attr="tick",
+                    )
+                )
+            ) if receiver == name:
+                allowed.add(receiver_node)
+            case ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id=receiver) as receiver_node,
+                    attr="move_to",
+                )
+            ) if receiver == name:
+                allowed.add(receiver_node)
+    return all(
+        subnode in allowed
+        for subnode in ast.walk(node)
+        if isinstance(subnode, ast.Name) and subnode.id == name
+    )
+
+
+def maybe_migrate_marker(
+    ret: MutableMapping[Offset, list[TokenFunc]],
+    node: ast.expr,
+) -> bool:
+    """
+    Add the callbacks to rewrite the given decorator, if it is a migratable
+    use of pytest-freezegun / pytest-freezer’s pytest.mark.freeze_time()
+    marker, returning whether that was the case.
+    """
+    if not (
+        isinstance(node, ast.Call)
+        and migratable_call(node)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "freeze_time"
+        and isinstance(node.func.value, ast.Attribute)
+        and node.func.value.attr == "mark"
+        and isinstance(node.func.value.value, ast.Name)
+        and node.func.value.value.id == "pytest"
+    ):
+        return False
+
+    ret[ast_start_offset(node.func)].append(partial(switch_to_marker, node=node.func))
+    if not any(kw.arg == "tick" for kw in node.keywords):
+        ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
+    return True
 
 
 def migratable_call(node: ast.Call) -> bool:
     return len(node.args) == 1 and (
         len(node.keywords) == 0
         or (len(node.keywords) == 1 and node.keywords[0].arg == "tick")
+    )
+
+
+def migratable_tick_call(node: ast.Call) -> bool:
+    """
+    freezegun’s tick() takes a single optional argument, delta.
+    """
+    if node.args:
+        return len(node.args) == 1 and not node.keywords
+    return not node.keywords or (
+        len(node.keywords) == 1 and node.keywords[0].arg == "delta"
     )
 
 
@@ -327,7 +538,9 @@ UNITTEST_ASSERT_NAMES = frozenset(
 )
 
 
-def ast_start_offset(node: ast.alias | ast.expr | ast.keyword | ast.stmt) -> Offset:
+def ast_start_offset(
+    node: ast.alias | ast.arg | ast.expr | ast.keyword | ast.stmt,
+) -> Offset:
     return Offset(node.lineno, node.col_offset)
 
 
@@ -361,9 +574,14 @@ def replace_import_from(
 
 def line_indent(tokens: list[Token], i: int) -> str:
     """
-    Return the whitespace indenting the line that the given token starts.
+    Return the whitespace indenting the line that the given token starts, or
+    "" if the token does not start a line, like after `if ...:` or `;`.
     """
-    if i > 0 and tokens[i - 1].name in (INDENT, UNIMPORTANT_WS):
+    if (
+        i > 0
+        and tokens[i - 1].name in (INDENT, UNIMPORTANT_WS)
+        and tokens[i - 2].name in ("NEWLINE", "NL", DEDENT)
+    ):
         # no types for tokenize-rt
         return tokens[i - 1].src  # type: ignore [no-any-return]
     return ""
@@ -376,12 +594,43 @@ def switch_to_travel(
     tokens[i : j + 1] = [Token(name=CODE, src="time_machine.travel")]
 
 
+def switch_to_marker(tokens: list[Token], i: int, node: ast.Attribute) -> None:
+    j = find_last_token(tokens, i, node=node)
+    tokens[i : j + 1] = [Token(name=CODE, src="pytest.mark.time_machine")]
+
+
+def replace_freezer(tokens: list[Token], i: int) -> None:
+    tokens[i] = Token(name="NAME", src="time_machine")
+
+
+def replace_tick_with_shift(tokens: list[Token], i: int, node: ast.Call) -> None:
+    """
+    Replace a tick() method call with shift(), making freezegun’s default
+    delta of one second explicit if no argument was passed.
+    """
+    i += 1  # skip the receiver name
+    while not (tokens[i].name == "NAME" and tokens[i].src == "tick"):
+        i += 1
+    tokens[i] = Token(name="NAME", src="shift")
+    if not node.args and not node.keywords:
+        while tokens[i].src != "(":
+            i += 1
+        tokens.insert(i + 1, Token(name=CODE, src="1"))
+
+
 def add_tick_false(tokens: list[Token], i: int, node: ast.Call) -> None:
     """
     Add `tick=False` to the function call, unless `tick` is already set.
     """
     j = find_last_token(tokens, i, node=node)
-    tokens.insert(j, Token(name=CODE, src=", tick=False"))
+    k = j - 1
+    while tokens[k].name in NON_CODING_TOKENS:
+        k -= 1
+    if tokens[k].src == ",":
+        # trailing comma: insert after it
+        tokens.insert(k + 1, Token(name=CODE, src=" tick=False"))
+    else:
+        tokens.insert(j, Token(name=CODE, src=", tick=False"))
 
 
 # Token functions
