@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+3.3.1 (2026-08-04)
+------------------
 
 * Fix small rounding errors in destination calculations.
 
