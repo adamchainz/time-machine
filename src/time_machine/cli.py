@@ -271,14 +271,14 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                     freezer_function := find_freezer_function(freezer_functions, node)
                 ):
                     if attr == "move_to" and len(node.args) == 1 and not node.keywords:
-                        ret[ast_start_offset(node)].append(replace_freezer)
+                        ret[ast_start_offset(node.func.value)].append(replace_freezer)
                         if not freezer_function.marker_seen:
                             ret[ast_start_offset(node)].append(
                                 partial(add_tick_false, node=node)
                             )
                     elif attr == "tick" and migratable_tick_call(node):
-                        ret[ast_start_offset(node)].append(replace_freezer)
-                        ret[ast_start_offset(node)].append(
+                        ret[ast_start_offset(node.func.value)].append(replace_freezer)
+                        ret[ast_start_offset(node.func.value)].append(
                             partial(replace_tick_with_shift, node=node)
                         )
                 elif (
@@ -294,7 +294,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         for traveller_var in traveller_vars
                     )
                 ):
-                    ret[ast_start_offset(node)].append(
+                    ret[ast_start_offset(node.func.value)].append(
                         partial(replace_tick_with_shift, node=node)
                     )
 

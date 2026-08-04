@@ -1176,6 +1176,36 @@ class TestMigrateContents:
             """,
         )
 
+    def test_freezer_fixture_parenthesized_receiver(self):
+        check_transformed(
+            """
+            def test_function(freezer):
+                (freezer).move_to("2023-01-01")
+                (freezer).tick()
+            """,
+            """
+            def test_function(time_machine):
+                (time_machine).move_to("2023-01-01", tick=False)
+                (time_machine).shift(1)
+            """,
+        )
+
+    def test_with_as_tick_parenthesized_receiver(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            with freeze_time("2023-01-01") as tick:
+                (tick).tick()
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=False) as tick:
+                (tick).shift(1)
+            """,
+        )
+
     def test_freezer_fixture_other_method(self):
         check_transformed(
             """

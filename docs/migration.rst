@@ -93,7 +93,7 @@ The changes the tool makes are:
   Calls of the ``move_to()`` method are left unchanged, since it behaves the same in both libraries.
 
 * The ``pytest.mark.freeze_time`` marker from `pytest-freezegun <https://pypi.org/project/pytest-freezegun/>`__ or `pytest-freezer <https://pypi.org/project/pytest-freezer/>`__: ``@pytest.mark.freeze_time(...)`` -> ``@pytest.mark.time_machine(...)``, the marker from time-machine’s :doc:`pytest plugin <pytest_plugin>`.
-  This migratino uses the same argument handling as for ``freeze_time()`` calls.
+  This migration uses the same argument handling as for ``freeze_time()`` calls.
 
 * The ``freezer`` fixture from pytest-freezegun or pytest-freezer -> the ``time_machine`` fixture from time-machine’s pytest plugin.
   In functions with an argument named ``freezer``, the argument is renamed to ``time_machine`` and calls of the fixture’s methods are migrated:
