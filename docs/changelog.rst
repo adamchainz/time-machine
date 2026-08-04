@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate patterns from freezegun’s pytest plugins, pytest-freezegun and pytest-freezer: the ``freezer`` fixture and the ``pytest.mark.freeze_time`` marker.
+  Also make it migrate ``freeze_time()`` context managers that bind the result with ``as``, including converting ``tick()`` method calls to ``shift()``.
+
+  `PR #655 <https://github.com/adamchainz/time-machine/pull/655>`__.
+  Thanks to Javier Buzzi for the initial work in `PR #562 <https://github.com/adamchainz/time-machine/pull/562>`__.
+
 3.3.1 (2026-08-04)
 ------------------
 
