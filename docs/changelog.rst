@@ -11,6 +11,11 @@ Unreleased
   `PR #655 <https://github.com/adamchainz/time-machine/pull/655>`__.
   Thanks to Javier Buzzi for the initial work in `PR #562 <https://github.com/adamchainz/time-machine/pull/562>`__.
 
+* Fix the :ref:`Migration CLI <migration-cli>` to handle trailing commas in ``freeze_time()`` calls when adding ``tick=False``.
+  Previously, it produced invalid syntax, like ``travel("2023-01-01",, tick=False)``.
+
+  `PR #655 <https://github.com/adamchainz/time-machine/pull/655>`__.
+
 3.3.1 (2026-08-04)
 ------------------
 

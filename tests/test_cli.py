@@ -425,6 +425,46 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_name_trailing_comma(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01",)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_name_multiline(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(
+                "2023-01-01",
+            )
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(
+                "2023-01-01", tick=False
+            )
+            def test_function():
+                pass
+            """,
+        )
+
     def test_function_decorator_name_tick(self):
         check_transformed(
             """

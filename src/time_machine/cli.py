@@ -9,6 +9,7 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from functools import partial
 
 from tokenize_rt import (
+    NON_CODING_TOKENS,
     UNIMPORTANT_WS,
     Offset,
     Token,
@@ -263,7 +264,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
 
             case ast.Call(
                 func=ast.Attribute(
-                    value=ast.Name(id=receiver),
+                    value=ast.Name(id=receiver) as receiver_node,
                     attr=("move_to" | "tick") as attr,
                 )
             ):
@@ -271,14 +272,14 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                     freezer_function := find_freezer_function(freezer_functions, node)
                 ):
                     if attr == "move_to" and len(node.args) == 1 and not node.keywords:
-                        ret[ast_start_offset(node.func.value)].append(replace_freezer)
+                        ret[ast_start_offset(receiver_node)].append(replace_freezer)
                         if not freezer_function.marker_seen:
                             ret[ast_start_offset(node)].append(
                                 partial(add_tick_false, node=node)
                             )
                     elif attr == "tick" and migratable_tick_call(node):
-                        ret[ast_start_offset(node.func.value)].append(replace_freezer)
-                        ret[ast_start_offset(node.func.value)].append(
+                        ret[ast_start_offset(receiver_node)].append(replace_freezer)
+                        ret[ast_start_offset(receiver_node)].append(
                             partial(replace_tick_with_shift, node=node)
                         )
                 elif (
@@ -294,7 +295,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         for traveller_var in traveller_vars
                     )
                 ):
-                    ret[ast_start_offset(node.func.value)].append(
+                    ret[ast_start_offset(receiver_node)].append(
                         partial(replace_tick_with_shift, node=node)
                     )
 
@@ -560,7 +561,14 @@ def add_tick_false(tokens: list[Token], i: int, node: ast.Call) -> None:
     Add `tick=False` to the function call, unless `tick` is already set.
     """
     j = find_last_token(tokens, i, node=node)
-    tokens.insert(j, Token(name=CODE, src=", tick=False"))
+    k = j - 1
+    while tokens[k].name in NON_CODING_TOKENS:
+        k -= 1
+    if tokens[k].src == ",":
+        # trailing comma: insert after it
+        tokens.insert(k + 1, Token(name=CODE, src=" tick=False"))
+    else:
+        tokens.insert(j, Token(name=CODE, src=", tick=False"))
 
 
 # Token functions
