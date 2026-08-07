@@ -78,6 +78,8 @@ dependency-groups.build = { requires-python = ">=3.14" }
 
 [tool.cibuildwheel]
 build = [
+  "cp315-*",
+  "cp315t-*",
   "cp314-*",
   "cp314t-*",
   "cp313-*",
