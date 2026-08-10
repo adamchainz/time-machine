@@ -110,6 +110,8 @@ Main API
   The mocking is done at the C layer, replacing the function pointers for these built-ins.
   Therefore, it automatically affects everywhere those functions have been imported, unlike use of ``unittest.mock.patch()``.
 
+  Clock reads from C-level code outside of the standard library are unaffected—see :ref:`Unmocked time sources <unmocked-time-sources>`.
+
   Usage with ``start()`` / ``stop()``
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -362,6 +364,61 @@ Main API
           # Code within this block will use the ERROR mode
           with time_machine.travel(...):
               ...
+
+.. _unmocked-time-sources:
+
+.. note:: **Unmocked time sources**
+
+  Because time-machine’s mocking works by replacing the standard library functions, any code that reads the current time another way is unaffected.
+  This mainly applies to compiled extensions that call the operating system clock directly, bypassing Python’s standard library.
+  Known examples:
+
+  * NumPy’s |np.datetime64|__ with the special values ``"now"`` and ``"today"``, which read the system clock in NumPy’s C code:
+
+    .. |np.datetime64| replace:: ``np.datetime64``
+    __ https://numpy.org/doc/stable/reference/arrays.datetime.html
+
+    .. code-block:: python
+
+        import numpy as np
+        import time_machine
+
+        with time_machine.travel(0.0):
+            np.datetime64("now")  # returns the real current time
+
+    To get a mocked value, construct it from a standard library function instead:
+
+    .. code-block:: python
+
+        import datetime as dt
+        import numpy as np
+        import time_machine
+
+        with time_machine.travel(0.0):
+            np.datetime64(dt.datetime.now())
+            # numpy.datetime64('1970-01-01T00:00:00.000000')
+
+  * SQLite’s `date and time functions <https://www.sqlite.org/lang_datefunc.html>`__, such as ``datetime('now')`` and ``CURRENT_TIMESTAMP``.
+    Even when using the standard library ``sqlite3`` module, where SQLite runs within the current process, these values come from SQLite’s C code:
+
+    .. code-block:: python
+
+        import sqlite3
+        import time_machine
+
+        connection = sqlite3.connect(":memory:")
+        with time_machine.travel(0.0):
+            connection.execute("SELECT datetime('now')").fetchone()
+            # returns the real current time
+
+    To get a mocked value, pass the current time as a parameter, from a standard library function like ``datetime.now()``.
+
+  * DuckDB’s SQL functions for the current time, such as ``now()`` and ``current_date``, which similarly come from DuckDB’s compiled code.
+
+  Most third-party libraries do use the standard library functions, so time travel affects them as expected.
+  For example, the current-time functions of pandas (``Timestamp.now()``), arrow, pendulum, and whenever are all mocked correctly.
+
+  If you find another notable case of a popular library that reads the time in an unmocked way, please report it in `the issue tracker <https://github.com/adamchainz/time-machine/issues>`__.
 
 .. _escape-hatch:
 
