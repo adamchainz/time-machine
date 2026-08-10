@@ -88,6 +88,26 @@ The changes the tool makes are:
 * In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(...)``.
   This change is applied only when ``freeze_time()`` is called with a single positional argument and up to one keyword argument, ``tick``.
   If ``tick`` is passed, it is kept as-is, otherwise it is replaced with ``tick=False`` (matching freezegun’s default behaviour).
-  In context managers, it’s only applied when the result isn’t assigned to a variable with ``as``.
+
+* In context managers that bind the result with ``as``, additionally: calls of the bound variable’s ``tick()`` method -> ``shift()``, with freezegun’s default delta of one second made explicit, for example ``ft.tick()`` -> ``ft.shift(1)``.
+  Calls of the ``move_to()`` method are left unchanged, since it behaves the same in both libraries.
+  These changes are only applied when the bound variable is used solely for ``move_to()`` calls and ``tick()`` calls as statements, since ``tick()`` returns the new time whilst ``shift()`` returns ``None``, and other freezegun attributes have no equivalent on the object that ``travel()`` yields.
+
+* The ``pytest.mark.freeze_time`` marker from `pytest-freezegun <https://pypi.org/project/pytest-freezegun/>`__ or `pytest-freezer <https://pypi.org/project/pytest-freezer/>`__: ``@pytest.mark.freeze_time(...)`` -> ``@pytest.mark.time_machine(...)``, the marker from time-machine’s :doc:`pytest plugin <pytest_plugin>`.
+  This migration uses the same argument handling as for ``freeze_time()`` calls.
+
+* The ``freezer`` fixture from pytest-freezegun or pytest-freezer -> the ``time_machine`` fixture from time-machine’s pytest plugin.
+  In functions with an argument named ``freezer``, the argument is renamed to ``time_machine`` and calls of the fixture’s methods are migrated:
+
+  * ``freezer.move_to(...)`` -> ``time_machine.move_to(..., tick=False)``, again matching freezegun’s default behaviour.
+    ``tick=False`` isn’t added in functions using a migrated ``pytest.mark.freeze_time`` marker, since there the fixture inherits the ``tick`` behaviour from the marker.
+
+  * ``freezer.tick()`` -> ``time_machine.shift(1)``, as for context manager variables, again only for calls as statements.
+
+  Other uses of ``freezer`` are left unchanged, for your linter to flag.
+  ``freeze_time()`` calls within such functions are also left unchanged, because the renamed argument shadows the ``time_machine`` module.
+
+  Note that the ``time_machine`` fixture doesn’t mock the time until its ``move_to()`` method is called, unlike ``freezer``, which mocks from the start of the test.
+  Migrated tests that relied on that, for example by calling ``freezer.tick()`` before any ``move_to()``, will need manual adjustment.
 
 The tool is open to extension to cover other compatible changes—PRs welcome!

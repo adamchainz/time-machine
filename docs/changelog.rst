@@ -14,6 +14,22 @@ Unreleased
 
   `PR #656 <https://github.com/adamchainz/time-machine/pull/656>`__.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate patterns from freezegun’s pytest plugins, pytest-freezegun and pytest-freezer: the ``freezer`` fixture and the ``pytest.mark.freeze_time`` marker.
+  Also make it migrate ``freeze_time()`` context managers that bind the result with ``as``, including converting ``tick()`` method calls to ``shift()``.
+
+  `PR #658 <https://github.com/adamchainz/time-machine/pull/658>`__.
+  Thanks to Javier Buzzi for the initial work in `PR #562 <https://github.com/adamchainz/time-machine/pull/562>`__.
+
+* Fix the :ref:`Migration CLI <migration-cli>` to handle trailing commas in ``freeze_time()`` calls when adding ``tick=False``.
+  Previously, it produced invalid syntax, like ``travel("2023-01-01",, tick=False)``.
+
+  `PR #658 <https://github.com/adamchainz/time-machine/pull/658>`__.
+
+* Fix the :ref:`Migration CLI <migration-cli>` to not indent imports kept from a rewritten from-import when the import doesn’t start its line, such as after ``if True:`` on one line.
+  Previously, the kept import gained leading whitespace, producing invalid syntax.
+
+  `PR #658 <https://github.com/adamchainz/time-machine/pull/658>`__.
+
 3.3.1 (2026-08-04)
 ------------------
 
