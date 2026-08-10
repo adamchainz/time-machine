@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix a reference leak in the patched ``datetime.datetime.utcnow()`` that occurred when its Python 3.12+ ``DeprecationWarning`` was raised as an error, such as under ``-W error``.
+  Each such call leaked a reference to the active traveller object.
+
+  `PR #656 <https://github.com/adamchainz/time-machine/pull/656>`__.
+
 3.3.1 (2026-08-04)
 ------------------
 

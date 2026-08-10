@@ -358,6 +358,7 @@ _time_machine_utcnow(PyObject *cls, PyObject *args)
 
     // Warn as the original function would, pointing at its caller.
     if (_time_machine_warn_utcnow_deprecated(1) < 0) {
+        Py_DECREF(traveller);
         return NULL;
     }
 
