@@ -5,6 +5,10 @@ Changelog
 Unreleased
 ----------
 
+* Publish wheels for Python 3.15.
+
+  Thanks to Edgar Ramírez Mondragón in `PR #655 <https://github.com/adamchainz/time-machine/pull/655>`__.
+
 * Fix a reference leak in the patched ``datetime.datetime.utcnow()`` that occurred when its Python 3.12+ ``DeprecationWarning`` was raised as an error, such as under ``-W error``.
   Each such call leaked a reference to the active traveller object.
 
