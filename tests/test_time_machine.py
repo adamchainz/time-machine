@@ -174,6 +174,19 @@ def test_datetime_utcnow_deprecation_warning():
     assert_warned_here(records[0])
 
 
+@py_utcnow_deprecated
+def test_datetime_utcnow_deprecation_error_no_reference_leak():
+    with time_machine.travel(EPOCH):
+        traveller = time_machine.traveller_stack[-1]
+        expected = sys.getrefcount(traveller)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            for _ in range(10):
+                with pytest.raises(DeprecationWarning):
+                    dt.datetime.utcnow()
+        assert sys.getrefcount(traveller) == expected
+
+
 @py_utcnow_not_deprecated
 def test_datetime_utcnow_no_deprecation_warning():
     with time_machine.travel(EPOCH), warnings.catch_warnings():

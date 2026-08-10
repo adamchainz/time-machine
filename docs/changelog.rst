@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix a reference leak in the patched ``datetime.datetime.utcnow()`` that occurred when its ``DeprecationWarning`` was raised as an error, such as under ``-W error`` (Python 3.12+).
+  Each such call leaked a reference to the active traveller object.
+
 3.3.1 (2026-08-04)
 ------------------
 
