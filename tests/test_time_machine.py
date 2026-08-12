@@ -1826,6 +1826,23 @@ def test_marker_and_fixture(testdir):
     result.assert_outcomes(passed=1)
 
 
+def test_marker_function_arg(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import time
+
+        @pytest.mark.time_machine(0, tick=False)
+        def test():
+            for _ in range(10):
+                assert time.time() == 0.0
+    """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+    result.assert_outcomes(passed=1)
+
+
 def test_marker_class(testdir):
     testdir.makepyfile(
         """
