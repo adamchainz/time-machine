@@ -39,6 +39,20 @@ Or for a class:
         def test_two(self):
             assert dt.date.today().isoformat() == "1985-10-26"
 
+The marker takes the same arguments as :class:`~.travel`, including the ``tick`` argument:
+
+.. code-block:: python
+
+    import time
+
+    import pytest
+
+
+    @pytest.mark.time_machine(0, tick=False)
+    def test_delorean_marker_tick():
+        for _ in range(10):
+            assert time.time() == 0.0
+
 ``time_machine`` fixture
 ------------------------
 
