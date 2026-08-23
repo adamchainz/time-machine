@@ -7,6 +7,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from functools import partial
+from typing import NamedTuple
 
 from tokenize_rt import (
     NON_CODING_TOKENS,
@@ -65,7 +66,7 @@ def migrate_file(filename: str) -> int:
         print(f"{filename} is non-utf-8 (not supported)")
         return 1
 
-    contents_text = migrate_contents(contents_text)
+    contents_text, reports = migrate_contents(contents_text)
 
     if filename == "-":
         print(contents_text, end="")
@@ -74,20 +75,34 @@ def migrate_file(filename: str) -> int:
         with open(filename, "w", encoding="UTF-8", newline="") as f:
             f.write(contents_text)
 
+    for report in reports:
+        print(
+            f"{filename}:{report.lineno}:{report.col}: {report.message}",
+            file=sys.stderr,
+        )
+
     return contents_text != contents_text_orig
 
 
-def migrate_contents(contents_text: str) -> str:
+class Report(NamedTuple):
+    """A freezegun-related usage that could not be migrated."""
+
+    lineno: int
+    col: int
+    message: str
+
+
+def migrate_contents(contents_text: str) -> tuple[str, list[Report]]:
     """Migrate a single text from freezegun to time-machine."""
     try:
         ast_obj = ast_parse(contents_text)
     except SyntaxError:
-        return contents_text
+        return contents_text, []
 
-    callbacks = visit(ast_obj)
+    callbacks, reports = visit(ast_obj)
 
     if not callbacks:
-        return contents_text
+        return contents_text, reports
 
     tokens = src_to_tokens(contents_text)
 
@@ -102,7 +117,8 @@ def migrate_contents(contents_text: str) -> str:
             callback(tokens, i)
 
     # no types for tokenize-rt
-    return tokens_to_src(tokens)  # type: ignore [no-any-return]
+    new_text: str = tokens_to_src(tokens)
+    return new_text, reports
 
 
 def ast_parse(contents_text: str) -> ast.Module:
@@ -162,13 +178,17 @@ class TravellerVar:
         self.end_lineno = node.end_lineno
 
 
-def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
+def visit(
+    tree: ast.Module,
+) -> tuple[Mapping[Offset, list[TokenFunc]], list[Report]]:
     """
-    Visit the AST and return a list of callbacks to apply to the tokens.
+    Visit the AST and return a mapping of callbacks to apply to the tokens,
+    plus reports of freezegun-related usages that could not be migrated.
     """
     ret: defaultdict[Offset, list[TokenFunc]] = defaultdict(list)
     freezegun_module_names: set[str] = set()
     freeze_time_names: set[str] = set()
+    report_module_names: set[str] = set()
     freezer_functions: list[FreezerFunction] = []
     marker_class_methods: set[ast.FunctionDef | ast.AsyncFunctionDef] = set()
     module_marker_seen = False
@@ -179,15 +199,27 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                 for stmt in node.body:
                     if maybe_migrate_pytestmark(ret, stmt):
                         module_marker_seen = True
-            case ast.Import() if (
-                len(node.names) == 1 and (alias := node.names[0]).name == "freezegun"
-            ):
-                freezegun_module_names.add(alias.asname or "freezegun")
-                if alias.asname is None:
-                    ret[ast_start_offset(node)].append(replace_import)
+            case ast.Import():
+                if (
+                    len(node.names) == 1
+                    and (alias := node.names[0]).name == "freezegun"
+                ):
+                    freezegun_module_names.add(alias.asname or "freezegun")
+                    if alias.asname is None:
+                        ret[ast_start_offset(node)].append(replace_import)
+                    else:
+                        ret[ast_start_offset(node)].append(
+                            partial(replace_aliased_import, node=node)
+                        )
                 else:
-                    ret[ast_start_offset(node)].append(
-                        partial(replace_aliased_import, node=node)
+                    # Imports of freezegun that cannot be migrated, like
+                    # `import freezegun, os` or `import freezegun.config`,
+                    # still have their bound names tracked for reporting.
+                    report_module_names.update(
+                        alias.asname or "freezegun"
+                        for alias in node.names
+                        if alias.name == "freezegun"
+                        or alias.name.startswith("freezegun.")
                     )
             case ast.ImportFrom() if (
                 node.level == 0
@@ -331,7 +363,38 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         partial(add_tick_false, node=node)
                     )
 
-    return ret
+    reports = []
+    for node in ast.walk(tree):
+        match node:
+            case ast.Name(id=name) if (
+                name in freeze_time_names
+                or name in freezegun_module_names
+                or name in report_module_names
+            ) and ast_start_offset(node) not in ret:
+                reports.append(
+                    Report(
+                        node.lineno,
+                        node.col_offset + 1,
+                        f"{name} usage not migrated",
+                    )
+                )
+            case ast.Attribute(
+                attr="freeze_time",
+                value=ast.Attribute(
+                    attr="mark",
+                    value=ast.Name(id="pytest"),
+                ),
+            ) if ast_start_offset(node) not in ret:
+                reports.append(
+                    Report(
+                        node.lineno,
+                        node.col_offset + 1,
+                        "pytest.mark.freeze_time usage not migrated",
+                    )
+                )
+    reports.sort()
+
+    return ret, reports
 
 
 def find_freezer_function(
@@ -485,13 +548,13 @@ def migrate_arguments(
     call: add a None destination if there is no positional argument, add
     tick=False if tick is not passed, and remove droppable keyword arguments.
     """
+    tick_kwargs = [kw for kw in node.keywords if kw.arg == "tick"]
     if not node.args:
-        tick_kwargs = [kw for kw in node.keywords if kw.arg == "tick"]
         if tick_kwargs:
             ret[ast_start_offset(tick_kwargs[0])].append(insert_none_arg)
         else:
             ret[ast_start_offset(node)].append(partial(add_none_arg, node=node))
-    if not any(kw.arg == "tick" for kw in node.keywords):
+    if not tick_kwargs:
         ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
     for kw in node.keywords:
         if droppable_kwarg(kw):

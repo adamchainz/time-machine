@@ -228,10 +228,10 @@ def modules(draw: st.DrawFn) -> str:
 def test_migrate_contents_properties(source: str) -> None:
     ast.parse(source)  # the grammar should only generate valid code
 
-    migrated = migrate_contents(source)  # must not crash
+    migrated, _ = migrate_contents(source)  # must not crash
 
     # the output must still be valid Python
     ast.parse(migrated)
 
     # migration must be idempotent
-    assert migrate_contents(migrated) == migrated
+    assert migrate_contents(migrated)[0] == migrated

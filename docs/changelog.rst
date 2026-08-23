@@ -21,6 +21,9 @@ Unreleased
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``real_asyncio=True``.
   The argument is dropped, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
 
+* Make the :ref:`Migration CLI <migration-cli>` report freezegun-related usages that it recognizes but cannot migrate, with their positions, like ``example/tests.py:9:2: freeze_time usage not migrated``.
+  This makes it easier to find and fix the remaining usages manually.
+
 3.4.0 (2026-08-10)
 ------------------
 

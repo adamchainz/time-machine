@@ -35,6 +35,15 @@ Migration CLI
 time-machine comes with a command-line interface to help you migrate from freezegun.
 It performs partial replacements on your code to update it to use time-machine's API.
 It may leave your code in a broken state, for example where an import of ``freezegun`` has been replaced but calls using it remain—it’s recommended you have a good linting setup to find these, and then you can manually fix them up.
+To help with this, the tool reports freezegun-related usages that it recognizes but cannot migrate, with their positions:
+
+.. code-block:: console
+
+    $ python -m time_machine migrate example/tests.py
+    Rewriting example/tests.py
+    example/tests.py:9:2: freeze_time usage not migrated
+
+These reports are heuristic: they may occasionally flag unrelated code that reuses a freezegun-related name, such as a function parameter that shadows an imported ``freeze_time``.
 
 The tool edits files in place, reporting those that it changes.
 It’s recommended you start from a clean, committed state in your version control system, so you can easily revert any broken changes.

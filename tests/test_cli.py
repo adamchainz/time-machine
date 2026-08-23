@@ -135,18 +135,49 @@ class TestMain:
         assert out == "import time_machine\n"
         assert err == ""
 
+    def test_migrate_reports(self, capsys, tmp_path):
+        path = tmp_path / "example.py"
+        path.write_text(
+            "from freezegun import freeze_time\n"
+            "@freeze_time\n"
+            "def test_function():\n"
+            "    pass\n"
+        )
 
-def check_noop(given: str) -> None:
+        result = main(["migrate", str(path)])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == ""
+        assert err == (
+            f"Rewriting {path}\n" + f"{path}:2:2: freeze_time usage not migrated\n"
+        )
+
+        assert path.read_text() == (
+            "import time_machine\n@freeze_time\ndef test_function():\n    pass\n"
+        )
+
+
+def check_noop(
+    given: str,
+    reports: list[tuple[int, int, str]] | None = None,
+) -> None:
     given = dedent(given)
-    result = migrate_contents(given)
+    result, result_reports = migrate_contents(given)
     assert result == given
+    assert result_reports == (reports or [])
 
 
-def check_transformed(given: str, expected: str) -> None:
+def check_transformed(
+    given: str,
+    expected: str,
+    reports: list[tuple[int, int, str]] | None = None,
+) -> None:
     given = dedent(given)
     expected = dedent(expected)
-    result = migrate_contents(given)
+    result, result_reports = migrate_contents(given)
     assert result == expected
+    assert result_reports == (reports or [])
 
 
 class TestMigrateContents:
@@ -382,6 +413,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 2, "freezegun usage not migrated")],
         )
 
     def test_function_decorator_attr(self):
@@ -781,6 +813,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_function_decorator_tz_offset_false(self):
@@ -799,6 +832,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_function_decorator_tz_offset_variable(self):
@@ -817,6 +851,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_function_decorator_real_asyncio_true(self):
@@ -853,6 +888,7 @@ class TestMigrateContents:
             async def test_function():
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_function_decorator_real_asyncio_variable(self):
@@ -871,6 +907,7 @@ class TestMigrateContents:
             async def test_function():
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_with_tz_offset_zero(self):
@@ -934,6 +971,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_function_decorator_name(self):
@@ -1057,6 +1095,7 @@ class TestMigrateContents:
             class TestClass:
                 pass
             """,
+            reports=[(4, 2, "freezegun usage not migrated")],
         )
 
     def test_class_decorator_attr_not_unittest_class(self):
@@ -1075,6 +1114,7 @@ class TestMigrateContents:
             class TestClass:
                 pass
             """,
+            reports=[(4, 2, "freezegun usage not migrated")],
         )
 
     def test_class_decorator_attr_unittest_class_base_name(self):
@@ -1234,6 +1274,7 @@ class TestMigrateContents:
             class TestClass:
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_class_decorator_name_not_unittest_class(self):
@@ -1252,6 +1293,7 @@ class TestMigrateContents:
             class TestClass:
                 pass
             """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
         )
 
     def test_class_decorator_name_unittest_class_base_name(self):
@@ -1362,6 +1404,7 @@ class TestMigrateContents:
             with freezegun.freeze_time:
                 pass
             """,
+            reports=[(4, 6, "freezegun usage not migrated")],
         )
 
     def test_with_attr_as(self):
@@ -1436,6 +1479,7 @@ class TestMigrateContents:
             with freeze_time:
                 pass
             """,
+            reports=[(4, 6, "freeze_time usage not migrated")],
         )
 
     def test_with_name_as(self):
@@ -1500,6 +1544,7 @@ class TestMigrateContents:
             with freeze_time("2023-01-01") as obj.ft:
                 pass
             """,
+            reports=[(4, 6, "freeze_time usage not migrated")],
         )
 
     def test_with_as_tick(self):
@@ -1604,6 +1649,7 @@ class TestMigrateContents:
             with freeze_time("2023-01-01") as ft:
                 now = ft.tick()
             """,
+            reports=[(4, 6, "freeze_time usage not migrated")],
         )
 
     def test_with_as_incompatible_attribute(self):
@@ -1620,6 +1666,7 @@ class TestMigrateContents:
             with freeze_time("2023-01-01") as ft:
                 assert ft.time_to_freeze.year == 2023
             """,
+            reports=[(4, 6, "freeze_time usage not migrated")],
         )
 
     def test_with_as_incompatible_reference(self):
@@ -1636,6 +1683,7 @@ class TestMigrateContents:
             with freeze_time("2023-01-01") as ft:
                 helper(ft)
             """,
+            reports=[(4, 6, "freeze_time usage not migrated")],
         )
 
     def test_with_as_unmigratable_call(self):
@@ -1652,6 +1700,7 @@ class TestMigrateContents:
             with freeze_time("2023-01-01", auto_tick_seconds=1) as ft:
                 ft.tick()
             """,
+            reports=[(4, 6, "freeze_time usage not migrated")],
         )
 
     def test_marker(self):
@@ -1717,6 +1766,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 2, "pytest.mark.freeze_time usage not migrated")],
         )
 
     def test_marker_unmigratable_call(self):
@@ -1728,6 +1778,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 2, "pytest.mark.freeze_time usage not migrated")],
         )
 
     def test_marker_unrelated(self):
@@ -1839,6 +1890,7 @@ class TestMigrateContents:
 
             pytestmark = pytest.mark.freeze_time
             """,
+            reports=[(4, 14, "pytest.mark.freeze_time usage not migrated")],
         )
 
     def test_pytestmark_module_other_value(self):
@@ -1924,6 +1976,68 @@ class TestMigrateContents:
                 def test_function(self, time_machine):
                     time_machine.move_to("2023-01-01")
             """,
+        )
+
+    def test_reports_import_multiple(self):
+        check_noop(
+            """
+            import freezegun, os
+
+            @freezegun.freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            reports=[(4, 2, "freezegun usage not migrated")],
+        )
+
+    def test_reports_import_dotted(self):
+        check_noop(
+            """
+            import freezegun.config
+
+            freezegun.config.configure(extend_ignore_list=["tensorflow"])
+            """,
+            reports=[(4, 1, "freezegun usage not migrated")],
+        )
+
+    def test_reports_import_dotted_aliased(self):
+        check_noop(
+            """
+            import freezegun.api as fg_api
+
+            x = fg_api.FakeDatetime(2020, 1, 1)
+            """,
+            reports=[(4, 5, "fg_api usage not migrated")],
+        )
+
+    def test_reports_sorted(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time
+            def test_one():
+                pass
+
+            def test_two():
+                with freezegun.freeze_time("2023-01-01") as ft:
+                    helper(ft)
+            """,
+            """
+            import time_machine
+
+            @freezegun.freeze_time
+            def test_one():
+                pass
+
+            def test_two():
+                with freezegun.freeze_time("2023-01-01") as ft:
+                    helper(ft)
+            """,
+            reports=[
+                (4, 2, "freezegun usage not migrated"),
+                (9, 10, "freezegun usage not migrated"),
+            ],
         )
 
     def test_freezer_fixture(self):
@@ -2084,6 +2198,7 @@ class TestMigrateContents:
                 with freeze_time("2024-01-01"):
                     pass
             """,
+            reports=[(6, 10, "freeze_time usage not migrated")],
         )
 
     def test_freezer_fixture_no_argument_noop(self):
