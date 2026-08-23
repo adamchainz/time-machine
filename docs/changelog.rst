@@ -7,6 +7,8 @@ Unreleased
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate aliased imports: ``import freezegun as fg`` and ``from freezegun import freeze_time as ft``, plus calls using such aliases.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate the ``pytest.mark.freeze_time`` marker in module-level and class-level ``pytestmark`` assignments.
+
 3.4.0 (2026-08-10)
 ------------------
 

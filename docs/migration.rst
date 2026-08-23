@@ -99,6 +99,8 @@ The changes the tool makes are:
 * The ``pytest.mark.freeze_time`` marker from `pytest-freezegun <https://pypi.org/project/pytest-freezegun/>`__ or `pytest-freezer <https://pypi.org/project/pytest-freezer/>`__: ``@pytest.mark.freeze_time(...)`` -> ``@pytest.mark.time_machine(...)``, the marker from time-machine’s :doc:`pytest plugin <pytest_plugin>`.
   This migration uses the same argument handling as for ``freeze_time()`` calls.
 
+  As well as in decorators, the marker is migrated in module-level and class-level ``pytestmark`` assignments, whether assigned alone or within a list or tuple of markers.
+
 * The ``freezer`` fixture from pytest-freezegun or pytest-freezer -> the ``time_machine`` fixture from time-machine’s pytest plugin.
   In functions with an argument named ``freezer``, the argument is renamed to ``time_machine`` and calls of the fixture’s methods are migrated:
 
