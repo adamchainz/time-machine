@@ -498,14 +498,22 @@ def migratable_call(node: ast.Call) -> bool:
 def droppable_kwarg(kw: ast.keyword) -> bool:
     """
     Check if the given freeze_time() keyword argument can be dropped when
-    migrating, because its value makes it have no effect.
+    migrating, because its value makes it have no effect or requests
+    behaviour that time-machine always provides.
     """
-    return (
-        kw.arg == "tz_offset"
-        and isinstance(kw.value, ast.Constant)
-        and type(kw.value.value) in (int, float)
-        and kw.value.value == 0
-    )
+    if kw.arg == "tz_offset":
+        # A zero offset has no effect.
+        return (
+            isinstance(kw.value, ast.Constant)
+            and type(kw.value.value) in (int, float)
+            and kw.value.value == 0
+        )
+    elif kw.arg == "real_asyncio":
+        # time-machine does not mock time.monotonic(), so asyncio event
+        # loops always see real time.
+        return isinstance(kw.value, ast.Constant) and kw.value.value is True
+    else:
+        return False
 
 
 def migratable_tick_call(node: ast.Call) -> bool:
