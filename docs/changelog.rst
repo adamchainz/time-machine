@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate aliased imports: ``import freezegun as fg`` and ``from freezegun import freeze_time as ft``, plus calls using such aliases.
+
 3.4.0 (2026-08-10)
 ------------------
 
