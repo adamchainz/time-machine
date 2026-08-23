@@ -5,6 +5,9 @@ Changelog
 Unreleased
 ----------
 
+* Support ``None`` as a destination for ``travel()`` and ``Traveller.move_to()``, meaning the current time.
+  Use this with ``tick=False`` to freeze time at the present moment, matching freezegun’s behaviour when ``freeze_time()`` is called with no arguments.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate aliased imports: ``import freezegun as fg`` and ``from freezegun import freeze_time as ft``, plus calls using such aliases.
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate the ``pytest.mark.freeze_time`` marker in module-level and class-level ``pytestmark`` assignments.

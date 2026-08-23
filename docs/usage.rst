@@ -80,6 +80,10 @@ Main API
     .. |dateutil.parse()| replace:: ``dateutil.parse()``
     __ https://dateutil.readthedocs.io/en/stable/parser.html
 
+  * ``None``, meaning the current time.
+    Use this with ``tick=False`` to freeze time at the present moment.
+    If already time travelling, the current time is the mocked one, as with a ``datetime.timedelta`` destination.
+
   Additionally, you can provide some more complex types:
 
   * A generator, in which case ``next()`` will be called on it, with the result treated as above.
