@@ -623,6 +623,60 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_real_asyncio_true(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", real_asyncio=True)
+            async def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            async def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_real_asyncio_false(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", real_asyncio=False)
+            async def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            async def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_real_asyncio_variable(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", real_asyncio=real_asyncio)
+            async def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            async def test_function():
+                pass
+            """,
+        )
+
     def test_with_tz_offset_zero(self):
         check_transformed(
             """

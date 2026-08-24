@@ -12,6 +12,9 @@ Unreleased
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``tz_offset`` with a literal zero value.
   The argument is dropped, since a zero offset has no effect.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``real_asyncio``.
+  The argument is dropped, whatever its value, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
+
 3.4.0 (2026-08-10)
 ------------------
 
