@@ -21,6 +21,15 @@ Unreleased
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers with no destination argument, which freeze at the current time.
   ``None`` is added as the destination, using the new support for ``None`` destinations (above).
 
+
+* Make the :ref:`Migration CLI <migration-cli>` report freezegun-related usages that it recognizes but cannot migrate, with their positions, like:
+
+  .. code-block:: console
+
+    example/tests.py:9:2: freeze_time usage not migrated
+
+  This makes it easier to find and fix the remaining usages manually.
+
 3.4.0 (2026-08-10)
 ------------------
 
