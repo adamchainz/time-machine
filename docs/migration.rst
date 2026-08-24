@@ -130,6 +130,8 @@ The changes the tool makes are:
   Other uses of ``freezer`` are left unchanged, for your linter to flag.
   ``freeze_time()`` calls within such functions are also left unchanged, because the renamed argument shadows the ``time_machine`` module.
 
+  Imports and uses of ``FrozenDateTimeFactory``, freezegun’s class for the ``freezer`` fixture, often used to annotate the fixture argument, are also migrated: uses are rewritten to time-machine’s equivalent, ``TimeMachineFixture``, and ``from time_machine import TimeMachineFixture`` replaces the freezegun import.
+
   Note that the ``time_machine`` fixture doesn’t mock the time until its ``move_to()`` method is called, unlike ``freezer``, which mocks from the start of the test.
   Migrated tests that relied on that, for example by calling ``freezer.tick()`` before any ``move_to()``, will need manual adjustment.
 
