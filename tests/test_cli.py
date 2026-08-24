@@ -456,6 +456,207 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_tz_offset_zero(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=0)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_zero_float(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=0.0)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_zero_before_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=0, tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_zero_after_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tick=True, tz_offset=0)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_zero_trailing_comma(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=0,)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_zero_multiline(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(
+                "2023-01-01",
+                tz_offset=0,
+            )
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(
+                "2023-01-01", tick=False
+            )
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_nonzero(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=-4)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01", tz_offset=-4)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_false(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=False)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01", tz_offset=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_tz_offset_variable(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=offset)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01", tz_offset=offset)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_with_tz_offset_zero(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            with freeze_time("2023-01-01", tz_offset=0):
+                pass
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=False):
+                pass
+            """,
+        )
+
+    def test_marker_tz_offset_zero(self):
+        check_transformed(
+            """
+            import pytest
+
+            @pytest.mark.freeze_time("2023-01-01", tz_offset=0)
+            def test_function():
+                pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
     def test_function_decorator_name_unrelated(self):
         check_noop(
             """

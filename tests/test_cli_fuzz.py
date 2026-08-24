@@ -42,6 +42,9 @@ freeze_time_arglists = st.sampled_from(
         ('"2023-01-01"', "tick=True"),
         ('"2023-01-01"', "tick=False"),
         ('"2023-01-01"', "auto_tick_seconds=1"),
+        ('"2023-01-01"', "tz_offset=0"),
+        ('"2023-01-01"', "tz_offset=-4"),
+        ('"2023-01-01"', "tz_offset=0", "tick=True"),
     ]
 )
 

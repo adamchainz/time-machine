@@ -9,6 +9,9 @@ Unreleased
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate the ``pytest.mark.freeze_time`` marker in module-level and class-level ``pytestmark`` assignments.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``tz_offset`` with a literal zero value.
+  The argument is dropped, since a zero offset has no effect.
+
 3.4.0 (2026-08-10)
 ------------------
 
