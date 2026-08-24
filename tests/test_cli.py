@@ -156,8 +156,27 @@ class TestMigrateContents:
         )
 
     def test_aliased(self):
-        check_noop(
+        check_transformed(
             "import freezegun as fg",
+            "import time_machine",
+        )
+
+    def test_aliased_used(self):
+        check_transformed(
+            """
+            import freezegun as fg
+
+            @fg.freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
         )
 
     def test_import_freezegun(self):
@@ -177,8 +196,43 @@ class TestMigrateContents:
         )
 
     def test_import_from_freezegun_aliased(self):
-        check_noop(
+        check_transformed(
             "from freezegun import freeze_time as ft",
+            "import time_machine",
+        )
+
+    def test_import_from_freezegun_aliased_used(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time as ft
+
+            @ft("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_import_from_freezegun_aliased_used_with(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time as ft
+
+            with ft("2023-01-01") as t:
+                t.tick()
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=False) as t:
+                t.shift(1)
+            """,
         )
 
     def test_import_from_freezegun_multiple(self):
@@ -194,8 +248,9 @@ class TestMigrateContents:
         )
 
     def test_import_from_freezegun_multiple_only_aliased_freeze_time(self):
-        check_noop(
+        check_transformed(
             "from freezegun import freeze_time as ft, FakeDate",
+            "import time_machine\nfrom freezegun import FakeDate",
         )
 
     def test_import_from_freezegun_multiple_parenthesized(self):
