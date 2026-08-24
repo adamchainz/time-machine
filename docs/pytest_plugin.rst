@@ -60,6 +60,15 @@ Use the function-scoped `fixture <https://docs.pytest.org/en/stable/explanation/
 It provides an object with two methods, ``move_to()`` and ``shift()``, which work the same as their equivalents in the :class:`time_machine.Traveller` class.
 Until you call ``move_to()``, time is not mocked.
 
+The fixture object is an instance of ``time_machine.TimeMachineFixture``, which you can import to annotate the fixture argument:
+
+.. code-block:: python
+
+    from time_machine import TimeMachineFixture
+
+
+    def test_delorean(time_machine: TimeMachineFixture): ...
+
 For example:
 
 .. code-block:: python

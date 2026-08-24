@@ -368,6 +368,277 @@ class TestMigrateContents:
             """,
         )
 
+    def test_fixture_factory_annotation(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory
+
+            def test_function(freezer: FrozenDateTimeFactory):
+                freezer.move_to("2023-01-01")
+            """,
+            """
+            from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: TimeMachineFixture):
+                time_machine.move_to("2023-01-01", tick=False)
+            """,
+        )
+
+    def test_fixture_factory_annotation_aliased(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory as FDF
+
+            def test_function(freezer: FDF):
+                freezer.move_to("2023-01-01")
+            """,
+            """
+            from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: TimeMachineFixture):
+                time_machine.move_to("2023-01-01", tick=False)
+            """,
+        )
+
+    def test_fixture_factory_annotation_helper(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory
+
+            def advance(freezer: FrozenDateTimeFactory, days: int):
+                pass
+            """,
+            """
+            from time_machine import TimeMachineFixture
+
+            def advance(time_machine: TimeMachineFixture, days: int):
+                pass
+            """,
+        )
+
+    def test_fixture_factory_with_freeze_time_import(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+            from freezegun.api import FrozenDateTimeFactory
+
+            def test_function(freezer: FrozenDateTimeFactory):
+                freezer.move_to("2023-01-01")
+
+            @freeze_time("2023-06-01")
+            def test_function2():
+                pass
+            """,
+            """
+            import time_machine
+            from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: TimeMachineFixture):
+                time_machine.move_to("2023-01-01", tick=False)
+
+            @time_machine.travel("2023-06-01", tick=False)
+            def test_function2():
+                pass
+            """,
+        )
+
+    def test_fixture_factory_unused(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory
+
+            x = 1
+            """,
+            """
+
+            x = 1
+            """,
+        )
+
+    def test_fixture_factory_function_local_kept(self):
+        check_noop(
+            """
+            def test_function():
+                from freezegun.api import FrozenDateTimeFactory
+                return FrozenDateTimeFactory
+            """,
+            reports=[(4, 12, "FrozenDateTimeFactory usage not migrated")],
+        )
+
+    def test_fixture_factory_store_kept(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time, FrozenDateTimeFactory
+
+            FrozenDateTimeFactory = None
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+            from freezegun import FrozenDateTimeFactory
+
+            FrozenDateTimeFactory = None
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+            reports=[(4, 1, "FrozenDateTimeFactory usage not migrated")],
+        )
+
+    def test_fixture_factory_fstring_kept(self):
+        check_noop(
+            """
+            from freezegun import FrozenDateTimeFactory
+
+            x = f"{FrozenDateTimeFactory} here"
+            """,
+            reports=[(4, 8, "FrozenDateTimeFactory usage not migrated")],
+        )
+
+    def test_fixture_factory_shadow_parameter_kept(self):
+        check_noop(
+            """
+            from freezegun import FrozenDateTimeFactory
+
+            def check(FrozenDateTimeFactory):
+                return FrozenDateTimeFactory
+            """,
+            reports=[(5, 12, "FrozenDateTimeFactory usage not migrated")],
+        )
+
+    def test_fixture_factory_shadow_def_kept(self):
+        check_noop(
+            """
+            from freezegun import FrozenDateTimeFactory
+
+            def FrozenDateTimeFactory():
+                pass
+
+            x = FrozenDateTimeFactory()
+            """,
+            reports=[(7, 5, "FrozenDateTimeFactory usage not migrated")],
+        )
+
+    def test_fixture_factory_shadow_class_kept(self):
+        check_noop(
+            """
+            from freezegun import FrozenDateTimeFactory
+
+            class FrozenDateTimeFactory:
+                pass
+            """,
+        )
+
+    def test_fixture_factory_shadow_import_kept(self):
+        check_noop(
+            """
+            from freezegun import FrozenDateTimeFactory
+            from othermod import FrozenDateTimeFactory
+
+            x: FrozenDateTimeFactory = None
+            """,
+            reports=[(5, 4, "FrozenDateTimeFactory usage not migrated")],
+        )
+
+    def test_fixture_factory_shadow_lambda_kept(self):
+        check_noop(
+            """
+            from freezegun import FrozenDateTimeFactory
+
+            f = lambda FrozenDateTimeFactory: FrozenDateTimeFactory
+            """,
+            reports=[(4, 35, "FrozenDateTimeFactory usage not migrated")],
+        )
+
+    def test_fixture_factory_function_local_import_module_carrier(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                from freezegun.api import FrozenDateTimeFactory
+                x: FrozenDateTimeFactory = None
+            """,
+            """
+            import time_machine
+            from time_machine import TimeMachineFixture
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                x: TimeMachineFixture = None
+            """,
+        )
+
+    def test_fixture_factory_import_in_try(self):
+        check_transformed(
+            """
+            try:
+                import zoneinfo
+            except ImportError:
+                pass
+
+            from freezegun import FrozenDateTimeFactory
+
+            x: FrozenDateTimeFactory = None
+            """,
+            """
+            try:
+                import zoneinfo
+            except ImportError:
+                pass
+
+            from time_machine import TimeMachineFixture
+
+            x: TimeMachineFixture = None
+            """,
+        )
+
+    def test_fixture_factory_unused_removed_trailing_comment(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory  # noqa
+
+            x = 1
+            """,
+            """
+
+            x = 1
+            """,
+        )
+
+    def test_fixture_factory_unused_semicolon_before(self):
+        check_transformed(
+            """
+            x = 1; from freezegun import FrozenDateTimeFactory
+
+            y = 2
+            """,
+            """
+            x = 1; pass
+
+            y = 2
+            """,
+        )
+
+    def test_fixture_factory_unused_only_statement_in_block(self):
+        check_transformed(
+            """
+            if True: from freezegun.api import FrozenDateTimeFactory
+
+            x = 1
+            """,
+            """
+            if True: pass
+
+            x = 1
+            """,
+        )
+
     def test_import_from_freezegun(self):
         check_transformed(
             "from freezegun import freeze_time",

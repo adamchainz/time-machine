@@ -34,6 +34,8 @@ Unreleased
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate “raw use” assignments of ``freeze_time()`` to variables or ``self.`` attributes used with ``start()`` and ``stop()``, covering unittest ``setUp()`` / ``tearDown()`` patterns like ``self.freezer = freeze_time(...)`` with ``self.addCleanup(self.freezer.stop)``.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate imports and uses of freezegun’s ``FrozenDateTimeFactory`` class, often used to annotate the ``freezer`` fixture argument, to time-machine’s newly-documented equivalent, ``time_machine.TimeMachineFixture``.
+
 3.4.0 (2026-08-10)
 ------------------
 
