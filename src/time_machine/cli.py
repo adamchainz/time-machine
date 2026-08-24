@@ -883,7 +883,9 @@ def droppable_kwarg(kw: ast.keyword) -> bool:
         # loops always see real time.
         return isinstance(kw.value, ast.Constant) and kw.value.value is True
     else:
-        return False
+        # ignore works around problems with freezegun’s module patching,
+        # which time-machine’s C-level mocking doesn’t have.
+        return kw.arg == "ignore"
 
 
 def migratable_tick_call(node: ast.Call) -> bool:
