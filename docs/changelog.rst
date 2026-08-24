@@ -21,6 +21,8 @@ Unreleased
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers with no destination argument, which freeze at the current time.
   ``None`` is added as the destination, using the new support for ``None`` destinations (above).
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``ignore``.
+  The argument is dropped, since it works around problems with freezegun’s module patching, which time-machine’s C-level mocking doesn’t have.
 
 * Make the :ref:`Migration CLI <migration-cli>` report freezegun-related usages that it recognizes but cannot migrate, with their positions, like:
 

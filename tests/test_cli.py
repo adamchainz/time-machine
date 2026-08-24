@@ -908,6 +908,60 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_ignore(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", ignore=["threading"])
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_ignore_variable(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", ignore=IGNORED_MODULES, tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_marker_ignore(self):
+        check_transformed(
+            """
+            import pytest
+
+            @pytest.mark.freeze_time("2023-01-01", ignore=["threading"])
+            def test_function():
+                pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
     def test_with_tz_offset_zero(self):
         check_transformed(
             """

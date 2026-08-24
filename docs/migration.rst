@@ -98,11 +98,12 @@ The changes the tool makes are:
 * ``from freezegun import freeze_time, FakeDate`` -> ``import time_machine`` plus ``from freezegun import FakeDate``, keeping the other imported names.
 
 * In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(...)``.
-  This change is applied only when ``freeze_time()`` is called with a single positional argument and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, and ``real_asyncio``.
+  This change is applied only when ``freeze_time()`` is called with a single positional argument and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, ``real_asyncio``, and ``ignore``.
   If ``tick`` is passed, it is kept as-is, otherwise it is replaced with ``tick=False`` (matching freezegun’s default behaviour).
   If no positional argument is passed, ``None`` is added as the destination, meaning the current time, matching freezegun’s behaviour of freezing at the current time.
   ``tz_offset=0`` is dropped, since a zero offset has no effect.
   ``real_asyncio`` is dropped, whatever its value, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
+  ``ignore`` is dropped, since it works around problems with freezegun’s module patching, which time-machine’s C-level mocking doesn’t have.
 
 * “Raw use” assignments that bind ``freeze_time()`` to a variable for later ``start()`` and ``stop()`` calls: the assigned call is migrated as above, since ``travel()`` instances have the same ``start()`` / ``stop()`` interface.
   This applies to plain variables, like ``freezer = freeze_time(...)``, checked within the enclosing function or module, and to ``self.`` attributes, checked across the enclosing class, so unittest ``setUp()`` / ``tearDown()`` patterns are covered, including cleanup registrations like ``self.addCleanup(self.freezer.stop)``.

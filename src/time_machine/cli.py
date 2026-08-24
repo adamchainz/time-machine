@@ -722,6 +722,10 @@ def droppable_kwarg(kw: ast.keyword) -> bool:
             # time-machine does not mock time.monotonic(), so asyncio event
             # loops always see real time, whatever the value.
             return True
+        case "ignore":
+            # time-machine’s C-level mocking does not need workarounds, so
+            # ignores are hopefully unnecessary.
+            return True
         case _:
             return False
 
