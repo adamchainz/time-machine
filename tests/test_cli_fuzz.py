@@ -118,6 +118,20 @@ def pytestmark_statements(draw: st.DrawFn) -> str:
 
 
 @st.composite
+def raw_assignment_statements(draw: st.DrawFn) -> str:
+    receiver = draw(st.sampled_from(["freezer", "ft", "self.freezer"]))
+    lines = [f"{receiver} = " + draw(freeze_time_calls())]
+    for method in draw(
+        st.lists(st.sampled_from(["start", "stop", "move_to", "tick"]), max_size=2)
+    ):
+        if draw(st.booleans()):
+            lines.append(draw(calls(f"{receiver}.{method}", method_arglists)))
+        else:
+            lines.append(f"cleanup({receiver}.{method})")
+    return "\n".join(lines)
+
+
+@st.composite
 def method_statements(draw: st.DrawFn) -> str:
     receiver = draw(st.sampled_from(["freezer", "t", "ft", "tick", "other"]))
     kind = draw(st.sampled_from(["call", "call", "call", "attribute", "reference"]))
@@ -167,6 +181,7 @@ def function_defs(draw: st.DrawFn) -> str:
             st.just("pass")
             | st.just("from freezegun import freeze_time, FakeDate")
             | method_statements()
+            | raw_assignment_statements()
             | with_statements(),
             min_size=1,
             max_size=3,
@@ -214,6 +229,7 @@ def modules(draw: st.DrawFn) -> str:
                 | class_defs()
                 | with_statements()
                 | method_statements()
+                | raw_assignment_statements()
                 | pytestmark_statements(),
                 min_size=1,
                 max_size=3,

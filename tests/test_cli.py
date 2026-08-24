@@ -1701,6 +1701,349 @@ class TestMigrateContents:
             reports=[(4, 6, "freeze_time usage not migrated")],
         )
 
+    def test_assign_start_stop(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start()
+                freezer.stop()
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = time_machine.travel("2023-01-01", tick=False)
+                freezer.start()
+                freezer.stop()
+            """,
+        )
+
+    def test_assign_start_stop_module_level(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            freezer = freeze_time("2023-01-01")
+            freezer.start()
+            freezer.stop()
+            """,
+            """
+            import time_machine
+
+            freezer = time_machine.travel("2023-01-01", tick=False)
+            freezer.start()
+            freezer.stop()
+            """,
+        )
+
+    def test_assign_start_stop_attr_call(self):
+        check_transformed(
+            """
+            import freezegun
+
+            def test_function():
+                freezer = freezegun.freeze_time("2023-01-01")
+                freezer.start()
+                freezer.stop()
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = time_machine.travel("2023-01-01", tick=False)
+                freezer.start()
+                freezer.stop()
+            """,
+        )
+
+    def test_assign_start_stop_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01", tick=True)
+                freezer.start()
+                freezer.stop()
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = time_machine.travel("2023-01-01", tick=True)
+                freezer.start()
+                freezer.stop()
+            """,
+        )
+
+    def test_assign_stop_reference(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start()
+                atexit.register(freezer.stop)
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = time_machine.travel("2023-01-01", tick=False)
+                freezer.start()
+                atexit.register(freezer.stop)
+            """,
+        )
+
+    def test_assign_start_arguments_incompatible(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start(1)
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start(1)
+            """,
+            reports=[(5, 15, "freeze_time usage not migrated")],
+        )
+
+    def test_assign_start_assigned_incompatible(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                x = freezer.start()
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                x = freezer.start()
+            """,
+            reports=[(5, 15, "freeze_time usage not migrated")],
+        )
+
+    def test_assign_move_to_incompatible(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start()
+                freezer.move_to("2023-06-01")
+                freezer.stop()
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start()
+                freezer.move_to("2023-06-01")
+                freezer.stop()
+            """,
+            reports=[(5, 15, "freeze_time usage not migrated")],
+        )
+
+    def test_assign_reference_incompatible(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                helper(freezer)
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                helper(freezer)
+            """,
+            reports=[(5, 15, "freeze_time usage not migrated")],
+        )
+
+    def test_assign_reassigned_incompatible(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start()
+                freezer = freeze_time("2024-01-01")
+                freezer.stop()
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = freeze_time("2023-01-01")
+                freezer.start()
+                freezer = freeze_time("2024-01-01")
+                freezer.stop()
+            """,
+            reports=[
+                (5, 15, "freeze_time usage not migrated"),
+                (7, 15, "freeze_time usage not migrated"),
+            ],
+        )
+
+    def test_assign_unmigratable_call(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def test_function():
+                freezer = freeze_time("2023-01-01", auto_tick_seconds=1)
+                freezer.start()
+                freezer.stop()
+            """,
+            """
+            import time_machine
+
+            def test_function():
+                freezer = freeze_time("2023-01-01", auto_tick_seconds=1)
+                freezer.start()
+                freezer.stop()
+            """,
+            reports=[(5, 15, "freeze_time usage not migrated")],
+        )
+
+    def test_assign_other_call_noop(self):
+        check_noop(
+            """
+            def test_function():
+                freezer = make_freezer("2023-01-01")
+                freezer.start()
+            """,
+        )
+
+    def test_assign_class_body_noop(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            class TestSomething:
+                freezer = freeze_time("2023-01-01")
+            """,
+            """
+            import time_machine
+
+            class TestSomething:
+                freezer = freeze_time("2023-01-01")
+            """,
+            reports=[(5, 15, "freeze_time usage not migrated")],
+        )
+
+    def test_assign_self_attr(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            class TestSomething(TestCase):
+                def setUp(self):
+                    self.freezer = freeze_time("2023-01-01")
+                    self.freezer.start()
+                    self.addCleanup(self.freezer.stop)
+            """,
+            """
+            import time_machine
+
+            class TestSomething(TestCase):
+                def setUp(self):
+                    self.freezer = time_machine.travel("2023-01-01", tick=False)
+                    self.freezer.start()
+                    self.addCleanup(self.freezer.stop)
+            """,
+        )
+
+    def test_assign_self_attr_teardown(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            class TestSomething(TestCase):
+                def setUp(self):
+                    self.freezer = freeze_time("2023-01-01")
+                    self.freezer.start()
+
+                def tearDown(self):
+                    self.freezer.stop()
+            """,
+            """
+            import time_machine
+
+            class TestSomething(TestCase):
+                def setUp(self):
+                    self.freezer = time_machine.travel("2023-01-01", tick=False)
+                    self.freezer.start()
+
+                def tearDown(self):
+                    self.freezer.stop()
+            """,
+        )
+
+    def test_assign_self_attr_incompatible(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            class TestSomething(TestCase):
+                def setUp(self):
+                    self.freezer = freeze_time("2023-01-01")
+                    self.freezer.start()
+
+                def test_function(self):
+                    self.freezer.tick()
+            """,
+            """
+            import time_machine
+
+            class TestSomething(TestCase):
+                def setUp(self):
+                    self.freezer = freeze_time("2023-01-01")
+                    self.freezer.start()
+
+                def test_function(self):
+                    self.freezer.tick()
+            """,
+            reports=[(6, 24, "freeze_time usage not migrated")],
+        )
+
+    def test_assign_self_attr_outside_class(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            def helper(self):
+                self.freezer = freeze_time("2023-01-01")
+            """,
+            """
+            import time_machine
+
+            def helper(self):
+                self.freezer = freeze_time("2023-01-01")
+            """,
+            reports=[(5, 20, "freeze_time usage not migrated")],
+        )
+
     def test_marker(self):
         check_transformed(
             """
