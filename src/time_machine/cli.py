@@ -171,9 +171,14 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
     freeze_time_names: set[str] = set()
     freezer_functions: list[FreezerFunction] = []
     marker_class_methods: set[ast.FunctionDef | ast.AsyncFunctionDef] = set()
+    module_marker_seen = False
     traveller_vars: list[TravellerVar] = []
     for node in ast.walk(tree):
         match node:
+            case ast.Module():
+                for stmt in node.body:
+                    if maybe_migrate_pytestmark(ret, stmt):
+                        module_marker_seen = True
             case ast.Import() if (
                 len(node.names) == 1 and (alias := node.names[0]).name == "freezegun"
             ):
@@ -206,7 +211,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                     )
                 )
             case ast.FunctionDef() | ast.AsyncFunctionDef():
-                marker_seen = node in marker_class_methods
+                marker_seen = module_marker_seen or node in marker_class_methods
                 for decorator in node.decorator_list:
                     if maybe_migrate_marker(ret, decorator):
                         marker_seen = True
@@ -231,23 +236,30 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         FreezerFunction(node, marker_seen=marker_seen)
                     )
 
-            case ast.ClassDef() if node.decorator_list:
-                unittest_class = looks_like_unittest_class(node)
-                for decorator in node.decorator_list:
-                    if maybe_migrate_marker(ret, decorator):
-                        marker_class_methods.update(
-                            stmt
-                            for stmt in node.body
-                            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef))
-                        )
-                    elif unittest_class:
-                        maybe_migrate_call(
-                            ret,
-                            decorator,
-                            freezegun_module_names=freezegun_module_names,
-                            freeze_time_names=freeze_time_names,
-                            freezer_functions=freezer_functions,
-                        )
+            case ast.ClassDef():
+                class_marker_seen = False
+                if node.decorator_list:
+                    unittest_class = looks_like_unittest_class(node)
+                    for decorator in node.decorator_list:
+                        if maybe_migrate_marker(ret, decorator):
+                            class_marker_seen = True
+                        elif unittest_class:
+                            maybe_migrate_call(
+                                ret,
+                                decorator,
+                                freezegun_module_names=freezegun_module_names,
+                                freeze_time_names=freeze_time_names,
+                                freezer_functions=freezer_functions,
+                            )
+                for stmt in node.body:
+                    if maybe_migrate_pytestmark(ret, stmt):
+                        class_marker_seen = True
+                if class_marker_seen:
+                    marker_class_methods.update(
+                        stmt
+                        for stmt in node.body
+                        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    )
 
             case ast.With():
                 for item in node.items:
@@ -406,6 +418,37 @@ def traveller_var_uses_compatible(node: ast.With, binding: ast.Name) -> bool:
         for subnode in ast.walk(node)
         if isinstance(subnode, ast.Name) and subnode.id == name
     )
+
+
+def maybe_migrate_pytestmark(
+    ret: MutableMapping[Offset, list[TokenFunc]],
+    node: ast.stmt,
+) -> bool:
+    """
+    Add the callbacks to rewrite any migratable pytest.mark.freeze_time()
+    markers in the given statement, if it is a ``pytestmark`` assignment,
+    returning whether any were migrated.
+    """
+    elements: list[ast.expr]
+    match node:
+        case ast.Assign(
+            targets=[ast.Name(id="pytestmark")],
+            value=ast.Call() as single,
+        ):
+            elements = [single]
+        case ast.Assign(
+            targets=[ast.Name(id="pytestmark")],
+            value=ast.List(elts=elements) | ast.Tuple(elts=elements),
+        ):
+            pass
+        case _:
+            return False
+
+    migrated = False
+    for element in elements:
+        if maybe_migrate_marker(ret, element):
+            migrated = True
+    return migrated
 
 
 def maybe_migrate_marker(

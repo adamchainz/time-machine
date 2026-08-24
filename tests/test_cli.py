@@ -1310,6 +1310,171 @@ class TestMigrateContents:
             """,
         )
 
+    def test_pytestmark_module(self):
+        check_transformed(
+            """
+            import pytest
+
+            pytestmark = pytest.mark.freeze_time("2023-01-01")
+            """,
+            """
+            import pytest
+
+            pytestmark = pytest.mark.time_machine("2023-01-01", tick=False)
+            """,
+        )
+
+    def test_pytestmark_module_tick(self):
+        check_transformed(
+            """
+            import pytest
+
+            pytestmark = pytest.mark.freeze_time("2023-01-01", tick=True)
+            """,
+            """
+            import pytest
+
+            pytestmark = pytest.mark.time_machine("2023-01-01", tick=True)
+            """,
+        )
+
+    def test_pytestmark_module_list(self):
+        check_transformed(
+            """
+            import pytest
+
+            pytestmark = [
+                pytest.mark.freeze_time("2023-01-01"),
+                pytest.mark.django_db,
+            ]
+            """,
+            """
+            import pytest
+
+            pytestmark = [
+                pytest.mark.time_machine("2023-01-01", tick=False),
+                pytest.mark.django_db,
+            ]
+            """,
+        )
+
+    def test_pytestmark_module_tuple(self):
+        check_transformed(
+            """
+            import pytest
+
+            pytestmark = (pytest.mark.freeze_time("2023-01-01"),)
+            """,
+            """
+            import pytest
+
+            pytestmark = (pytest.mark.time_machine("2023-01-01", tick=False),)
+            """,
+        )
+
+    def test_pytestmark_module_unrelated_marker(self):
+        check_noop(
+            """
+            import pytest
+
+            pytestmark = pytest.mark.django_db()
+            """,
+        )
+
+    def test_pytestmark_module_not_called(self):
+        check_noop(
+            """
+            import pytest
+
+            pytestmark = pytest.mark.freeze_time
+            """,
+        )
+
+    def test_pytestmark_module_other_value(self):
+        check_noop(
+            """
+            pytestmark = marks
+            """,
+        )
+
+    def test_pytestmark_class(self):
+        check_transformed(
+            """
+            import pytest
+
+            class TestSomething:
+                pytestmark = pytest.mark.freeze_time("2023-01-01")
+            """,
+            """
+            import pytest
+
+            class TestSomething:
+                pytestmark = pytest.mark.time_machine("2023-01-01", tick=False)
+            """,
+        )
+
+    def test_pytestmark_module_freezer_fixture(self):
+        check_transformed(
+            """
+            import pytest
+
+            pytestmark = pytest.mark.freeze_time("2000-01-01")
+
+            def test_function(freezer):
+                freezer.move_to("2023-01-01")
+            """,
+            """
+            import pytest
+
+            pytestmark = pytest.mark.time_machine("2000-01-01", tick=False)
+
+            def test_function(time_machine):
+                time_machine.move_to("2023-01-01")
+            """,
+        )
+
+    def test_pytestmark_module_freezer_fixture_defined_after(self):
+        check_transformed(
+            """
+            import pytest
+
+            def test_function(freezer):
+                freezer.move_to("2023-01-01")
+
+            pytestmark = pytest.mark.freeze_time("2000-01-01")
+            """,
+            """
+            import pytest
+
+            def test_function(time_machine):
+                time_machine.move_to("2023-01-01")
+
+            pytestmark = pytest.mark.time_machine("2000-01-01", tick=False)
+            """,
+        )
+
+    def test_pytestmark_class_freezer_fixture(self):
+        check_transformed(
+            """
+            import pytest
+
+            class TestSomething:
+                pytestmark = [pytest.mark.freeze_time("2000-01-01")]
+
+                def test_function(self, freezer):
+                    freezer.move_to("2023-01-01")
+            """,
+            """
+            import pytest
+
+            class TestSomething:
+                pytestmark = [pytest.mark.time_machine("2000-01-01", tick=False)]
+
+                def test_function(self, time_machine):
+                    time_machine.move_to("2023-01-01")
+            """,
+        )
+
     def test_freezer_fixture(self):
         check_transformed(
             """

@@ -97,6 +97,22 @@ def decorators(draw: st.DrawFn) -> str:
 
 
 @st.composite
+def pytestmark_statements(draw: st.DrawFn) -> str:
+    markers = draw(
+        st.lists(
+            calls("pytest.mark.freeze_time", freeze_time_arglists)
+            | st.sampled_from(["pytest.mark.freeze_time", "pytest.mark.django_db"]),
+            min_size=1,
+            max_size=2,
+        )
+    )
+    if len(markers) == 1 and draw(st.booleans()):
+        return f"pytestmark = {markers[0]}"
+    wrapper = draw(st.sampled_from(["[{}]", "({},)"]))
+    return "pytestmark = " + wrapper.format(", ".join(markers))
+
+
+@st.composite
 def method_statements(draw: st.DrawFn) -> str:
     receiver = draw(st.sampled_from(["freezer", "t", "ft", "tick", "other"]))
     kind = draw(st.sampled_from(["call", "call", "call", "attribute", "reference"]))
@@ -160,7 +176,13 @@ def class_defs(draw: st.DrawFn) -> str:
     lines = draw(st.lists(decorators(), max_size=1))
     bases = draw(st.sampled_from(["", "(unittest.TestCase)", "(TestBase)"]))
     lines.append(f"class TestSomething{bases}:")
-    body = draw(st.lists(st.just("pass") | function_defs(), min_size=1, max_size=2))
+    body = draw(
+        st.lists(
+            st.just("pass") | pytestmark_statements() | function_defs(),
+            min_size=1,
+            max_size=2,
+        )
+    )
     lines.extend(indent(s) for s in body)
     return "\n".join(lines)
 
@@ -186,7 +208,8 @@ def modules(draw: st.DrawFn) -> str:
                 function_defs()
                 | class_defs()
                 | with_statements()
-                | method_statements(),
+                | method_statements()
+                | pytestmark_statements(),
                 min_size=1,
                 max_size=3,
             )
