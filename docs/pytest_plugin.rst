@@ -53,12 +53,17 @@ The marker takes the same arguments as :class:`~.travel`, including the ``tick``
         for _ in range(10):
             assert time.time() == 0.0
 
+Without arguments, the marker mocks from the current time, with time ticking, like the bare fixture.
+
 ``time_machine`` fixture
 ------------------------
 
 Use the function-scoped `fixture <https://docs.pytest.org/en/stable/explanation/fixtures.html#about-fixtures>`__ ``time_machine`` to control time in your tests.
 It provides an object with two methods, ``move_to()`` and ``shift()``, which work the same as their equivalents in the :class:`time_machine.Traveller` class.
-Until you call ``move_to()``, time is not mocked.
+
+The fixture starts time travelling when set up: it moves to the current time, with time continuing to tick.
+Use ``move_to()`` to travel to a specific time, passing ``tick=False`` to freeze it, or ``shift()`` to move by an offset.
+``move_to()``\'s ``destination`` argument defaults to ``None``, meaning the current time.
 
 The fixture object is an instance of ``time_machine.TimeMachineFixture``, which you can import to annotate the fixture argument:
 

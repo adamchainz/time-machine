@@ -462,7 +462,7 @@ if HAVE_PYTEST:  # pragma: no branch
 
         def move_to(
             self,
-            destination: DestinationType,
+            destination: DestinationType = None,
             tick: bool | None = None,
         ) -> None:
             if self.traveller is None:
@@ -494,6 +494,10 @@ if HAVE_PYTEST:  # pragma: no branch
         marker = request.node.get_closest_marker("time_machine")
         if marker:
             fixture.move_to(*marker.args, **marker.kwargs)
+        else:
+            # Start travelling at the current time, so time is mocked from
+            # the start of the test.
+            fixture.move_to(None)
 
         yield fixture
         fixture.stop()

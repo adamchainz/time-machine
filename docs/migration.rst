@@ -159,7 +159,7 @@ The changes the tool makes are:
 
   Imports and uses of ``FrozenDateTimeFactory``, freezegun’s class for the ``freezer`` fixture, often used to annotate the fixture argument, are also migrated: uses are rewritten to time-machine’s equivalent, ``TimeMachineFixture``, and ``from time_machine import TimeMachineFixture`` replaces the freezegun import.
 
-  Note that the ``time_machine`` fixture doesn’t mock the time until its ``move_to()`` method is called, unlike ``freezer``, which mocks from the start of the test.
-  Migrated tests that relied on that, for example by calling ``freezer.tick()`` before any ``move_to()``, will need manual adjustment.
+  Note that the ``time_machine`` fixture mocks the time from the start of the test, like ``freezer``, but with time ticking, whilst ``freezer`` froze it.
+  Migrated tests that call ``shift()`` before any ``move_to()`` and assert exact times may need a ``move_to(None, tick=False)`` call added at the start, to freeze the current time as freezegun did.
 
 The tool is open to extension to cover other compatible changes—PRs welcome!

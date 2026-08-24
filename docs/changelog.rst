@@ -8,6 +8,10 @@ Unreleased
 * Support ``None`` as a destination for ``travel()`` and ``Traveller.move_to()``, meaning the current time.
   Use this with ``tick=False`` to freeze time at the present moment, matching freezegun’s behaviour when ``freeze_time()`` is called with no arguments.
 
+* Make the pytest plugin’s ``time_machine`` fixture start time travelling when set up, moving to the current time with time ticking, rather than only mocking after the first ``move_to()`` call.
+  Consequently, ``shift()`` now works without an initial ``move_to()``, as freezegun’s ``freezer`` fixture allowed with its ``tick()`` method, aiding migration.
+  Additionally, the fixture’s ``move_to()`` method now has a default destination of ``None``, meaning the current time, and the ``pytest.mark.time_machine`` marker can now be used without arguments.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate aliased imports: ``import freezegun as fg`` and ``from freezegun import freeze_time as ft``, plus calls using such aliases.
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate the ``pytest.mark.freeze_time`` marker in module-level and class-level ``pytestmark`` assignments.

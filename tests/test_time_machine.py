@@ -20,6 +20,7 @@ import pytest
 from dateutil import tz
 
 import time_machine
+import time_machine as time_machine_module
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
@@ -1755,7 +1756,14 @@ def test_naive_mode_error_string_aware_works():
 
 
 def test_fixture_unused(time_machine):
+    assert time_machine_module.escape_hatch.is_travelling()
     assert time.time() >= LIBRARY_EPOCH
+
+
+def test_fixture_starts_ticking(time_machine):
+    first = time.time()
+    sleep_one_cycle(time.CLOCK_MONOTONIC)
+    assert time.time() > first
 
 
 def test_fixture_used(time_machine):
@@ -1793,12 +1801,54 @@ def test_fixture_move_to_and_shift(time_machine):
 
 
 def test_fixture_shift_without_move_to(time_machine):
+    before = time.time()
+
+    time_machine.shift(3600)
+
+    assert before + 3600 <= time.time() <= before + 3610
+
+
+def test_fixture_move_to_no_arguments(time_machine):
+    time_machine.move_to(EPOCH, tick=False)
+
+    # The default destination is None, the current time, which is the mocked
+    # time when already travelling.
+    time_machine.move_to()
+
+    assert time.time() == EPOCH
+
+
+def test_fixture_class_shift_unstarted():
+    fixture = time_machine.TimeMachineFixture()
+
     with pytest.raises(RuntimeError) as excinfo:
-        time_machine.shift(100)
+        fixture.shift(100)
 
     assert excinfo.value.args == (
         "Initialize time_machine with move_to() before using shift().",
     )
+
+
+def test_fixture_class_stop_unstarted():
+    time_machine.TimeMachineFixture().stop()
+
+
+def test_marker_no_arguments(testdir):
+    testdir.makepyfile(
+        """
+        import pytest
+        import time
+
+        @pytest.mark.time_machine
+        def test(time_machine):
+            first = time.time()
+            time_machine.shift(3600)
+            assert time.time() >= first + 3600
+    """
+    )
+
+    result = testdir.runpytest("-v", "-s")
+    result.assert_outcomes(passed=1)
 
 
 def test_marker_function(testdir):
