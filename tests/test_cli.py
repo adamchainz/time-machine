@@ -86,9 +86,25 @@ class TestMain:
         assert result == 0
         out, err = capsys.readouterr()
         assert out == ""
-        assert err == ""
+        assert err == f"{path}:1:5: could not parse file: invalid syntax\n"
 
         assert path.read_text() == "def def def\n"
+
+    def test_migrate_null_byte(self, capsys, tmp_path):
+        path = tmp_path / "example.py"
+        path.write_bytes(b"x = 1\x00\n")
+
+        result = main(["migrate", str(path)])
+
+        assert result == 0
+        out, err = capsys.readouterr()
+        assert out == ""
+        assert err == (
+            f"{path}:1:1: could not parse file: "
+            + "source code string cannot contain null bytes\n"
+        )
+
+        assert path.read_bytes() == b"x = 1\x00\n"
 
     def test_migrate_non_utf8(self, capsys, tmp_path):
         path = tmp_path / "example.py"

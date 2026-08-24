@@ -27,6 +27,9 @@ Unreleased
 * Make the :ref:`Migration CLI <migration-cli>` report freezegun-related usages that it recognizes but cannot migrate, with their positions, like ``example/tests.py:9:2: freeze_time usage not migrated``.
   This makes it easier to find and fix the remaining usages manually.
 
+* Make the :ref:`Migration CLI <migration-cli>` report files that cannot be parsed, rather than skipping them silently.
+  This helps notice files using syntax from a newer Python version than the tool is run with.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate “raw use” assignments of ``freeze_time()`` to variables or ``self.`` attributes used with ``start()`` and ``stop()``, covering unittest ``setUp()`` / ``tearDown()`` patterns like ``self.freezer = freeze_time(...)`` with ``self.addCleanup(self.freezer.stop)``.
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate imports and uses of freezegun’s ``FrozenDateTimeFactory`` class, often used to annotate the ``freezer`` fixture argument, to time-machine’s newly-documented equivalent, ``time_machine.TimeMachineFixture``.
