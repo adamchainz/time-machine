@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -133,6 +134,104 @@ class TestMain:
         assert result == 1
         out, err = capsys.readouterr()
         assert out == "import time_machine\n"
+        assert err == ""
+
+    def test_main_help_entry_point_subprocess(self):
+        exe = shutil.which("time-machine", path=str(Path(sys.executable).parent))
+        assert exe is not None
+        proc = subprocess.run([exe, "--help"], check=True, capture_output=True)
+
+        assert proc.stdout.startswith(b"usage: time-machine ")
+
+    def test_migrate_directory(self, capsys, tmp_path):
+        (tmp_path / "sub").mkdir()
+        file1 = tmp_path / "a.py"
+        file1.write_text("import freezegun\n")
+        file2 = tmp_path / "sub" / "b.py"
+        file2.write_text("import freezegun\n")
+        other = tmp_path / "c.txt"
+        other.write_text("import freezegun\n")
+
+        result = main(["migrate", str(tmp_path)])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == ""
+        assert err == f"Rewriting {file1}\nRewriting {file2}\n"
+
+        assert file1.read_text() == "import time_machine\n"
+        assert file2.read_text() == "import time_machine\n"
+        assert other.read_text() == "import freezegun\n"
+
+    def test_migrate_check(self, capsys, tmp_path):
+        path = tmp_path / "example.py"
+        path.write_text("import freezegun\n")
+
+        result = main(["migrate", "--check", str(path)])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == ""
+        assert err == f"Would rewrite {path}\n"
+
+        assert path.read_text() == "import freezegun\n"
+
+    def test_migrate_check_clean(self, capsys, tmp_path):
+        path = tmp_path / "example.py"
+        path.write_text("import os\n")
+
+        result = main(["migrate", "--check", str(path)])
+
+        assert result == 0
+        out, err = capsys.readouterr()
+        assert out == ""
+        assert err == ""
+
+    def test_migrate_check_stdin(self, capsys):
+        stdin = io.TextIOWrapper(io.BytesIO(b"import freezegun\n"), "UTF-8")
+
+        with mock.patch.object(sys, "stdin", stdin):
+            result = main(["migrate", "--check", "-"])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == ""
+        assert err == ""
+
+    def test_migrate_diff(self, capsys, tmp_path):
+        path = tmp_path / "example.py"
+        path.write_text("import freezegun\n")
+
+        result = main(["migrate", "--diff", str(path)])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == (
+            f"--- {path}\n"
+            + f"+++ {path}\n"
+            + "@@ -1 +1 @@\n"
+            + "-import freezegun\n"
+            + "+import time_machine\n"
+        )
+        assert err == f"Would rewrite {path}\n"
+
+        assert path.read_text() == "import freezegun\n"
+
+    def test_migrate_diff_stdin(self, capsys):
+        stdin = io.TextIOWrapper(io.BytesIO(b"import freezegun\n"), "UTF-8")
+
+        with mock.patch.object(sys, "stdin", stdin):
+            result = main(["migrate", "--diff", "-"])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == (
+            "--- -\n"
+            + "+++ -\n"
+            + "@@ -1 +1 @@\n"
+            + "-import freezegun\n"
+            + "+import time_machine\n"
+        )
         assert err == ""
 
     def test_migrate_reports(self, capsys, tmp_path):

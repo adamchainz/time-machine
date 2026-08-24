@@ -55,9 +55,9 @@ If you have `uv <https://docs.astral.sh/uv/>`__ installed, you can use its ``uvx
 
 .. code-block:: console
 
-    $ uvx --from 'time-machine[cli]' python -m time_machine migrate example/tests.py
+    $ uvx --from 'time-machine[cli]' time-machine migrate example/tests.py
 
-Replace ``example/tests.py`` with one or more target files.
+Replace ``example/tests.py`` with one or more target files or directories.
 
 Run directly
 ------------
@@ -69,19 +69,38 @@ For example, with Pip:
 
     $ python -m pip install time-machine[cli]
 
-Then, run the ``migrate`` subcommand of the module on target files:
+Then, run the ``migrate`` subcommand of its ``time-machine`` command on target files or directories:
 
 .. code-block:: console
 
-    $ python -m time_machine migrate example/tests.py
+    $ time-machine migrate example/tests.py
     Rewriting example/tests.py
 
-Replace ``example/tests.py`` with one or more target files.
+The command is also available as ``python -m time_machine``.
 
-Run against multiple files
---------------------------
+Targets
+-------
 
-To run the tool against all files from your Git repository, follow `this blog post <https://adamj.eu/tech/2022/03/09/how-to-run-a-command-on-many-files-in-your-git-repository/>`__.
+Targets may be files, directories, or ``-``.
+Directories are searched recursively for Python files, so you can run the tool against your whole project with:
+
+.. code-block:: console
+
+    $ time-machine migrate .
+
+For finer control over the target files, such as only migrating those tracked in your Git repository, follow `this blog post <https://adamj.eu/tech/2022/03/09/how-to-run-a-command-on-many-files-in-your-git-repository/>`__.
+
+Passing ``-`` reads from standard input and writes the result to standard output.
+
+Options
+-------
+
+``--check``
+    Don’t write changes.
+    The exit code is 1 when files would be rewritten, so you can use this in CI to prevent freezegun usage returning after migration.
+
+``--diff``
+    Don’t write changes; instead print a unified diff of the changes that would be made.
 
 Changes
 -------

@@ -2,22 +2,32 @@ from __future__ import annotations
 
 import argparse
 import ast
+import difflib
 import sys
 import warnings
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from functools import partial
+from pathlib import Path
 from typing import NamedTuple
 
-from tokenize_rt import (
-    NON_CODING_TOKENS,
-    UNIMPORTANT_WS,
-    Offset,
-    Token,
-    reversed_enumerate,
-    src_to_tokens,
-    tokens_to_src,
-)
+try:
+    from tokenize_rt import (
+        NON_CODING_TOKENS,
+        UNIMPORTANT_WS,
+        Offset,
+        Token,
+        reversed_enumerate,
+        src_to_tokens,
+        tokens_to_src,
+    )
+except ImportError:  # pragma: no cover
+    print(
+        "time-machine’s migrate command requires the 'cli' extra: "
+        "install time-machine[cli]",
+        file=sys.stderr,
+    )
+    raise SystemExit(1) from None
 
 CODE = "CODE"
 DEDENT = "DEDENT"
@@ -35,25 +45,52 @@ def main(argv: Sequence[str] | None = None) -> int:
         "migrate",
         help="Migrate Python files from freezegun to time-machine",
     )
-    migrate_parser.add_argument("file", nargs="+")
+    migrate_parser.add_argument(
+        "file",
+        nargs="+",
+        help="Python files or directories to migrate, or '-' for stdin.",
+    )
+    migrate_parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Don’t write changes; report the files that would be rewritten.",
+    )
+    migrate_parser.add_argument(
+        "--diff",
+        action="store_true",
+        help="Don’t write changes; print a diff of the changes that would be made.",
+    )
 
     args = parser.parse_args(argv)
 
     if args.command == "migrate":
-        return migrate_files(files=args.file)
+        return migrate_files(files=args.file, check=args.check, diff=args.diff)
     else:  # pragma: no cover
         # Unreachable
         raise NotImplementedError(f"Command {args.command} does not exist.")
 
 
-def migrate_files(files: list[str]) -> int:
+def migrate_files(files: list[str], *, check: bool = False, diff: bool = False) -> int:
     returncode = 0
-    for filename in files:
-        returncode |= migrate_file(filename)
+    for filename in expand_targets(files):
+        returncode |= migrate_file(filename, check=check, diff=diff)
     return returncode
 
 
-def migrate_file(filename: str) -> int:
+def expand_targets(files: list[str]) -> Generator[str, None, None]:
+    """
+    Expand any directories in the given list into the Python files within
+    them, recursively.
+    """
+    for name in files:
+        path = Path(name)
+        if name != "-" and path.is_dir():
+            yield from sorted(str(p) for p in path.rglob("*.py"))
+        else:
+            yield name
+
+
+def migrate_file(filename: str, *, check: bool = False, diff: bool = False) -> int:
     if filename == "-":
         contents_bytes = sys.stdin.buffer.read()
     else:
@@ -67,13 +104,31 @@ def migrate_file(filename: str) -> int:
         return 1
 
     contents_text, reports = migrate_contents(contents_text)
+    changed = contents_text != contents_text_orig
+
+    if diff and changed:
+        print(
+            "".join(
+                difflib.unified_diff(
+                    contents_text_orig.splitlines(keepends=True),
+                    contents_text.splitlines(keepends=True),
+                    fromfile=filename,
+                    tofile=filename,
+                )
+            ),
+            end="",
+        )
 
     if filename == "-":
-        print(contents_text, end="")
-    elif contents_text != contents_text_orig:
-        print(f"Rewriting {filename}", file=sys.stderr)
-        with open(filename, "w", encoding="UTF-8", newline="") as f:
-            f.write(contents_text)
+        if not check and not diff:
+            print(contents_text, end="")
+    elif changed:
+        if check or diff:
+            print(f"Would rewrite {filename}", file=sys.stderr)
+        else:
+            print(f"Rewriting {filename}", file=sys.stderr)
+            with open(filename, "w", encoding="UTF-8", newline="") as f:
+                f.write(contents_text)
 
     for report in reports:
         print(
@@ -81,7 +136,7 @@ def migrate_file(filename: str) -> int:
             file=sys.stderr,
         )
 
-    return contents_text != contents_text_orig
+    return changed
 
 
 class Report(NamedTuple):

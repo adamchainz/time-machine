@@ -50,6 +50,7 @@ urls.Changelog = "https://time-machine.readthedocs.io/en/latest/changelog.html"
 urls.Documentation = "https://time-machine.readthedocs.io/"
 urls.Funding = "https://adamj.eu/books/"
 urls.Repository = "https://github.com/adamchainz/time-machine"
+scripts.time-machine = "time_machine.cli:main"
 entry-points.pytest11.time_machine = "time_machine"
 
 [dependency-groups]

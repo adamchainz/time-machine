@@ -26,6 +26,12 @@ Unreleased
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate “raw use” assignments of ``freeze_time()`` to variables or ``self.`` attributes used with ``start()`` and ``stop()``, covering unittest ``setUp()`` / ``tearDown()`` patterns like ``self.freezer = freeze_time(...)`` with ``self.addCleanup(self.freezer.stop)``.
 
+* Improve the :ref:`Migration CLI <migration-cli>` interface:
+
+  * Add a ``time-machine`` console script, so the tool can be run as ``time-machine migrate ...``.
+  * Accept directory targets, searched recursively for Python files.
+  * Add ``--check`` and ``--diff`` options to preview changes without writing them.
+
 3.4.0 (2026-08-10)
 ------------------
 
