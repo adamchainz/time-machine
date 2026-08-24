@@ -173,7 +173,15 @@ def function_defs(draw: st.DrawFn) -> str:
     prefix = "async " if draw(st.booleans()) else ""
     params = draw(
         st.sampled_from(
-            ["", "freezer", "self, freezer", "*, freezer", "freezer, other", "other"]
+            [
+                "",
+                "freezer",
+                "self, freezer",
+                "*, freezer",
+                "freezer, other",
+                "other",
+                "freezer: FrozenDateTimeFactory",
+            ]
         )
     )
     lines.append(f"{prefix}def test_function({params}):")
@@ -226,6 +234,7 @@ imports = st.sampled_from(
         "from freezegun import freeze_time, FakeDate",
         "from freezegun import FakeDatetime",
         "from freezegun.api import FakeDatetime, FakeDate",
+        "from freezegun.api import FrozenDateTimeFactory",
         "if True: from freezegun import freeze_time, FakeDate",
         "import pytest",
         "import datetime",

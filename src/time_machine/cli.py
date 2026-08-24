@@ -39,6 +39,10 @@ FAKE_CLASSES = {
     "FakeDatetime": "datetime",
     "FakeDate": "date",
 }
+# The class of freezegun’s pytest fixture, often imported to annotate the
+# fixture argument, migrated to time-machine’s equivalent.
+FIXTURE_FACTORY = "FrozenDateTimeFactory"
+MIGRATABLE_IMPORT_NAMES = frozenset(("freeze_time", FIXTURE_FACTORY, *FAKE_CLASSES))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -305,10 +309,7 @@ def visit(
             case ast.ImportFrom() if (
                 node.level == 0
                 and node.module in ("freezegun", "freezegun.api")
-                and any(
-                    alias.name == "freeze_time" or alias.name in FAKE_CLASSES
-                    for alias in node.names
-                )
+                and any(alias.name in MIGRATABLE_IMPORT_NAMES for alias in node.names)
             ):
                 freeze_time_names.update(
                     alias.asname or alias.name
@@ -443,8 +444,8 @@ def visit(
     fake_bound: dict[str, str] = {}
     for import_node in freezegun_from_imports:
         for alias in import_node.names:
-            if alias.name in FAKE_CLASSES:
-                fake_bound[alias.asname or alias.name] = FAKE_CLASSES[alias.name]
+            if alias.name in FAKE_CLASSES or alias.name == FIXTURE_FACTORY:
+                fake_bound[alias.asname or alias.name] = alias.name
 
     fake_uses: dict[str, list[ast.Name]] = {name: [] for name in fake_bound}
     fake_blocked: set[str] = set()
@@ -467,13 +468,20 @@ def visit(
 
     fake_migratable: set[str] = set()
     fake_fallback: dict[str, str] = {}
-    for name, class_name in fake_bound.items():
+    fixture_fallback: dict[str, str] = {}
+    for name, freezegun_name in fake_bound.items():
         if name in fake_blocked:
             continue
         if not fake_uses[name]:
             # Imported but unused: drop from the import without rewrites.
             fake_migratable.add(name)
             continue
+        if freezegun_name == FIXTURE_FACTORY:
+            # Requires an import of the replacement, so needs a module-level
+            # carrier import (checked below), like the datetime fallback.
+            fixture_fallback[name] = "TimeMachineFixture"
+            continue
+        class_name = FAKE_CLASSES[freezegun_name]
         if class_name in datetime_class_bindings:
             expr = datetime_class_bindings[class_name]
         elif datetime_module_names:
@@ -496,21 +504,27 @@ def visit(
         for use in fake_uses[name]:
             ret[ast_start_offset(use)].append(partial(replace_name, src=expr))
 
-    datetime_carrier: ast.ImportFrom | None = None
-    if fake_fallback:
-        # The added `import datetime` has to go at module level, replacing
-        # part of a rewritten module-level freezegun import.
+    import_carrier: ast.ImportFrom | None = None
+    carried_imports: list[str] = []
+    if fake_fallback or fixture_fallback:
+        # Added imports have to go at module level, replacing part of a
+        # rewritten module-level freezegun import.
         for import_node in freezegun_from_imports:
             if import_node in module_stmts and any(
                 alias.name == "freeze_time"
                 or (alias.asname or alias.name) in fake_migratable
                 or (alias.asname or alias.name) in fake_fallback
+                or (alias.asname or alias.name) in fixture_fallback
                 for alias in import_node.names
             ):
-                datetime_carrier = import_node
+                import_carrier = import_node
                 break
-        if datetime_carrier is not None:
-            for name, expr in fake_fallback.items():
+        if import_carrier is not None:
+            if fake_fallback:
+                carried_imports.append("import datetime")
+            if fixture_fallback:
+                carried_imports.append("from time_machine import TimeMachineFixture")
+            for name, expr in (fake_fallback | fixture_fallback).items():
                 fake_migratable.add(name)
                 for use in fake_uses[name]:
                     ret[ast_start_offset(use)].append(partial(replace_name, src=expr))
@@ -535,8 +549,8 @@ def visit(
         new_stmts = []
         if has_freeze_time:
             new_stmts.append("import time_machine")
-        if import_node is datetime_carrier:
-            new_stmts.append("import datetime")
+        if import_node is import_carrier:
+            new_stmts.extend(carried_imports)
         if keep:
             new_stmts.append(f"from {import_node.module} import {', '.join(keep)}")
 
@@ -688,7 +702,7 @@ def fake_rebindings(tree: ast.Module, names: set[str]) -> set[str]:
                 for alias in node.names:
                     bound = alias.asname or alias.name.split(".")[0]
                     if bound in names and not (
-                        from_freezegun and alias.name in FAKE_CLASSES
+                        from_freezegun and alias.name in MIGRATABLE_IMPORT_NAMES
                     ):
                         rebound.add(bound)
     return rebound
