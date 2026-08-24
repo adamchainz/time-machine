@@ -18,6 +18,9 @@ Unreleased
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``real_asyncio``.
   The argument is dropped, whatever its value, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers with no destination argument, which freeze at the current time.
+  ``None`` is added as the destination, using the new support for ``None`` destinations (above).
+
 3.4.0 (2026-08-10)
 ------------------
 

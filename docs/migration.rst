@@ -91,6 +91,7 @@ The changes the tool makes are:
 * In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(...)``.
   This change is applied only when ``freeze_time()`` is called with a single positional argument and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, and ``real_asyncio``.
   If ``tick`` is passed, it is kept as-is, otherwise it is replaced with ``tick=False`` (matching freezegun’s default behaviour).
+  If no positional argument is passed, ``None`` is added as the destination, meaning the current time, matching freezegun’s behaviour of freezing at the current time.
   ``tz_offset=0`` is dropped, since a zero offset has no effect.
   ``real_asyncio`` is dropped, whatever its value, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
 

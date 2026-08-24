@@ -381,9 +381,7 @@ def maybe_migrate_call(
         return False
 
     ret[ast_start_offset(func)].append(partial(switch_to_travel, node=func))
-    if not any(kw.arg == "tick" for kw in node.keywords):
-        ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
-    remove_droppable_kwargs(ret, node)
+    migrate_arguments(ret, node)
     return True
 
 
@@ -474,23 +472,34 @@ def maybe_migrate_marker(
         return False
 
     ret[ast_start_offset(node.func)].append(partial(switch_to_marker, node=node.func))
-    if not any(kw.arg == "tick" for kw in node.keywords):
-        ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
-    remove_droppable_kwargs(ret, node)
+    migrate_arguments(ret, node)
     return True
 
 
-def remove_droppable_kwargs(
+def migrate_arguments(
     ret: MutableMapping[Offset, list[TokenFunc]],
     node: ast.Call,
 ) -> None:
+    """
+    Add the callbacks to adjust the arguments of a migratable freeze_time()
+    call: add a None destination if there is no positional argument, add
+    tick=False if tick is not passed, and remove droppable keyword arguments.
+    """
+    if not node.args:
+        tick_kwargs = [kw for kw in node.keywords if kw.arg == "tick"]
+        if tick_kwargs:
+            ret[ast_start_offset(tick_kwargs[0])].append(insert_none_arg)
+        else:
+            ret[ast_start_offset(node)].append(partial(add_none_arg, node=node))
+    if not any(kw.arg == "tick" for kw in node.keywords):
+        ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
     for kw in node.keywords:
         if droppable_kwarg(kw):
             ret[ast_start_offset(kw)].append(partial(remove_kwarg, node=kw))
 
 
 def migratable_call(node: ast.Call) -> bool:
-    return len(node.args) == 1 and all(
+    return len(node.args) <= 1 and all(
         kw.arg == "tick" or droppable_kwarg(kw) for kw in node.keywords
     )
 
@@ -704,14 +713,45 @@ def replace_tick_with_shift(tokens: list[Token], i: int, node: ast.Call) -> None
 
 def remove_kwarg(tokens: list[Token], i: int, node: ast.keyword) -> None:
     """
-    Remove the given keyword argument, along with the comma that precedes it.
+    Remove the given keyword argument, along with the comma that precedes it,
+    or, for a first argument, any comma and space that follow it.
     """
     j = find_last_token(tokens, i, node=node)
     k = i - 1
     while tokens[k].name in NON_CODING_TOKENS:
         k -= 1
-    assert tokens[k].src == ","
-    del tokens[k : j + 1]
+    if tokens[k].src == ",":
+        del tokens[k : j + 1]
+        return
+    k = j + 1
+    while tokens[k].name in NON_CODING_TOKENS:
+        k += 1
+    if tokens[k].src == ",":
+        j = k
+        if tokens[j + 1].name == UNIMPORTANT_WS:
+            j += 1
+    del tokens[i : j + 1]
+
+
+def insert_none_arg(tokens: list[Token], i: int) -> None:
+    """
+    Insert a `None` argument before the token at the given index, the start of
+    the call’s tick keyword argument.
+    """
+    tokens.insert(i, Token(name=CODE, src="None, "))
+
+
+def add_none_arg(tokens: list[Token], i: int, node: ast.Call) -> None:
+    """
+    Add a `None` argument to the function call, which has no remaining
+    arguments, since any droppable keyword arguments were already removed.
+    """
+    j = find_last_token(tokens, i, node=node)
+    k = j - 1
+    while tokens[k].name in NON_CODING_TOKENS:
+        k -= 1
+    assert tokens[k].src == "("
+    tokens.insert(k + 1, Token(name=CODE, src="None"))
 
 
 def add_tick_false(tokens: list[Token], i: int, node: ast.Call) -> None:

@@ -456,6 +456,202 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_no_arguments(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time()
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None, tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_attr(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time()
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None, tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None, tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_tz_offset_zero(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(tz_offset=0)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None, tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_tz_offset_zero_trailing_comma(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(tz_offset=0,)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None, tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_tz_offset_zero_before_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(tz_offset=0, tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None, tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_tz_offset_zero_after_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(tick=True, tz_offset=0)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None, tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_tz_offset_zero_spaced(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time( tz_offset=0 , tick=True )
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel( None, tick=True )
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_no_arguments_tz_offset_zero_only_spaced(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time( tz_offset=0 )
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(None  , tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_with_no_arguments(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            with freeze_time() as ft:
+                ft.tick()
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel(None, tick=False) as ft:
+                ft.shift(1)
+            """,
+        )
+
+    def test_marker_no_arguments(self):
+        check_transformed(
+            """
+            import pytest
+
+            @pytest.mark.freeze_time()
+            def test_function():
+                pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine(None, tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
     def test_function_decorator_tz_offset_zero(self):
         check_transformed(
             """
