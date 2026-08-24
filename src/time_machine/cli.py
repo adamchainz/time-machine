@@ -383,6 +383,7 @@ def maybe_migrate_call(
     ret[ast_start_offset(func)].append(partial(switch_to_travel, node=func))
     if not any(kw.arg == "tick" for kw in node.keywords):
         ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
+    remove_droppable_kwargs(ret, node)
     return True
 
 
@@ -475,13 +476,35 @@ def maybe_migrate_marker(
     ret[ast_start_offset(node.func)].append(partial(switch_to_marker, node=node.func))
     if not any(kw.arg == "tick" for kw in node.keywords):
         ret[ast_start_offset(node)].append(partial(add_tick_false, node=node))
+    remove_droppable_kwargs(ret, node)
     return True
 
 
+def remove_droppable_kwargs(
+    ret: MutableMapping[Offset, list[TokenFunc]],
+    node: ast.Call,
+) -> None:
+    for kw in node.keywords:
+        if droppable_kwarg(kw):
+            ret[ast_start_offset(kw)].append(partial(remove_kwarg, node=kw))
+
+
 def migratable_call(node: ast.Call) -> bool:
-    return len(node.args) == 1 and (
-        len(node.keywords) == 0
-        or (len(node.keywords) == 1 and node.keywords[0].arg == "tick")
+    return len(node.args) == 1 and all(
+        kw.arg == "tick" or droppable_kwarg(kw) for kw in node.keywords
+    )
+
+
+def droppable_kwarg(kw: ast.keyword) -> bool:
+    """
+    Check if the given freeze_time() keyword argument can be dropped when
+    migrating, because its value makes it have no effect.
+    """
+    return (
+        kw.arg == "tz_offset"
+        and isinstance(kw.value, ast.Constant)
+        and type(kw.value.value) in (int, float)
+        and kw.value.value == 0
     )
 
 
@@ -668,6 +691,18 @@ def replace_tick_with_shift(tokens: list[Token], i: int, node: ast.Call) -> None
         while tokens[i].src != "(":
             i += 1
         tokens.insert(i + 1, Token(name=CODE, src="1"))
+
+
+def remove_kwarg(tokens: list[Token], i: int, node: ast.keyword) -> None:
+    """
+    Remove the given keyword argument, along with the comma that precedes it.
+    """
+    j = find_last_token(tokens, i, node=node)
+    k = i - 1
+    while tokens[k].name in NON_CODING_TOKENS:
+        k -= 1
+    assert tokens[k].src == ","
+    del tokens[k : j + 1]
 
 
 def add_tick_false(tokens: list[Token], i: int, node: ast.Call) -> None:
