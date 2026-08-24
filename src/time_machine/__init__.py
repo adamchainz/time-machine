@@ -83,7 +83,7 @@ def _reset_uuid_timestamps() -> None:
 
 
 DestinationBaseType: TypeAlias = (
-    int | float | dt.datetime | dt.timedelta | dt.date | str
+    int | float | dt.datetime | dt.timedelta | dt.date | str | None
 )
 DestinationType: TypeAlias = (
     DestinationBaseType
@@ -136,7 +136,9 @@ def extract_timestamp_tzname(
 
     timestamp_ns: int
     tzname: str | None = None
-    if isinstance(dest, int):
+    if dest is None:
+        timestamp_ns = time_module.time_ns()
+    elif isinstance(dest, int):
         timestamp_ns = dest * NANOSECONDS_PER_SECOND
     elif isinstance(dest, float):
         timestamp_ns = round(dest * NANOSECONDS_PER_SECOND)
