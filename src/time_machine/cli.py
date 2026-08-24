@@ -363,21 +363,30 @@ def visit(
                         partial(add_tick_false, node=node)
                     )
 
-    for assignment, use_scope in find_candidate_assignments(tree):
-        target = assignment.targets[0]
-        if isinstance(target, ast.Name):
-            compatible = name_target_uses_compatible(use_scope, target)
-        else:
-            assert isinstance(target, ast.Attribute)
-            compatible = self_attr_target_uses_compatible(use_scope, target)
-        if compatible:
-            maybe_migrate_call(
-                ret,
-                assignment.value,
+    if freeze_time_names or freezegun_module_names:
+        for assignment, use_scope in find_candidate_assignments(tree):
+            value = assignment.value
+            assert isinstance(value, ast.Call)
+            if not is_freeze_time_call(
+                value,
                 freezegun_module_names=freezegun_module_names,
                 freeze_time_names=freeze_time_names,
-                freezer_functions=freezer_functions,
-            )
+            ):
+                continue
+            target = assignment.targets[0]
+            if isinstance(target, ast.Name):
+                compatible = name_target_uses_compatible(use_scope, target)
+            else:
+                assert isinstance(target, ast.Attribute)
+                compatible = self_attr_target_uses_compatible(use_scope, target)
+            if compatible:
+                maybe_migrate_call(
+                    ret,
+                    value,
+                    freezegun_module_names=freezegun_module_names,
+                    freeze_time_names=freeze_time_names,
+                    freezer_functions=freezer_functions,
+                )
 
     reports = []
     for node in ast.walk(tree):
@@ -424,6 +433,25 @@ def find_freezer_function(
         if function.lineno <= node.lineno <= function.end_lineno:
             return function
     return None
+
+
+def is_freeze_time_call(
+    node: ast.Call,
+    *,
+    freezegun_module_names: set[str],
+    freeze_time_names: set[str],
+) -> bool:
+    """
+    Check if the given call is of freezegun’s freeze_time(), per the names
+    bound by the module’s imports.
+    """
+    func = node.func
+    return (
+        isinstance(func, ast.Attribute)
+        and func.attr == "freeze_time"
+        and isinstance(func.value, ast.Name)
+        and func.value.id in freezegun_module_names
+    ) or (isinstance(func, ast.Name) and func.id in freeze_time_names)
 
 
 def find_candidate_assignments(
@@ -559,18 +587,14 @@ def maybe_migrate_call(
     Add the callbacks to rewrite the given expression, if it is a migratable
     call to freezegun’s freeze_time(), returning whether that was the case.
     """
-    if not isinstance(node, ast.Call) or not migratable_call(node):
-        return False
-
-    func = node.func
-    if not (
-        (
-            isinstance(func, ast.Attribute)
-            and func.attr == "freeze_time"
-            and isinstance(func.value, ast.Name)
-            and func.value.id in freezegun_module_names
+    if (
+        not isinstance(node, ast.Call)
+        or not is_freeze_time_call(
+            node,
+            freezegun_module_names=freezegun_module_names,
+            freeze_time_names=freeze_time_names,
         )
-        or (isinstance(func, ast.Name) and func.id in freeze_time_names)
+        or not migratable_call(node)
     ):
         return False
 
@@ -580,6 +604,8 @@ def maybe_migrate_call(
         # resolve to it.
         return False
 
+    func = node.func
+    assert isinstance(func, (ast.Attribute, ast.Name))
     ret[ast_start_offset(func)].append(partial(switch_to_travel, node=func))
     migrate_arguments(ret, node)
     return True
