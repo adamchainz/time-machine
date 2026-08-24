@@ -33,6 +33,13 @@ CODE = "CODE"
 DEDENT = "DEDENT"
 INDENT = "INDENT"
 
+# freezegun’s fake classes and the real datetime classes to migrate their
+# uses to.
+FAKE_CLASSES = {
+    "FakeDatetime": "datetime",
+    "FakeDate": "date",
+}
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Main entry point for the migration tool."""
@@ -244,6 +251,10 @@ def visit(
     freezegun_module_names: set[str] = set()
     freeze_time_names: set[str] = set()
     report_module_names: set[str] = set()
+    freezegun_from_imports: list[ast.ImportFrom] = []
+    datetime_module_names: set[str] = set()
+    datetime_from_names: set[str] = set()
+    datetime_class_bindings: dict[str, str] = {}
     freezer_functions: list[FreezerFunction] = []
     marker_class_methods: set[ast.FunctionDef | ast.AsyncFunctionDef] = set()
     module_marker_seen = False
@@ -255,6 +266,11 @@ def visit(
                     if maybe_migrate_pytestmark(ret, stmt):
                         module_marker_seen = True
             case ast.Import():
+                datetime_module_names.update(
+                    alias.asname or "datetime"
+                    for alias in node.names
+                    if alias.name == "datetime"
+                )
                 if (
                     len(node.names) == 1
                     and (alias := node.names[0]).name == "freezegun"
@@ -276,27 +292,27 @@ def visit(
                         if alias.name == "freezegun"
                         or alias.name.startswith("freezegun.")
                     )
+            case ast.ImportFrom(module="datetime", level=0):
+                for alias in node.names:
+                    datetime_from_names.add(alias.asname or alias.name)
+                    if alias.name in ("datetime", "date"):
+                        datetime_class_bindings.setdefault(
+                            alias.name, alias.asname or alias.name
+                        )
             case ast.ImportFrom() if (
                 node.level == 0
-                and node.module == "freezegun"
-                and any(alias.name == "freeze_time" for alias in node.names)
+                and node.module in ("freezegun", "freezegun.api")
+                and any(
+                    alias.name == "freeze_time" or alias.name in FAKE_CLASSES
+                    for alias in node.names
+                )
             ):
                 freeze_time_names.update(
                     alias.asname or alias.name
                     for alias in node.names
                     if alias.name == "freeze_time"
                 )
-                ret[ast_start_offset(node)].append(
-                    partial(
-                        replace_import_from,
-                        node=node,
-                        keep=[
-                            unparse_alias(alias)
-                            for alias in node.names
-                            if alias.name != "freeze_time"
-                        ],
-                    )
-                )
+                freezegun_from_imports.append(node)
             case ast.FunctionDef() | ast.AsyncFunctionDef():
                 marker_seen = module_marker_seen or node in marker_class_methods
                 for decorator in node.decorator_list:
@@ -417,6 +433,96 @@ def visit(
                     ret[ast_start_offset(node)].append(
                         partial(add_tick_false, node=node)
                     )
+
+    # Process from-imports of freezegun after the main walk, since migrating
+    # FakeDatetime / FakeDate uses to the real datetime classes depends on the
+    # datetime imports of the whole module.
+    fake_bound: dict[str, str] = {}
+    for import_node in freezegun_from_imports:
+        for alias in import_node.names:
+            if alias.name in FAKE_CLASSES:
+                fake_bound[alias.asname or alias.name] = FAKE_CLASSES[alias.name]
+
+    fake_uses: dict[str, list[ast.Name]] = {name: [] for name in fake_bound}
+    fake_stores: set[str] = set()
+    if fake_bound:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and node.id in fake_bound:
+                if isinstance(node.ctx, ast.Load):
+                    fake_uses[node.id].append(node)
+                else:
+                    fake_stores.add(node.id)
+
+    fake_migratable: set[str] = set()
+    datetime_import_needed = False
+    for name, class_name in fake_bound.items():
+        if name in fake_stores:
+            continue
+        if not fake_uses[name]:
+            # Imported but unused: drop from the import without rewrites.
+            fake_migratable.add(name)
+            continue
+        if class_name in datetime_class_bindings:
+            expr = datetime_class_bindings[class_name]
+        elif datetime_module_names:
+            if "datetime" in datetime_module_names:
+                module_name = "datetime"
+            else:
+                module_name = sorted(datetime_module_names)[0]
+            expr = f"{module_name}.{class_name}"
+        elif "datetime" not in datetime_from_names:
+            # No datetime import to use, but the name is free, so one can be
+            # added.
+            expr = f"datetime.{class_name}"
+            datetime_import_needed = True
+        else:
+            # The name `datetime` is bound to the class, and there is no
+            # usable import for this class.
+            continue
+        fake_migratable.add(name)
+        for use in fake_uses[name]:
+            ret[ast_start_offset(use)].append(partial(replace_name, src=expr))
+
+    for import_node in freezegun_from_imports:
+        has_freeze_time = any(
+            alias.name == "freeze_time" for alias in import_node.names
+        )
+        if not has_freeze_time and not any(
+            (alias.asname or alias.name) in fake_migratable
+            for alias in import_node.names
+        ):
+            # Nothing migrated from this import: leave it unchanged.
+            continue
+
+        keep = [
+            unparse_alias(alias)
+            for alias in import_node.names
+            if alias.name != "freeze_time"
+            and (alias.asname or alias.name) not in fake_migratable
+        ]
+        new_stmts = []
+        if has_freeze_time:
+            new_stmts.append("import time_machine")
+        if datetime_import_needed:
+            new_stmts.append("import datetime")
+            datetime_import_needed = False
+        if keep:
+            new_stmts.append(f"from {import_node.module} import {', '.join(keep)}")
+
+        if new_stmts:
+            ret[ast_start_offset(import_node)].append(
+                partial(replace_import_from, node=import_node, new_stmts=new_stmts)
+            )
+        elif len(containing_block(tree, import_node)) >= 2:
+            ret[ast_start_offset(import_node)].append(
+                partial(remove_statement, node=import_node)
+            )
+        else:
+            # The only statement in its block, so removing it would leave
+            # invalid syntax.
+            ret[ast_start_offset(import_node)].append(
+                partial(replace_import_from, node=import_node, new_stmts=["pass"])
+            )
 
     for assignment, use_scope in find_candidate_assignments(tree):
         target = assignment.targets[0]
@@ -906,17 +1012,56 @@ def unparse_alias(alias: ast.alias) -> str:
 
 
 def replace_import_from(
-    tokens: list[Token], i: int, node: ast.ImportFrom, keep: list[str]
+    tokens: list[Token], i: int, node: ast.ImportFrom, new_stmts: list[str]
 ) -> None:
     """
-    Replace a from-import of freeze_time with `import time_machine`, re-adding
-    a from-import of any other names that were imported alongside it.
+    Replace a from-import of freezegun with the given statements, indented to
+    match.
     """
     j = find_last_token(tokens, i, node=node)
-    src = "import time_machine"
-    if keep:
-        src += f"\n{line_indent(tokens, i)}from {node.module} import {', '.join(keep)}"
+    src = f"\n{line_indent(tokens, i)}".join(new_stmts)
     tokens[i : j + 1] = [Token(name=CODE, src=src)]
+
+
+def remove_statement(tokens: list[Token], i: int, node: ast.stmt) -> None:
+    """
+    Remove the given statement, including its line when nothing else shares
+    it, otherwise replacing it with `pass`.
+    """
+    j = find_last_token(tokens, i, node=node)
+    j2 = j
+    while tokens[j2 + 1].name in (UNIMPORTANT_WS, "COMMENT"):
+        j2 += 1
+    k = i
+    while k > 0 and tokens[k - 1].name in (INDENT, UNIMPORTANT_WS):
+        k -= 1
+    starts_line = k == 0 or tokens[k - 1].name in (
+        "ENCODING",
+        "NEWLINE",
+        "NL",
+        DEDENT,
+    )
+    if starts_line and tokens[j2 + 1].name == "NEWLINE":
+        del tokens[k : j2 + 2]
+    else:
+        # Something else shares the line, like statements separated with `;`.
+        tokens[i : j + 1] = [Token(name=CODE, src="pass")]
+
+
+def containing_block(tree: ast.Module, stmt: ast.stmt) -> list[ast.stmt]:
+    """
+    Find the list of statements containing the given one.
+    """
+    for parent in ast.walk(tree):
+        for field in ("body", "orelse", "finalbody"):
+            block = getattr(parent, field, None)
+            if isinstance(block, list) and stmt in block:
+                return block
+    raise AssertionError(f"Statement not found in tree: {stmt!r}")  # pragma: no cover
+
+
+def replace_name(tokens: list[Token], i: int, *, src: str) -> None:
+    tokens[i] = Token(name=CODE, src=src)
 
 
 def line_indent(tokens: list[Token], i: int) -> str:

@@ -26,6 +26,10 @@ Unreleased
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate “raw use” assignments of ``freeze_time()`` to variables or ``self.`` attributes used with ``start()`` and ``stop()``, covering unittest ``setUp()`` / ``tearDown()`` patterns like ``self.freezer = freeze_time(...)`` with ``self.addCleanup(self.freezer.stop)``.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate imports and uses of freezegun’s ``FakeDatetime`` and ``FakeDate`` classes.
+  Since time-machine mocks the real classes, uses like ``isinstance(x, FakeDatetime)`` are rewritten to the real ``datetime.datetime`` and ``datetime.date`` classes, based on the module’s existing datetime imports, adding ``import datetime`` if there is none to use.
+  Previously, such imports were always kept, leaving a freezegun dependency behind.
+
 * Improve the :ref:`Migration CLI <migration-cli>` interface:
 
   * Add a ``time-machine`` console script, so the tool can be run as ``time-machine migrate ...``.

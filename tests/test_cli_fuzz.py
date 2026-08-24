@@ -207,14 +207,29 @@ def class_defs(draw: st.DrawFn) -> str:
     return "\n".join(lines)
 
 
+fake_statements = st.sampled_from(
+    [
+        "x = FakeDatetime(2020, 1, 1)",
+        "assert isinstance(x, FakeDate)",
+        "assert isinstance(x, FakeDatetime)",
+        "FakeDatetime = x",
+    ]
+)
+
 imports = st.sampled_from(
     [
         "import freezegun",
         "import freezegun as fg",
         "from freezegun import freeze_time",
         "from freezegun import freeze_time, FakeDate",
+        "from freezegun import FakeDatetime",
+        "from freezegun.api import FakeDatetime, FakeDate",
         "if True: from freezegun import freeze_time, FakeDate",
         "import pytest",
+        "import datetime",
+        "import datetime as dt",
+        "from datetime import datetime",
+        "from datetime import date, timedelta",
     ]
 )
 
@@ -230,7 +245,8 @@ def modules(draw: st.DrawFn) -> str:
                 | with_statements()
                 | method_statements()
                 | raw_assignment_statements()
-                | pytestmark_statements(),
+                | pytestmark_statements()
+                | fake_statements,
                 min_size=1,
                 max_size=3,
             )

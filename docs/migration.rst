@@ -114,7 +114,11 @@ The changes the tool makes are:
 * Aliased imports: ``import freezegun as fg`` and ``from freezegun import freeze_time as ft`` -> ``import time_machine``.
   The alias is dropped, since calls using it are migrated to use the ``time_machine`` module, per the below.
 
-* ``from freezegun import freeze_time, FakeDate`` -> ``import time_machine`` plus ``from freezegun import FakeDate``, keeping the other imported names.
+* ``from freezegun import freeze_time, configure`` -> ``import time_machine`` plus ``from freezegun import configure``, keeping the other imported names.
+
+* Imports and uses of freezegun’s ``FakeDatetime`` and ``FakeDate`` classes, from ``freezegun`` or ``freezegun.api``, including aliased imports.
+  Since time-machine mocks the real classes, uses like ``isinstance(x, FakeDatetime)`` are rewritten to the real ``datetime.datetime`` and ``datetime.date`` classes, and the names are dropped from imports, with import statements left empty removed.
+  Uses are rewritten based on the module’s existing datetime imports, whether ``import datetime``, ``import datetime as dt``, or ``from datetime import ...``; if there is none to use, ``import datetime`` is added.
 
 * In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(...)``.
   This change is applied only when ``freeze_time()`` is called with at most one positional argument and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, and ``real_asyncio`` with a literal ``True`` value.

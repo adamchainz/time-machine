@@ -367,20 +367,20 @@ class TestMigrateContents:
 
     def test_import_from_freezegun_multiple(self):
         check_transformed(
-            "from freezegun import freeze_time, FakeDate",
-            "import time_machine\nfrom freezegun import FakeDate",
+            "from freezegun import freeze_time, configure",
+            "import time_machine\nfrom freezegun import configure",
         )
 
     def test_import_from_freezegun_multiple_aliased(self):
         check_transformed(
-            "from freezegun import freeze_time, FakeDate as FD",
-            "import time_machine\nfrom freezegun import FakeDate as FD",
+            "from freezegun import freeze_time, configure as conf",
+            "import time_machine\nfrom freezegun import configure as conf",
         )
 
     def test_import_from_freezegun_multiple_only_aliased_freeze_time(self):
         check_transformed(
-            "from freezegun import freeze_time as ft, FakeDate",
-            "import time_machine\nfrom freezegun import FakeDate",
+            "from freezegun import freeze_time as ft, configure",
+            "import time_machine\nfrom freezegun import configure",
         )
 
     def test_import_from_freezegun_multiple_parenthesized(self):
@@ -388,12 +388,12 @@ class TestMigrateContents:
             """\
             from freezegun import (
                 freeze_time,
-                FakeDate,
+                configure,
             )
             """,
             """\
             import time_machine
-            from freezegun import FakeDate
+            from freezegun import configure
             """,
         )
 
@@ -401,12 +401,12 @@ class TestMigrateContents:
         check_transformed(
             """\
             def f():
-                from freezegun import freeze_time, FakeDate
+                from freezegun import freeze_time, configure
             """,
             """\
             def f():
                 import time_machine
-                from freezegun import FakeDate
+                from freezegun import configure
             """,
         )
 
@@ -415,20 +415,20 @@ class TestMigrateContents:
             """\
             def f():
                 x = 1
-                from freezegun import freeze_time, FakeDate
+                from freezegun import freeze_time, configure
             """,
             """\
             def f():
                 x = 1
                 import time_machine
-                from freezegun import FakeDate
+                from freezegun import configure
             """,
         )
 
     def test_import_from_freezegun_multiple_compound_statement(self):
         check_transformed(
-            "if True: from freezegun import freeze_time, FakeDate\n",
-            "if True: import time_machine\nfrom freezegun import FakeDate\n",
+            "if True: from freezegun import freeze_time, configure\n",
+            "if True: import time_machine\nfrom freezegun import configure\n",
         )
 
     def test_import_from_freezegun_multiple_indented_after_dedent(self):
@@ -437,21 +437,21 @@ class TestMigrateContents:
             def f():
                 if True:
                     pass
-                from freezegun import freeze_time, FakeDate
+                from freezegun import freeze_time, configure
             """,
             """\
             def f():
                 if True:
                     pass
                 import time_machine
-                from freezegun import FakeDate
+                from freezegun import configure
             """,
         )
 
     def test_import_from_freezegun_multiple_used(self):
         check_transformed(
             """\
-            from freezegun import freeze_time, FakeDate
+            from freezegun import freeze_time, configure
 
             @freeze_time("2023-01-01")
             def test_function():
@@ -459,11 +459,283 @@ class TestMigrateContents:
             """,
             """\
             import time_machine
-            from freezegun import FakeDate
+            from freezegun import configure
 
             @time_machine.travel("2023-01-01", tick=False)
             def test_function():
                 pass
+            """,
+        )
+
+    def test_fake_unused(self):
+        check_transformed(
+            "from freezegun import freeze_time, FakeDate",
+            "import time_machine",
+        )
+
+    def test_fake_used_datetime_module(self):
+        check_transformed(
+            """
+            import datetime
+            from freezegun import freeze_time, FakeDate
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                assert isinstance(x, FakeDate)
+            """,
+            """
+            import datetime
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                assert isinstance(x, datetime.date)
+            """,
+        )
+
+    def test_fake_used_datetime_module_aliased(self):
+        check_transformed(
+            """
+            import datetime as dt
+            from freezegun import freeze_time, FakeDate
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                assert isinstance(x, dt.date) or isinstance(x, FakeDate)
+            """,
+            """
+            import datetime as dt
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                assert isinstance(x, dt.date) or isinstance(x, dt.date)
+            """,
+        )
+
+    def test_fake_used_datetime_from_import(self):
+        check_transformed(
+            """
+            from datetime import datetime
+            from freezegun import FakeDatetime
+
+            assert isinstance(x, FakeDatetime)
+            """,
+            """
+            from datetime import datetime
+
+            assert isinstance(x, datetime)
+            """,
+        )
+
+    def test_fake_used_no_datetime_import(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time, FakeDatetime
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                assert isinstance(x, FakeDatetime)
+            """,
+            """
+            import time_machine
+            import datetime
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                assert isinstance(x, datetime.datetime)
+            """,
+        )
+
+    def test_fake_used_no_datetime_import_standalone(self):
+        check_transformed(
+            """
+            from freezegun import FakeDate
+
+            x = isinstance(y, FakeDate)
+            """,
+            """
+            import datetime
+
+            x = isinstance(y, datetime.date)
+            """,
+        )
+
+    def test_fake_aliased(self):
+        check_transformed(
+            """
+            import datetime
+            from freezegun import FakeDatetime as FD
+
+            x = isinstance(y, FD)
+            """,
+            """
+            import datetime
+
+            x = isinstance(y, datetime.datetime)
+            """,
+        )
+
+    def test_fake_from_freezegun_api(self):
+        check_transformed(
+            """
+            import datetime
+            from freezegun.api import FakeDatetime
+
+            x = isinstance(y, FakeDatetime)
+            """,
+            """
+            import datetime
+
+            x = isinstance(y, datetime.datetime)
+            """,
+        )
+
+    def test_fake_multiple_imports_datetime_added_once(self):
+        check_transformed(
+            """
+            from freezegun import FakeDate
+            from freezegun.api import FakeDatetime
+
+            x = FakeDate(2020, 1, 1)
+            y = FakeDatetime(2020, 1, 1)
+            """,
+            """
+            import datetime
+
+            x = datetime.date(2020, 1, 1)
+            y = datetime.datetime(2020, 1, 1)
+            """,
+        )
+
+    def test_fake_kept_other_name(self):
+        check_transformed(
+            """
+            import datetime
+            from freezegun import FakeDate, configure
+
+            x = isinstance(y, FakeDate)
+            """,
+            """
+            import datetime
+            from freezegun import configure
+
+            x = isinstance(y, datetime.date)
+            """,
+        )
+
+    def test_fake_store_kept(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time, FakeDate
+
+            FakeDate = None
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+            from freezegun import FakeDate
+
+            FakeDate = None
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_fake_datetime_name_conflict_kept(self):
+        check_noop(
+            """
+            from datetime import datetime
+            from freezegun import FakeDate
+
+            x = isinstance(y, FakeDate)
+            """,
+        )
+
+    def test_fake_removed_indented(self):
+        check_transformed(
+            """
+            import datetime
+
+            def test_function():
+                from freezegun import FakeDate
+                assert isinstance(x, FakeDate)
+            """,
+            """
+            import datetime
+
+            def test_function():
+                assert isinstance(x, datetime.date)
+            """,
+        )
+
+    def test_fake_removed_trailing_comment(self):
+        check_transformed(
+            """
+            import datetime
+            from freezegun import FakeDate  # noqa
+
+            x = isinstance(y, FakeDate)
+            """,
+            """
+            import datetime
+
+            x = isinstance(y, datetime.date)
+            """,
+        )
+
+    def test_fake_only_statement_in_block(self):
+        check_transformed(
+            """
+            import datetime
+
+            if True: from freezegun import FakeDate
+
+            x = isinstance(y, FakeDate)
+            """,
+            """
+            import datetime
+
+            if True: pass
+
+            x = isinstance(y, datetime.date)
+            """,
+        )
+
+    def test_fake_semicolon_after(self):
+        check_transformed(
+            """
+            import datetime
+            from freezegun import FakeDate; x = 1
+
+            y = isinstance(x, FakeDate)
+            """,
+            """
+            import datetime
+            pass; x = 1
+
+            y = isinstance(x, datetime.date)
+            """,
+        )
+
+    def test_fake_semicolon_before(self):
+        check_transformed(
+            """
+            import datetime
+            x = 1; from freezegun import FakeDate
+
+            y = isinstance(x, FakeDate)
+            """,
+            """
+            import datetime
+            x = 1; pass
+
+            y = isinstance(x, datetime.date)
             """,
         )
 
