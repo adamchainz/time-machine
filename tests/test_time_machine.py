@@ -654,6 +654,20 @@ def test_destination_date():
     assert time.time() == EPOCH
 
 
+def test_destination_none():
+    now = time.time()
+    with time_machine.travel(None, tick=False):
+        assert now <= time.time() <= now + 1.0
+
+
+def test_destination_none_nested():
+    with (
+        time_machine.travel(EPOCH, tick=False),
+        time_machine.travel(None, tick=False),
+    ):
+        assert time.time() == EPOCH
+
+
 def test_destination_timedelta():
     now = time.time()
     with time_machine.travel(dt.timedelta(seconds=3600)):
