@@ -234,6 +234,25 @@ class TestMain:
         )
         assert err == ""
 
+    def test_migrate_diff_no_final_newline(self, capsys, tmp_path):
+        path = tmp_path / "example.py"
+        path.write_text("import freezegun")
+
+        result = main(["migrate", "--diff", str(path)])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == (
+            f"--- {path}\n"
+            + f"+++ {path}\n"
+            + "@@ -1 +1 @@\n"
+            + "-import freezegun\n"
+            + "+import time_machine\n"
+        )
+        assert err == f"Would rewrite {path}\n"
+
+        assert path.read_text() == "import freezegun"
+
     def test_migrate_reports(self, capsys, tmp_path):
         path = tmp_path / "example.py"
         path.write_text(
@@ -645,6 +664,7 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
+            reports=[(4, 1, "FakeDate usage not migrated")],
         )
 
     def test_fake_datetime_name_conflict_kept(self):
@@ -654,6 +674,186 @@ class TestMigrateContents:
             from freezegun import FakeDate
 
             x = isinstance(y, FakeDate)
+            """,
+            reports=[(5, 19, "FakeDate usage not migrated")],
+        )
+
+    def test_fake_fstring_kept(self):
+        check_noop(
+            """
+            import datetime
+            from freezegun import FakeDate
+
+            x = f"{FakeDate} here"
+            """,
+            reports=[(5, 8, "FakeDate usage not migrated")],
+        )
+
+    def test_fake_shadow_parameter_kept(self):
+        check_noop(
+            """
+            import datetime
+            from freezegun import FakeDate
+
+            def check(FakeDate):
+                return isinstance(x, FakeDate)
+            """,
+            reports=[(6, 26, "FakeDate usage not migrated")],
+        )
+
+    def test_fake_shadow_def_kept(self):
+        check_noop(
+            """
+            import datetime
+            from freezegun import FakeDatetime
+
+            def FakeDatetime():
+                pass
+
+            x = FakeDatetime(2020, 1, 1)
+            """,
+            reports=[(8, 5, "FakeDatetime usage not migrated")],
+        )
+
+    def test_fake_shadow_class_kept(self):
+        check_noop(
+            """
+            import datetime
+            from freezegun import FakeDate
+
+            class FakeDate:
+                pass
+            """,
+        )
+
+    def test_fake_shadow_import_kept(self):
+        check_noop(
+            """
+            import datetime
+            from freezegun import FakeDate
+            from othermod import FakeDate
+
+            x = isinstance(y, FakeDate)
+            """,
+            reports=[(6, 19, "FakeDate usage not migrated")],
+        )
+
+    def test_fake_shadow_lambda_kept(self):
+        check_noop(
+            """
+            import datetime
+            from freezegun import FakeDatetime
+
+            f = lambda FakeDatetime: FakeDatetime
+            """,
+            reports=[(5, 26, "FakeDatetime usage not migrated")],
+        )
+
+    def test_fake_datetime_import_in_function_ignored(self):
+        check_transformed(
+            """
+            from freezegun import FakeDatetime
+
+            def helper():
+                from datetime import datetime
+                return datetime.now()
+
+            x = isinstance(y, FakeDatetime)
+            """,
+            """
+            import datetime
+
+            def helper():
+                from datetime import datetime
+                return datetime.now()
+
+            x = isinstance(y, datetime.datetime)
+            """,
+        )
+
+    def test_fake_function_local_import_no_carrier_kept(self):
+        check_noop(
+            """
+            def f():
+                import datetime
+                from freezegun import FakeDate
+                return isinstance(x, FakeDate)
+            """,
+            reports=[(5, 26, "FakeDate usage not migrated")],
+        )
+
+    def test_fake_function_local_import_module_carrier(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                from freezegun.api import FakeDatetime
+                assert isinstance(x, FakeDatetime)
+            """,
+            """
+            import time_machine
+            import datetime
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                assert isinstance(x, datetime.datetime)
+            """,
+        )
+
+    def test_fake_function_local_import_ineligible_carrier_kept(self):
+        check_noop(
+            """
+            from freezegun import FakeDate
+
+            def f():
+                from freezegun.api import FakeDatetime
+                return isinstance(x, FakeDatetime)
+
+            FakeDate = None
+            """,
+            reports=[
+                (6, 26, "FakeDatetime usage not migrated"),
+                (8, 1, "FakeDate usage not migrated"),
+            ],
+        )
+
+    def test_fake_compound_import_carrier(self):
+        check_transformed(
+            """\
+            if True: from freezegun import freeze_time, FakeDate
+
+            assert isinstance(x, FakeDate)
+            """,
+            """\
+            if True: import time_machine
+            import datetime
+
+            assert isinstance(x, datetime.date)
+            """,
+        )
+
+    def test_fake_datetime_import_in_try(self):
+        check_transformed(
+            """
+            try:
+                import zoneinfo
+            except ImportError:
+                import datetime
+
+            from freezegun import FakeDate
+
+            x = isinstance(y, FakeDate)
+            """,
+            """
+            try:
+                import zoneinfo
+            except ImportError:
+                import datetime
+
+
+            x = isinstance(y, datetime.date)
             """,
         )
 
@@ -2356,6 +2556,26 @@ class TestMigrateContents:
     def test_assign_other_call_noop(self):
         check_noop(
             """
+            def test_function():
+                freezer = make_freezer("2023-01-01")
+                freezer.start()
+            """,
+        )
+
+    def test_assign_other_call_with_import(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            def test_function():
+                freezer = make_freezer("2023-01-01")
+                freezer.start()
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
             def test_function():
                 freezer = make_freezer("2023-01-01")
                 freezer.start()

@@ -114,17 +114,15 @@ def migrate_file(filename: str, *, check: bool = False, diff: bool = False) -> i
     changed = contents_text != contents_text_orig
 
     if diff and changed:
-        print(
-            "".join(
-                difflib.unified_diff(
-                    contents_text_orig.splitlines(keepends=True),
-                    contents_text.splitlines(keepends=True),
-                    fromfile=filename,
-                    tofile=filename,
-                )
-            ),
-            end="",
+        diff_lines = difflib.unified_diff(
+            contents_text_orig.splitlines(keepends=True),
+            contents_text.splitlines(keepends=True),
+            fromfile=filename,
+            tofile=filename,
         )
+        for line in diff_lines:
+            # Lines from a file without a final newline lack one.
+            print(line, end="" if line.endswith("\n") else "\n")
 
     if filename == "-":
         if not check and not diff:
@@ -259,6 +257,7 @@ def visit(
     marker_class_methods: set[ast.FunctionDef | ast.AsyncFunctionDef] = set()
     module_marker_seen = False
     traveller_vars: list[TravellerVar] = []
+    module_stmts = module_scope_stmts(tree)
     for node in ast.walk(tree):
         match node:
             case ast.Module():
@@ -266,11 +265,15 @@ def visit(
                     if maybe_migrate_pytestmark(ret, stmt):
                         module_marker_seen = True
             case ast.Import():
-                datetime_module_names.update(
-                    alias.asname or "datetime"
-                    for alias in node.names
-                    if alias.name == "datetime"
-                )
+                if node in module_stmts:
+                    # Only module-level datetime imports are usable for
+                    # rewriting FakeDatetime / FakeDate uses, which may be
+                    # anywhere in the module.
+                    datetime_module_names.update(
+                        alias.asname or "datetime"
+                        for alias in node.names
+                        if alias.name == "datetime"
+                    )
                 if (
                     len(node.names) == 1
                     and (alias := node.names[0]).name == "freezegun"
@@ -292,7 +295,7 @@ def visit(
                         if alias.name == "freezegun"
                         or alias.name.startswith("freezegun.")
                     )
-            case ast.ImportFrom(module="datetime", level=0):
+            case ast.ImportFrom(module="datetime", level=0) if node in module_stmts:
                 for alias in node.names:
                     datetime_from_names.add(alias.asname or alias.name)
                     if alias.name in ("datetime", "date"):
@@ -444,19 +447,28 @@ def visit(
                 fake_bound[alias.asname or alias.name] = FAKE_CLASSES[alias.name]
 
     fake_uses: dict[str, list[ast.Name]] = {name: [] for name in fake_bound}
-    fake_stores: set[str] = set()
+    fake_blocked: set[str] = set()
     if fake_bound:
+        fake_blocked = fake_rebindings(tree, set(fake_bound))
         for node in ast.walk(tree):
             if isinstance(node, ast.Name) and node.id in fake_bound:
                 if isinstance(node.ctx, ast.Load):
                     fake_uses[node.id].append(node)
                 else:
-                    fake_stores.add(node.id)
+                    fake_blocked.add(node.id)
+            elif isinstance(node, ast.JoinedStr):
+                # On Python < 3.12, names within f-strings have no tokens to
+                # rewrite.
+                fake_blocked.update(
+                    subnode.id
+                    for subnode in ast.walk(node)
+                    if isinstance(subnode, ast.Name) and subnode.id in fake_bound
+                )
 
     fake_migratable: set[str] = set()
-    datetime_import_needed = False
+    fake_fallback: dict[str, str] = {}
     for name, class_name in fake_bound.items():
-        if name in fake_stores:
+        if name in fake_blocked:
             continue
         if not fake_uses[name]:
             # Imported but unused: drop from the import without rewrites.
@@ -471,10 +483,11 @@ def visit(
                 module_name = sorted(datetime_module_names)[0]
             expr = f"{module_name}.{class_name}"
         elif "datetime" not in datetime_from_names:
-            # No datetime import to use, but the name is free, so one can be
-            # added.
-            expr = f"datetime.{class_name}"
-            datetime_import_needed = True
+            # No datetime import to use, but the name is free, so one could
+            # be added, if a module-level import will be rewritten to carry
+            # it (checked below).
+            fake_fallback[name] = f"datetime.{class_name}"
+            continue
         else:
             # The name `datetime` is bound to the class, and there is no
             # usable import for this class.
@@ -482,6 +495,25 @@ def visit(
         fake_migratable.add(name)
         for use in fake_uses[name]:
             ret[ast_start_offset(use)].append(partial(replace_name, src=expr))
+
+    datetime_carrier: ast.ImportFrom | None = None
+    if fake_fallback:
+        # The added `import datetime` has to go at module level, replacing
+        # part of a rewritten module-level freezegun import.
+        for import_node in freezegun_from_imports:
+            if import_node in module_stmts and any(
+                alias.name == "freeze_time"
+                or (alias.asname or alias.name) in fake_migratable
+                or (alias.asname or alias.name) in fake_fallback
+                for alias in import_node.names
+            ):
+                datetime_carrier = import_node
+                break
+        if datetime_carrier is not None:
+            for name, expr in fake_fallback.items():
+                fake_migratable.add(name)
+                for use in fake_uses[name]:
+                    ret[ast_start_offset(use)].append(partial(replace_name, src=expr))
 
     for import_node in freezegun_from_imports:
         has_freeze_time = any(
@@ -503,9 +535,8 @@ def visit(
         new_stmts = []
         if has_freeze_time:
             new_stmts.append("import time_machine")
-        if datetime_import_needed:
+        if import_node is datetime_carrier:
             new_stmts.append("import datetime")
-            datetime_import_needed = False
         if keep:
             new_stmts.append(f"from {import_node.module} import {', '.join(keep)}")
 
@@ -524,21 +555,32 @@ def visit(
                 partial(replace_import_from, node=import_node, new_stmts=["pass"])
             )
 
-    for assignment, use_scope in find_candidate_assignments(tree):
-        target = assignment.targets[0]
-        if isinstance(target, ast.Name):
-            compatible = name_target_uses_compatible(use_scope, target)
-        else:
-            assert isinstance(target, ast.Attribute)
-            compatible = self_attr_target_uses_compatible(use_scope, target)
-        if compatible:
-            maybe_migrate_call(
-                ret,
-                assignment.value,
+    if freeze_time_names or freezegun_module_names:
+        for assignment, use_scope in find_candidate_assignments(tree):
+            value = assignment.value
+            assert isinstance(value, ast.Call)
+            if not is_freeze_time_call(
+                value,
                 freezegun_module_names=freezegun_module_names,
                 freeze_time_names=freeze_time_names,
-                freezer_functions=freezer_functions,
-            )
+            ):
+                continue
+            target = assignment.targets[0]
+            if isinstance(target, ast.Name):
+                compatible = name_target_uses_compatible(use_scope, target)
+            else:
+                assert isinstance(target, ast.Attribute)
+                compatible = self_attr_target_uses_compatible(use_scope, target)
+            if compatible:
+                maybe_migrate_call(
+                    ret,
+                    value,
+                    freezegun_module_names=freezegun_module_names,
+                    freeze_time_names=freeze_time_names,
+                    freezer_functions=freezer_functions,
+                )
+
+    unmigrated_fake_names = {name for name in fake_bound if name not in fake_migratable}
 
     reports = []
     for node in ast.walk(tree):
@@ -547,6 +589,7 @@ def visit(
                 name in freeze_time_names
                 or name in freezegun_module_names
                 or name in report_module_names
+                or name in unmigrated_fake_names
             ) and ast_start_offset(node) not in ret:
                 reports.append(
                     Report(
@@ -585,6 +628,89 @@ def find_freezer_function(
         if function.lineno <= node.lineno <= function.end_lineno:
             return function
     return None
+
+
+def module_scope_stmts(tree: ast.Module) -> set[ast.stmt]:
+    """
+    Collect the statements that execute at module scope, including within
+    module-level compound statements like `if` and `try`, but not within
+    functions or classes.
+    """
+    result: set[ast.stmt] = set()
+
+    def add(body: list[ast.stmt]) -> None:
+        for stmt in body:
+            result.add(stmt)
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            for field in ("body", "orelse", "finalbody"):
+                sub_body = getattr(stmt, field, None)
+                if isinstance(sub_body, list):
+                    add(sub_body)
+            if isinstance(stmt, ast.Try):
+                for handler in stmt.handlers:
+                    add(handler.body)
+
+    add(tree.body)
+    return result
+
+
+def fake_rebindings(tree: ast.Module, names: set[str]) -> set[str]:
+    """
+    Find which of the given fake class names are also bound by something
+    other than their freezegun imports, such as function parameters, def or
+    class statements, or imports from other modules. Rewriting uses of such
+    names would be unsafe. (Heuristic: some rarer rebindings, like
+    ``except ... as`` names, are not detected.)
+    """
+    rebound = set()
+    for node in ast.walk(tree):
+        match node:
+            case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.Lambda():
+                if not isinstance(node, ast.Lambda) and node.name in names:
+                    rebound.add(node.name)
+                rebound.update(
+                    arg.arg
+                    for arg in (
+                        *node.args.posonlyargs,
+                        *node.args.args,
+                        *node.args.kwonlyargs,
+                    )
+                    if arg.arg in names
+                )
+            case ast.ClassDef(name=name) if name in names:
+                rebound.add(name)
+            case ast.Import() | ast.ImportFrom():
+                from_freezegun = isinstance(node, ast.ImportFrom) and node.module in (
+                    "freezegun",
+                    "freezegun.api",
+                )
+                for alias in node.names:
+                    bound = alias.asname or alias.name.split(".")[0]
+                    if bound in names and not (
+                        from_freezegun and alias.name in FAKE_CLASSES
+                    ):
+                        rebound.add(bound)
+    return rebound
+
+
+def is_freeze_time_call(
+    node: ast.Call,
+    *,
+    freezegun_module_names: set[str],
+    freeze_time_names: set[str],
+) -> bool:
+    """
+    Check if the given call is of freezegun’s freeze_time(), per the names
+    bound by the module’s imports.
+    """
+    func = node.func
+    return (
+        isinstance(func, ast.Attribute)
+        and func.attr == "freeze_time"
+        and isinstance(func.value, ast.Name)
+        and func.value.id in freezegun_module_names
+    ) or (isinstance(func, ast.Name) and func.id in freeze_time_names)
 
 
 def find_candidate_assignments(
@@ -720,18 +846,14 @@ def maybe_migrate_call(
     Add the callbacks to rewrite the given expression, if it is a migratable
     call to freezegun’s freeze_time(), returning whether that was the case.
     """
-    if not isinstance(node, ast.Call) or not migratable_call(node):
-        return False
-
-    func = node.func
-    if not (
-        (
-            isinstance(func, ast.Attribute)
-            and func.attr == "freeze_time"
-            and isinstance(func.value, ast.Name)
-            and func.value.id in freezegun_module_names
+    if (
+        not isinstance(node, ast.Call)
+        or not is_freeze_time_call(
+            node,
+            freezegun_module_names=freezegun_module_names,
+            freeze_time_names=freeze_time_names,
         )
-        or (isinstance(func, ast.Name) and func.id in freeze_time_names)
+        or not migratable_call(node)
     ):
         return False
 
@@ -741,6 +863,8 @@ def maybe_migrate_call(
         # resolve to it.
         return False
 
+    func = node.func
+    assert isinstance(func, (ast.Attribute, ast.Name))
     ret[ast_start_offset(func)].append(partial(switch_to_travel, node=func))
     migrate_arguments(ret, node)
     return True

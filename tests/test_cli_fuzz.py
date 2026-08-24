@@ -214,6 +214,7 @@ fake_statements = st.sampled_from(
         "assert isinstance(x, FakeDate)",
         "assert isinstance(x, FakeDatetime)",
         "FakeDatetime = x",
+        'x = f"{FakeDate}"',
     ]
 )
 
