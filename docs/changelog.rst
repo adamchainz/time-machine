@@ -24,6 +24,8 @@ Unreleased
 * Make the :ref:`Migration CLI <migration-cli>` report freezegun-related usages that it recognizes but cannot migrate, with their positions, like ``example/tests.py:9:2: freeze_time usage not migrated``.
   This makes it easier to find and fix the remaining usages manually.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate “raw use” assignments of ``freeze_time()`` to variables or ``self.`` attributes used with ``start()`` and ``stop()``, covering unittest ``setUp()`` / ``tearDown()`` patterns like ``self.freezer = freeze_time(...)`` with ``self.addCleanup(self.freezer.stop)``.
+
 3.4.0 (2026-08-10)
 ------------------
 

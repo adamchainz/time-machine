@@ -5,7 +5,7 @@ import ast
 import sys
 import warnings
 from collections import defaultdict
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from functools import partial
 from typing import NamedTuple
 
@@ -363,6 +363,22 @@ def visit(
                         partial(add_tick_false, node=node)
                     )
 
+    for assignment, use_scope in find_candidate_assignments(tree):
+        target = assignment.targets[0]
+        if isinstance(target, ast.Name):
+            compatible = name_target_uses_compatible(use_scope, target)
+        else:
+            assert isinstance(target, ast.Attribute)
+            compatible = self_attr_target_uses_compatible(use_scope, target)
+        if compatible:
+            maybe_migrate_call(
+                ret,
+                assignment.value,
+                freezegun_module_names=freezegun_module_names,
+                freeze_time_names=freeze_time_names,
+                freezer_functions=freezer_functions,
+            )
+
     reports = []
     for node in ast.walk(tree):
         match node:
@@ -408,6 +424,127 @@ def find_freezer_function(
         if function.lineno <= node.lineno <= function.end_lineno:
             return function
     return None
+
+
+def find_candidate_assignments(
+    tree: ast.Module,
+) -> Generator[tuple[ast.Assign, ast.AST], None, None]:
+    """
+    Yield assignments of call results that may be freeze_time() calls bound
+    for "raw use" with start() and stop(), paired with the node to search for
+    uses of the bound name: the enclosing function or module for plain names,
+    or the enclosing class for `self.` attributes.
+    """
+
+    def recurse(
+        node: ast.AST, scope: ast.AST | None, class_node: ast.ClassDef | None
+    ) -> Generator[tuple[ast.Assign, ast.AST], None, None]:
+        for child in ast.iter_child_nodes(node):
+            match child:
+                case ast.Assign(
+                    targets=[ast.Name()],
+                    value=ast.Call(),
+                ) if scope is not None:
+                    yield (child, scope)
+                case ast.Assign(
+                    targets=[ast.Attribute(value=ast.Name(id="self"))],
+                    value=ast.Call(),
+                ) if class_node is not None:
+                    yield (child, class_node)
+
+            match child:
+                case ast.FunctionDef() | ast.AsyncFunctionDef():
+                    yield from recurse(child, child, class_node)
+                case ast.ClassDef():
+                    # Plain-name assignments directly in a class body are not
+                    # tracked, since their uses cannot be checked simply.
+                    yield from recurse(child, None, child)
+                case _:
+                    yield from recurse(child, scope, class_node)
+
+    yield from recurse(tree, tree, None)
+
+
+def name_target_uses_compatible(scope: ast.AST, target: ast.Name) -> bool:
+    """
+    Check that a plain variable assigned a freeze_time() call is only used in
+    ways that work the same on time-machine's travel(): start() and stop()
+    calls as statements, and bare start / stop references passed as call
+    arguments, like `atexit.register(freezer.stop)`.
+    """
+    name = target.id
+    allowed: set[ast.AST] = {target}
+    for subnode in ast.walk(scope):
+        match subnode:
+            case ast.Expr(
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id=receiver) as receiver_node,
+                        attr="start" | "stop",
+                    ),
+                    args=[],
+                    keywords=[],
+                )
+            ) if receiver == name:
+                allowed.add(receiver_node)
+            case ast.Call(args=args):
+                for arg in args:
+                    match arg:
+                        case ast.Attribute(
+                            value=ast.Name(id=receiver) as receiver_node,
+                            attr="start" | "stop",
+                        ) if receiver == name:
+                            allowed.add(receiver_node)
+    return all(
+        subnode in allowed
+        for subnode in ast.walk(scope)
+        if isinstance(subnode, ast.Name) and subnode.id == name
+    )
+
+
+def self_attr_target_uses_compatible(scope: ast.AST, target: ast.Attribute) -> bool:
+    """
+    As for name_target_uses_compatible(), but for a `self.` attribute
+    assigned a freeze_time() call, checked across the enclosing class, so
+    unittest setUp() / tearDown() / addCleanup() patterns are covered.
+    """
+    name = target.attr
+    allowed: set[ast.AST] = {target}
+    for subnode in ast.walk(scope):
+        match subnode:
+            case ast.Expr(
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Attribute(
+                            value=ast.Name(id="self"),
+                            attr=receiver,
+                        ) as receiver_node,
+                        attr="start" | "stop",
+                    ),
+                    args=[],
+                    keywords=[],
+                )
+            ) if receiver == name:
+                allowed.add(receiver_node)
+            case ast.Call(args=args):
+                for arg in args:
+                    match arg:
+                        case ast.Attribute(
+                            value=ast.Attribute(
+                                value=ast.Name(id="self"),
+                                attr=receiver,
+                            ) as receiver_node,
+                            attr="start" | "stop",
+                        ) if receiver == name:
+                            allowed.add(receiver_node)
+    return all(
+        subnode in allowed
+        for subnode in ast.walk(scope)
+        if isinstance(subnode, ast.Attribute)
+        and isinstance(subnode.value, ast.Name)
+        and subnode.value.id == "self"
+        and subnode.attr == name
+    )
 
 
 def maybe_migrate_call(

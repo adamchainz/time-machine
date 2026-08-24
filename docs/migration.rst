@@ -104,6 +104,11 @@ The changes the tool makes are:
   ``tz_offset=0`` is dropped, since a zero offset has no effect.
   ``real_asyncio=True`` is dropped, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
 
+* “Raw use” assignments that bind ``freeze_time()`` to a variable for later ``start()`` and ``stop()`` calls: the assigned call is migrated as above, since ``travel()`` instances have the same ``start()`` / ``stop()`` interface.
+  This applies to plain variables, like ``freezer = freeze_time(...)``, checked within the enclosing function or module, and to ``self.`` attributes, checked across the enclosing class, so unittest ``setUp()`` / ``tearDown()`` patterns are covered, including cleanup registrations like ``self.addCleanup(self.freezer.stop)``.
+  The migration only applies when the variable is used solely for ``start()`` and ``stop()``: as calls with no arguments in statements, or as bare references passed as call arguments.
+  Other uses, such as ``move_to()`` or ``tick()`` calls, prevent migration, since freezegun’s object has other methods with no equivalent on ``travel()``.
+
 * In context managers that bind the result with ``as``, additionally: calls of the bound variable’s ``tick()`` method -> ``shift()``, with freezegun’s default delta of one second made explicit, for example ``ft.tick()`` -> ``ft.shift(1)``.
   Calls of the ``move_to()`` method are left unchanged, since it behaves the same in both libraries.
   These changes are only applied when the bound variable is used solely for ``move_to()`` calls and ``tick()`` calls as statements, since ``tick()`` returns the new time whilst ``shift()`` returns ``None``, and other freezegun attributes have no equivalent on the object that ``travel()`` yields.
