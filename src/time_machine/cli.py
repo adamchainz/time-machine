@@ -167,29 +167,33 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
     Visit the AST and return a list of callbacks to apply to the tokens.
     """
     ret: defaultdict[Offset, list[TokenFunc]] = defaultdict(list)
-    freezegun_import_seen = False
-    freeze_time_import_seen = False
+    freezegun_module_names: set[str] = set()
+    freeze_time_names: set[str] = set()
     freezer_functions: list[FreezerFunction] = []
     marker_class_methods: set[ast.FunctionDef | ast.AsyncFunctionDef] = set()
     traveller_vars: list[TravellerVar] = []
     for node in ast.walk(tree):
         match node:
             case ast.Import() if (
-                len(node.names) == 1
-                and (alias := node.names[0]).name == "freezegun"
-                and alias.asname is None
+                len(node.names) == 1 and (alias := node.names[0]).name == "freezegun"
             ):
-                freezegun_import_seen = True
-                ret[ast_start_offset(node)].append(replace_import)
+                freezegun_module_names.add(alias.asname or "freezegun")
+                if alias.asname is None:
+                    ret[ast_start_offset(node)].append(replace_import)
+                else:
+                    ret[ast_start_offset(node)].append(
+                        partial(replace_aliased_import, node=node)
+                    )
             case ast.ImportFrom() if (
                 node.level == 0
                 and node.module == "freezegun"
-                and any(
-                    alias.name == "freeze_time" and alias.asname is None
-                    for alias in node.names
-                )
+                and any(alias.name == "freeze_time" for alias in node.names)
             ):
-                freeze_time_import_seen = True
+                freeze_time_names.update(
+                    alias.asname or alias.name
+                    for alias in node.names
+                    if alias.name == "freeze_time"
+                )
                 ret[ast_start_offset(node)].append(
                     partial(
                         replace_import_from,
@@ -197,7 +201,7 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         keep=[
                             unparse_alias(alias)
                             for alias in node.names
-                            if alias.name != "freeze_time" or alias.asname is not None
+                            if alias.name != "freeze_time"
                         ],
                     )
                 )
@@ -210,8 +214,8 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         maybe_migrate_call(
                             ret,
                             decorator,
-                            freezegun_import_seen=freezegun_import_seen,
-                            freeze_time_import_seen=freeze_time_import_seen,
+                            freezegun_module_names=freezegun_module_names,
+                            freeze_time_names=freeze_time_names,
                             freezer_functions=freezer_functions,
                         )
 
@@ -240,8 +244,8 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                         maybe_migrate_call(
                             ret,
                             decorator,
-                            freezegun_import_seen=freezegun_import_seen,
-                            freeze_time_import_seen=freeze_time_import_seen,
+                            freezegun_module_names=freezegun_module_names,
+                            freeze_time_names=freeze_time_names,
                             freezer_functions=freezer_functions,
                         )
 
@@ -252,8 +256,8 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                             maybe_migrate_call(
                                 ret,
                                 item.context_expr,
-                                freezegun_import_seen=freezegun_import_seen,
-                                freeze_time_import_seen=freeze_time_import_seen,
+                                freezegun_module_names=freezegun_module_names,
+                                freeze_time_names=freeze_time_names,
                                 freezer_functions=freezer_functions,
                             )
                         case ast.Name(id=name) as binding:
@@ -262,8 +266,8 @@ def visit(tree: ast.Module) -> Mapping[Offset, list[TokenFunc]]:
                             ) and maybe_migrate_call(
                                 ret,
                                 item.context_expr,
-                                freezegun_import_seen=freezegun_import_seen,
-                                freeze_time_import_seen=freeze_time_import_seen,
+                                freezegun_module_names=freezegun_module_names,
+                                freeze_time_names=freeze_time_names,
                                 freezer_functions=freezer_functions,
                             ):
                                 traveller_vars.append(TravellerVar(name, node))
@@ -335,8 +339,8 @@ def maybe_migrate_call(
     ret: MutableMapping[Offset, list[TokenFunc]],
     node: ast.expr,
     *,
-    freezegun_import_seen: bool,
-    freeze_time_import_seen: bool,
+    freezegun_module_names: set[str],
+    freeze_time_names: set[str],
     freezer_functions: list[FreezerFunction],
 ) -> bool:
     """
@@ -349,17 +353,12 @@ def maybe_migrate_call(
     func = node.func
     if not (
         (
-            freezegun_import_seen
-            and isinstance(func, ast.Attribute)
+            isinstance(func, ast.Attribute)
             and func.attr == "freeze_time"
             and isinstance(func.value, ast.Name)
-            and func.value.id == "freezegun"
+            and func.value.id in freezegun_module_names
         )
-        or (
-            freeze_time_import_seen
-            and isinstance(func, ast.Name)
-            and func.id == "freeze_time"
-        )
+        or (isinstance(func, ast.Name) and func.id in freeze_time_names)
     ):
         return False
 
@@ -550,6 +549,16 @@ def replace_import(tokens: list[Token], i: int) -> None:
             break
         i += 1
     tokens[i] = Token(name="NAME", src="time_machine")
+
+
+def replace_aliased_import(tokens: list[Token], i: int, node: ast.Import) -> None:
+    """
+    Replace an ``import freezegun as <name>`` statement with
+    ``import time_machine``, dropping the alias since calls of
+    ``<name>.freeze_time()`` are rewritten to ``time_machine.travel()``.
+    """
+    j = find_last_token(tokens, i, node=node)
+    tokens[i : j + 1] = [Token(name=CODE, src="import time_machine")]
 
 
 def unparse_alias(alias: ast.alias) -> str:

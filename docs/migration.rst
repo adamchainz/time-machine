@@ -83,6 +83,9 @@ The changes the tool makes are:
 
 * ``from freezegun import freeze_time`` -> ``import time_machine``
 
+* Aliased imports like ``import freezegun as fg`` or ``from freezegun import freeze_time as ft`` -> ``import time_machine``.
+  The alias is dropped, since calls using it are migrated to use the ``time_machine`` module, per the below.
+
 * ``from freezegun import freeze_time, FakeDate`` -> ``import time_machine`` plus ``from freezegun import FakeDate``, keeping the other imported names.
 
 * In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(...)``.
