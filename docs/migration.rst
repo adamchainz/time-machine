@@ -45,6 +45,9 @@ To help with this, the tool reports freezegun-related usages that it recognizes 
 
 These reports are heuristic and may occasionally flag unrelated code that reuses a freezegun-related name, such as a function parameter that shadows an imported ``freeze_time``.
 
+Files that cannot be parsed are also reported, and otherwise skipped.
+Since the tool parses files with the Python version it runs on, run it with a version at least as new as the target project uses.
+
 The tool edits files in place, reporting those that it changes.
 It’s recommended you start from a clean, committed state in your version control system, so you can easily revert any broken changes.
 

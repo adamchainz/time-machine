@@ -100,8 +100,12 @@ def migrate_contents(contents_text: str) -> tuple[str, list[Report]]:
     """Migrate a single text from freezegun to time-machine."""
     try:
         ast_obj = ast_parse(contents_text)
-    except SyntaxError:
-        return contents_text, []
+    except (SyntaxError, ValueError) as exc:
+        # ValueError comes from e.g. null bytes in the source.
+        lineno = getattr(exc, "lineno", None) or 1
+        col = getattr(exc, "offset", None) or 1
+        msg = getattr(exc, "msg", None) or str(exc)
+        return contents_text, [Report(lineno, col, f"could not parse file: {msg}")]
 
     callbacks, reports = visit(ast_obj)
 
