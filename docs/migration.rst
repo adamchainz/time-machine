@@ -89,53 +89,197 @@ To run the tool against all files from your Git repository, follow `this blog po
 Changes
 -------
 
-The changes the tool makes are:
+The tool makes the below changes, grouped here by the kind of code they apply to.
 
-* ``import freezegun`` -> ``import time_machine``
+Import updates
+~~~~~~~~~~~~~~
 
-* ``from freezegun import freeze_time`` -> ``import time_machine``
+* ``import freezegun`` -> ``import time_machine``:
+
+  .. code-block:: diff
+
+      -import freezegun
+      +import time_machine
+
+* ``from freezegun import freeze_time`` -> ``import time_machine``:
+
+  .. code-block:: diff
+
+      -from freezegun import freeze_time
+      +import time_machine
 
 * Aliased imports like ``import freezegun as fg`` or ``from freezegun import freeze_time as ft`` -> ``import time_machine``.
-  The alias is dropped, since calls using it are migrated to use the ``time_machine`` module, per the below.
+  The alias is dropped, since calls using it are migrated to use the ``time_machine`` module, per the below:
 
-* ``from freezegun import freeze_time, FakeDate`` -> ``import time_machine`` plus ``from freezegun import FakeDate``, keeping the other imported names.
+  .. code-block:: diff
 
-* In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``travel(...)``.
+      -import freezegun as fg
+      +import time_machine
+
+      -@fg.freeze_time("2023-01-01")
+      +@time_machine.travel("2023-01-01", tick=False)
+       def test_function():
+           ...
+
+* ``from freezegun import freeze_time, FakeDate`` -> ``import time_machine`` plus ``from freezegun import FakeDate``, keeping the other imported names:
+
+  .. code-block:: diff
+
+      -from freezegun import freeze_time, FakeDate
+      +import time_machine
+      +from freezegun import FakeDate
+
+``freeze_time()`` calls
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``time_machine.travel(...)``.
   This change is applied only when ``freeze_time()`` is called with a single positional argument and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, ``real_asyncio``, and ``ignore``.
-  If ``tick`` is passed, it is kept as-is, otherwise it is replaced with ``tick=False`` (matching freezegun’s default behaviour).
-  If no positional argument is passed, ``None`` is added as the destination, meaning the current time, matching freezegun’s behaviour of freezing at the current time.
+  If ``tick`` is passed, it is kept as-is, otherwise it is replaced with ``tick=False`` (matching freezegun’s default behaviour):
+
+  .. code-block:: diff
+
+      -@freeze_time("2023-01-01")
+      +@time_machine.travel("2023-01-01", tick=False)
+       def test_function():
+           ...
+
+      -@freeze_time("2023-01-01", tick=True)
+      +@time_machine.travel("2023-01-01", tick=True)
+       def test_function2():
+           ...
+
+  If no positional argument is passed, ``None`` is added as the destination, meaning the current time, matching freezegun’s behaviour of freezing at the current time:
+
+  .. code-block:: diff
+
+      -@freeze_time()
+      +@time_machine.travel(None, tick=False)
+       def test_function():
+           ...
+
   ``tz_offset=0`` is dropped, since a zero offset has no effect.
   ``real_asyncio`` is dropped, whatever its value, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
   ``ignore`` is dropped, since it works around problems with freezegun’s module patching, which time-machine’s C-level mocking doesn’t have.
 
-* “Raw use” assignments that bind ``freeze_time()`` to a variable for later ``start()`` and ``stop()`` calls: the assigned call is migrated as above, since ``travel()`` instances have the same ``start()`` / ``stop()`` interface.
-  This applies to plain variables, like ``freezer = freeze_time(...)``, checked within the enclosing function or module, and to ``self.`` attributes, checked across the enclosing class, so unittest ``setUp()`` / ``tearDown()`` patterns are covered, including cleanup registrations like ``self.addCleanup(self.freezer.stop)``.
+  .. code-block:: diff
+
+      -@freeze_time("2023-01-01", tz_offset=0, real_asyncio=True, ignore=["threading"])
+      +@time_machine.travel("2023-01-01", tick=False)
+       def test_function():
+           ...
+
+* “Raw use” assignments that bind ``freeze_time()`` to a variable for later ``start()`` and ``stop()`` calls: the assigned call is migrated as above, since ``travel()`` instances have the same ``start()`` / ``stop()`` interface:
+
+  .. code-block:: diff
+
+       def test_function():
+      -    freezer = freeze_time("2023-01-01")
+      +    freezer = time_machine.travel("2023-01-01", tick=False)
+           freezer.start()
+           ...
+           freezer.stop()
+
+  This applies to plain variables, like ``freezer = freeze_time(...)``, checked within the enclosing function or module, and to ``self.`` attributes, checked across the enclosing class, so unittest ``setUp()`` / ``tearDown()`` patterns are covered, including cleanup registrations like ``self.addCleanup(self.freezer.stop)``:
+
+  .. code-block:: diff
+
+       class TestSomething(TestCase):
+           def setUp(self):
+      -        self.freezer = freeze_time("2023-01-01")
+      +        self.freezer = time_machine.travel("2023-01-01", tick=False)
+               self.freezer.start()
+               self.addCleanup(self.freezer.stop)
+
   The migration only applies when the variable is used solely for ``start()`` and ``stop()``: as calls with no arguments in statements, or as bare references passed as call arguments.
   Other uses, such as ``move_to()`` or ``tick()`` calls, prevent migration, since freezegun’s object has other methods with no equivalent on ``travel()``.
 
-* In context managers that bind the result with ``as``, additionally: calls of the bound variable’s ``tick()`` method -> ``shift()``, with freezegun’s default delta of one second made explicit, for example ``ft.tick()`` -> ``ft.shift(1)``.
-  Calls of the ``move_to()`` method are left unchanged, since it behaves the same in both libraries.
+* In context managers that bind the result with ``as``, additionally: calls of the bound variable’s ``tick()`` method -> ``shift()``, with freezegun’s default delta of one second made explicit.
+  Calls of the ``move_to()`` method are left unchanged, since it behaves the same in both libraries:
+
+  .. code-block:: diff
+
+      -with freeze_time("2023-01-01") as ft:
+      +with time_machine.travel("2023-01-01", tick=False) as ft:
+           ft.move_to("2023-06-01")
+      -    ft.tick()
+      +    ft.shift(1)
+
   These changes are only applied when the bound variable is used solely for ``move_to()`` calls and ``tick()`` calls as statements, since ``tick()`` returns the new time whilst ``shift()`` returns ``None``, and other freezegun attributes have no equivalent on the object that ``travel()`` yields.
 
-* The ``pytest.mark.freeze_time`` marker from `pytest-freezegun <https://pypi.org/project/pytest-freezegun/>`__ or `pytest-freezer <https://pypi.org/project/pytest-freezer/>`__: ``@pytest.mark.freeze_time(...)`` -> ``@pytest.mark.time_machine(...)``, the marker from time-machine’s :doc:`pytest plugin <pytest_plugin>`.
-  This migration uses the same argument handling as for ``freeze_time()`` calls.
+``pytest.mark.freeze_time`` marker
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  As well as in decorators, the marker is migrated in module-level and class-level ``pytestmark`` assignments, whether assigned alone or within a list or tuple of markers.
+The ``pytest.mark.freeze_time`` marker from `pytest-freezegun <https://pypi.org/project/pytest-freezegun/>`__ or `pytest-freezer <https://pypi.org/project/pytest-freezer/>`__ is migrated: ``@pytest.mark.freeze_time(...)`` -> ``@pytest.mark.time_machine(...)``, the marker from time-machine’s :doc:`pytest plugin <pytest_plugin>`.
+This migration uses the same argument handling as for ``freeze_time()`` calls:
 
-* The ``freezer`` fixture from pytest-freezegun or pytest-freezer -> the ``time_machine`` fixture from time-machine’s pytest plugin.
-  In functions with an argument named ``freezer``, the argument is renamed to ``time_machine`` and calls of the fixture’s methods are migrated:
+.. code-block:: diff
 
-  * ``freezer.move_to(...)`` -> ``time_machine.move_to(..., tick=False)``, again matching freezegun’s default behaviour.
-    ``tick=False`` isn’t added in functions using a migrated ``pytest.mark.freeze_time`` marker, since there the fixture inherits the ``tick`` behaviour from the marker.
+    -@pytest.mark.freeze_time("2023-01-01")
+    +@pytest.mark.time_machine("2023-01-01", tick=False)
+     def test_function():
+         ...
 
-  * ``freezer.tick()`` -> ``time_machine.shift(1)``, as for context manager variables, again only for calls as statements.
+As well as in decorators, the marker is migrated in module-level and class-level ``pytestmark`` assignments, whether assigned alone or within a list or tuple of markers:
 
-  Other uses of ``freezer`` are left unchanged, for your linter to flag.
-  ``freeze_time()`` calls within such functions are also left unchanged, because the renamed argument shadows the ``time_machine`` module.
+.. code-block:: diff
 
-  Imports and uses of ``FrozenDateTimeFactory``, freezegun’s class for the ``freezer`` fixture, often used to annotate the fixture argument, are also migrated: uses are rewritten to time-machine’s equivalent, ``TimeMachineFixture``, and ``from time_machine import TimeMachineFixture`` replaces the freezegun import.
+     pytestmark = [
+    -    pytest.mark.freeze_time("2023-01-01"),
+    +    pytest.mark.time_machine("2023-01-01", tick=False),
+         pytest.mark.django_db,
+     ]
 
-  Note that the ``time_machine`` fixture doesn’t mock the time until its ``move_to()`` method is called, unlike ``freezer``, which mocks from the start of the test.
-  Migrated tests that relied on that, for example by calling ``freezer.tick()`` before any ``move_to()``, will need manual adjustment.
+``freezer`` fixture
+~~~~~~~~~~~~~~~~~~~
+
+The ``freezer`` fixture from pytest-freezegun or pytest-freezer is migrated to the ``time_machine`` fixture from time-machine’s pytest plugin.
+In functions with an argument named ``freezer``, the argument is renamed to ``time_machine`` and calls of the fixture’s methods are migrated:
+
+* ``freezer.move_to(...)`` -> ``time_machine.move_to(..., tick=False)``, again matching freezegun’s default behaviour:
+
+  .. code-block:: diff
+
+      -def test_function(freezer):
+      -    freezer.move_to("2023-01-01")
+      +def test_function(time_machine):
+      +    time_machine.move_to("2023-01-01", tick=False)
+
+  ``tick=False`` isn’t added in functions using a migrated ``pytest.mark.freeze_time`` marker, since there the fixture inherits the ``tick`` behaviour from the marker:
+
+  .. code-block:: diff
+
+      -@pytest.mark.freeze_time("2023-01-01")
+      -def test_function(freezer):
+      -    freezer.move_to("2023-06-01")
+      +@pytest.mark.time_machine("2023-01-01", tick=False)
+      +def test_function(time_machine):
+      +    time_machine.move_to("2023-06-01")
+
+* ``freezer.tick()`` -> ``time_machine.shift(1)``, as for context manager variables, again only for calls as statements:
+
+  .. code-block:: diff
+
+      -def test_function(freezer):
+      -    freezer.tick()
+      +def test_function(time_machine):
+      +    time_machine.shift(1)
+
+Other uses of ``freezer`` are left unchanged, for your linter to flag.
+``freeze_time()`` calls within such functions are also left unchanged, because the renamed argument shadows the ``time_machine`` module.
+
+Imports and uses of ``FrozenDateTimeFactory``, freezegun’s class for the ``freezer`` fixture, often used to annotate the fixture argument, are also migrated: uses are rewritten to time-machine’s equivalent, ``TimeMachineFixture``, and ``from time_machine import TimeMachineFixture`` replaces the freezegun import:
+
+.. code-block:: diff
+
+    -from freezegun.api import FrozenDateTimeFactory
+    +from time_machine import TimeMachineFixture
+
+    -def test_function(freezer: FrozenDateTimeFactory):
+    -    freezer.move_to("2023-01-01")
+    +def test_function(time_machine: TimeMachineFixture):
+    +    time_machine.move_to("2023-01-01", tick=False)
+
+Note that the ``time_machine`` fixture doesn’t mock the time until its ``move_to()`` method is called, unlike ``freezer``, which mocks from the start of the test.
+Migrated tests that relied on that, for example by calling ``freezer.tick()`` before any ``move_to()``, will need manual adjustment.
 
 The tool is open to extension to cover other compatible changes—PRs welcome!
