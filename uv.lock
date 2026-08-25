@@ -1056,7 +1056,7 @@ wheels = [
 
 [[package]]
 name = "time-machine"
-version = "3.4.0"
+version = "3.5.0"
 source = { editable = "." }
 
 [package.optional-dependencies]

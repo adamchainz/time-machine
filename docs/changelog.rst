@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+3.5.0 (2026-08-25)
+------------------
 
 * Support ``None`` as a destination for ``travel()`` and ``Traveller.move_to()``, meaning the current time.
   Use this with ``tick=False`` to freeze time at the present moment, matching freezegun’s behaviour when ``freeze_time()`` is called with no arguments.
