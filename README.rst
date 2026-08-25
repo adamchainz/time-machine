@@ -27,6 +27,23 @@ time-machine
   :alt: time-machine logo
   :align: center
 
+*Travel through time in your tests.*
+
+A quick example:
+
+.. code-block:: python
+
+    import datetime as dt
+    from zoneinfo import ZoneInfo
+    import time_machine
+
+    hill_valley_tz = ZoneInfo("America/Los_Angeles")
+
+
+    @time_machine.travel(dt.datetime(1985, 10, 26, 1, 24, tzinfo=hill_valley_tz))
+    def test_delorean():
+        assert dt.date.today().isoformat() == "1985-10-26"
+
 Documentation
 =============
 
