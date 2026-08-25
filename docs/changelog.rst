@@ -8,21 +8,35 @@ Unreleased
 * Support ``None`` as a destination for ``travel()`` and ``Traveller.move_to()``, meaning the current time.
   Use this with ``tick=False`` to freeze time at the present moment, matching freezegun’s behaviour when ``freeze_time()`` is called with no arguments.
 
+  `PR #666 <https://github.com/adamchainz/time-machine/pull/666>`__.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate aliased imports: ``import freezegun as fg`` and ``from freezegun import freeze_time as ft``, plus calls using such aliases.
 
+  `PR #662 <https://github.com/adamchainz/time-machine/pull/662>`__.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate the ``pytest.mark.freeze_time`` marker in module-level and class-level ``pytestmark`` assignments.
+
+  `PR #663 <https://github.com/adamchainz/time-machine/pull/663>`__.
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``tz_offset`` with a literal zero value.
   The argument is dropped, since a zero offset has no effect.
 
+  `PR #664 <https://github.com/adamchainz/time-machine/pull/664>`__.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``real_asyncio``.
   The argument is dropped, whatever its value, since time-machine does not mock ``time.monotonic()``, so asyncio event loops always see real time.
+
+  `PR #665 <https://github.com/adamchainz/time-machine/pull/665>`__.
 
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers with no destination argument, which freeze at the current time.
   ``None`` is added as the destination, using the new support for ``None`` destinations (above).
 
+  `PR #667 <https://github.com/adamchainz/time-machine/pull/667>`__.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls and markers that pass ``ignore``.
   The argument is dropped, since it works around problems with freezegun’s module patching, which time-machine’s C-level mocking doesn’t have.
+
+  `PR #671 <https://github.com/adamchainz/time-machine/pull/671>`__.
 
 * Make the :ref:`Migration CLI <migration-cli>` report freezegun-related usages that it recognizes but cannot migrate, with their positions, like:
 
@@ -32,12 +46,20 @@ Unreleased
 
   This makes it easier to find and fix the remaining usages manually.
 
+  `PR #668 <https://github.com/adamchainz/time-machine/pull/668>`__ and `PR #669 <https://github.com/adamchainz/time-machine/pull/669>`__.
+
 * Make the :ref:`Migration CLI <migration-cli>` report files that cannot be parsed, rather than skipping them silently.
   This helps notice files using syntax from a newer Python version than the tool is run with.
 
+  `PR #674 <https://github.com/adamchainz/time-machine/pull/674>`__.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate “raw use” assignments of ``freeze_time()`` to variables or ``self.`` attributes used with ``start()`` and ``stop()``, covering unittest ``setUp()`` / ``tearDown()`` patterns like ``self.freezer = freeze_time(...)`` with ``self.addCleanup(self.freezer.stop)``.
 
+  `PR #670 <https://github.com/adamchainz/time-machine/pull/670>`__ and `PR #672 <https://github.com/adamchainz/time-machine/pull/672>`__.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate imports and uses of freezegun’s ``FrozenDateTimeFactory`` class, often used to annotate the ``freezer`` fixture argument, to time-machine’s newly-documented equivalent, ``time_machine.TimeMachineFixture``.
+
+  `PR #673 <https://github.com/adamchainz/time-machine/pull/673>`__.
 
 3.4.0 (2026-08-10)
 ------------------
