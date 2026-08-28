@@ -799,6 +799,50 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_date(self):
+        check_transformed(
+            """
+            from datetime import date
+
+            from freezegun import freeze_time
+
+            @freeze_time(date(2024, 1, 1))
+            def test_function():
+                pass
+            """,
+            """
+            from datetime import date
+
+            import time_machine
+
+            @time_machine.travel(date(2024, 1, 1), tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_with_date(self):
+        check_transformed(
+            """
+            from datetime import date
+
+            from freezegun import freeze_time
+
+            def test_function():
+                with freeze_time(date(2024, 1, 1)):
+                    pass
+            """,
+            """
+            from datetime import date
+
+            import time_machine
+
+            def test_function():
+                with time_machine.travel(date(2024, 1, 1), tick=False):
+                    pass
+            """,
+        )
+
     def test_with_datetime_tzinfo(self):
         check_transformed(
             """
