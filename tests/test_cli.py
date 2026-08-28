@@ -843,6 +843,28 @@ class TestMigrateContents:
             """,
         )
 
+    def test_with_expression(self):
+        check_transformed(
+            """
+            from datetime import timedelta
+
+            from freezegun import freeze_time
+
+            def test_function(self):
+                with freeze_time(self.run_details.approve_by + timedelta(hours=1)):
+                    pass
+            """,
+            """
+            from datetime import timedelta
+
+            import time_machine
+
+            def test_function(self):
+                with time_machine.travel(self.run_details.approve_by + timedelta(hours=1), tick=False):
+                    pass
+            """,
+        )
+
     def test_with_datetime_tzinfo(self):
         check_transformed(
             """
