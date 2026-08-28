@@ -775,6 +775,54 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_datetime_tzinfo(self):
+        check_transformed(
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            from freezegun import freeze_time
+
+            @freeze_time(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC")))
+            def test_function():
+                pass
+            """,
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            import time_machine
+
+            @time_machine.travel(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC")), tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_with_datetime_tzinfo(self):
+        check_transformed(
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            from freezegun import freeze_time
+
+            def test_function():
+                with freeze_time(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC"))):
+                    pass
+            """,
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            import time_machine
+
+            def test_function():
+                with time_machine.travel(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC")), tick=False):
+                    pass
+            """,
+        )
+
     def test_function_decorator_no_arguments(self):
         check_transformed(
             """
