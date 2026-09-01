@@ -29,18 +29,17 @@ else:
 
 try:
     from time import tzset
-
-    HAVE_TZSET = True
 except ImportError:  # pragma: no cover
-    # Windows
-    HAVE_TZSET = False
+    HAVE_TZSET = False  # Windows
+else:
+    HAVE_TZSET = True
 
 try:
     from dateutil.parser import parse as parse_datetime
-
-    HAVE_DATEUTIL = True
 except ImportError:  # pragma: no cover
     HAVE_DATEUTIL = False
+else:
+    HAVE_DATEUTIL = True
 
 try:
     import pytest
