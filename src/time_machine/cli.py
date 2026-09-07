@@ -268,8 +268,6 @@ def visit(
                 if freezer_args and not any(
                     arg.arg == "time_machine" for arg in all_arguments(node)
                 ):
-                    # Renaming freezer to time_machine would duplicate an
-                    # existing argument, so leave such functions alone.
                     for arg in freezer_args:
                         ret[ast_start_offset(arg)].append(replace_freezer)
                     freezer_functions.append(

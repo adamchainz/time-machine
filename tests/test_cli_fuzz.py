@@ -181,6 +181,8 @@ def function_defs(draw: st.DrawFn) -> str:
                 "freezer, other",
                 "other",
                 "freezer: FrozenDateTimeFactory",
+                'freezer: "FrozenDateTimeFactory"',
+                "freezer, time_machine",
             ]
         )
     )
