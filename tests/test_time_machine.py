@@ -1142,6 +1142,71 @@ def test_shift_when_tick():
 # move_to() tests
 
 
+def test_move_to_unsupported_destination_keeps_timezone():
+    orig_tzname = time.tzname
+    dest = EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+
+    with time_machine.travel(dest, tick=False) as traveller:
+        assert time.tzname == ("EAT", "EAT")
+
+        with pytest.raises(TypeError):
+            traveller.move_to(object())  # type: ignore[arg-type]
+
+        assert time.time() == dest.timestamp()
+        assert time.tzname == ("EAT", "EAT")
+
+    assert time.tzname == orig_tzname
+
+
+def test_move_to_naive_mode_error_keeps_timezone():
+    orig_tzname = time.tzname
+    dest = EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+
+    with time_machine.travel(dest, tick=False) as traveller:
+        assert time.tzname == ("EAT", "EAT")
+
+        with (
+            mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR),
+            pytest.raises(RuntimeError),
+        ):
+            traveller.move_to(dt.datetime(1971, 1, 1))
+
+        assert time.time() == dest.timestamp()
+        assert time.tzname == ("EAT", "EAT")
+
+    assert time.tzname == orig_tzname
+
+
+def test_move_to_naive_string_uses_real_local_timezone():
+    # Naive destinations resolve against the machine’s real timezone (UTC for
+    # the test suite), not that of the traveller being moved from. move_to()
+    # therefore has to unmock the timezone before extracting the destination.
+    dest = EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+
+    with time_machine.travel(dest, tick=False) as traveller:
+        assert time.tzname == ("EAT", "EAT")
+
+        traveller.move_to("1971-01-01 00:00:00", tick=False)
+
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+
+
+def test_move_to_naive_mode_local_uses_real_local_timezone():
+    with (
+        change_local_timezone("America/Chicago"),
+        mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.LOCAL),
+    ):
+        expected = dt.datetime(1971, 1, 1).timestamp()
+        dest = EPOCH_DATETIME.replace(tzinfo=ZoneInfo("Africa/Addis_Ababa"))
+
+        with time_machine.travel(dest, tick=False) as traveller:
+            assert time.tzname == ("EAT", "EAT")
+
+            traveller.move_to(dt.datetime(1971, 1, 1), tick=False)
+
+            assert time.time() == expected
+
+
 def test_move_to_datetime():
     with time_machine.travel(EPOCH) as traveller:
         assert time.time() == EPOCH
