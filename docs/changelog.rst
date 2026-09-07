@@ -13,6 +13,8 @@ Unreleased
 
 * Fix the ``time_machine`` pytest fixture to not try to stop a traveller that failed to start.
 
+* Fix the mocked ``time.strftime()`` to raise ``TypeError`` when passed ``None`` as its second argument, like the unmocked function, rather than treating it as the current time.
+
 3.5.0 (2026-08-25)
 ------------------
 

@@ -656,8 +656,11 @@ static PyObject *
 _time_machine_strftime(PyObject *self, PyObject *args)
 {
     Py_ssize_t nargs = PyTuple_GET_SIZE(args);
-    if (nargs < 1 || nargs > 2 || (nargs == 2 && PyTuple_GET_ITEM(args, 1) != Py_None)) {
-        // Pass through, including invalid arguments for their error messages.
+    if (nargs != 1) {
+        // Pass through when a time tuple is given, including invalid
+        // arguments for their error messages. Unlike gmtime() and
+        // localtime(), strftime() does not accept None to mean the current
+        // time, so an explicit None is passed through for its TypeError.
         return original_strftime(self, args);
     }
 

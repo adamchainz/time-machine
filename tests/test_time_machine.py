@@ -427,6 +427,12 @@ def test_time_strftime_invalid_tuple():
         time.strftime("%Y", ("not", "a", "valid", "tuple"))  # type: ignore[arg-type]
 
 
+def test_time_strftime_none():
+    # Unlike gmtime() and localtime(), strftime() does not accept None.
+    with time_machine.travel(EPOCH), pytest.raises(TypeError):
+        time.strftime("%Y", None)  # type: ignore[arg-type]
+
+
 def test_time_time():
     with time_machine.travel(EPOCH):
         first = time.time()
