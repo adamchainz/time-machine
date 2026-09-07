@@ -478,8 +478,9 @@ if HAVE_PYTEST:  # pragma: no branch
             if self.traveller is None:
                 if tick is None:
                     tick = True
-                self.traveller = travel(destination, tick=tick)
-                self.traveller_obj = self.traveller.start()
+                traveller = travel(destination, tick=tick)
+                self.traveller_obj = traveller.start()
+                self.traveller = traveller
             else:
                 assert self.traveller_obj is not None
                 self.traveller_obj.move_to(destination, tick=tick)

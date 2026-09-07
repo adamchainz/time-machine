@@ -11,6 +11,8 @@ Unreleased
 * Fix ``Traveller.move_to()`` to keep the current timezone mocked when the given destination is unsupported.
   Previously, the timezone was restored before the destination was checked, leaving it unmocked whilst still time travelling.
 
+* Fix the ``time_machine`` pytest fixture to not try to stop a traveller that failed to start.
+
 3.5.0 (2026-08-25)
 ------------------
 
