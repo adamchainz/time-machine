@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 import typing
+import unittest
 import uuid
 import warnings
 from contextlib import contextmanager
@@ -958,6 +959,76 @@ class UnitTestClassSetUpClassSkipTests(TestCase):
 
     def test_thats_always_skipped(self):  # pragma: no cover
         pass
+
+
+def test_class_decorator_setUpClass_base_exception():
+    # pytest's skip outcome, for example, does not derive from Exception.
+    class Interrupt(BaseException):
+        pass
+
+    @time_machine.travel(EPOCH)
+    class InterruptTests(TestCase):
+        @classmethod
+        def setUpClass(cls) -> None:
+            raise Interrupt()
+
+        def test_something(self) -> None:  # pragma: no cover
+            pass
+
+    with pytest.raises(Interrupt):
+        InterruptTests.setUpClass()
+
+    assert not time_machine.escape_hatch.is_travelling()
+    assert time.time() >= LIBRARY_EPOCH
+
+
+def test_class_decorator_setUpClass_pytest_skip(testdir):
+    testdir.makepyfile(
+        """
+        import time
+        from unittest import TestCase
+
+        import pytest
+        import time_machine
+
+        @time_machine.travel(0.0)
+        class SkippedTests(TestCase):
+            @classmethod
+            def setUpClass(cls):
+                pytest.skip("Not today")
+
+            def test_never_runs(self):
+                pass
+
+        def test_after():
+            assert not time_machine.escape_hatch.is_travelling()
+            assert time.time() > 10.0
+        """
+    )
+
+    result = testdir.runpytest("-v", "-s", "-p", "no:randomly")
+    result.assert_outcomes(passed=1, skipped=1)
+
+
+def test_class_decorator_tearDownClass_error():
+    @time_machine.travel(EPOCH)
+    class ErrorTests(TestCase):
+        @classmethod
+        def tearDownClass(cls) -> None:
+            raise ValueError("Broken")
+
+        def test_something(self) -> None:
+            assert EPOCH <= time.time() < EPOCH + 10.0
+
+    result = unittest.TestResult()
+    unittest.defaultTestLoader.loadTestsFromTestCase(ErrorTests).run(result)
+
+    assert result.testsRun == 1
+    assert result.failures == []
+    assert len(result.errors) == 1
+    assert "ValueError: Broken" in result.errors[0][1]
+    assert not time_machine.escape_hatch.is_travelling()
+    assert time.time() >= LIBRARY_EPOCH
 
 
 # extract_timestamp_tzname() tests

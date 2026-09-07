@@ -394,7 +394,9 @@ class travel:
                 self.__enter__()
                 try:
                     orig_setUpClass(cls)
-                except Exception:
+                except BaseException:
+                    # Stop travlling for any BaseException, not just Exception,
+                    # because pytest.skip() works by raising a BaseException
                     self.__exit__(*sys.exc_info())
                     raise
 
@@ -406,8 +408,10 @@ class travel:
 
             @functools.wraps(orig_tearDownClass)
             def tearDownClass(cls: type[TestCase]) -> None:
-                orig_tearDownClass(cls)
-                self.__exit__(None, None, None)
+                try:
+                    orig_tearDownClass(cls)
+                finally:
+                    self.__exit__(*sys.exc_info())
 
             wrapped.tearDownClass = classmethod(  # type: ignore[assignment]
                 tearDownClass
