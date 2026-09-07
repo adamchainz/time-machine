@@ -1937,6 +1937,21 @@ def test_fixture_shift_without_move_to(time_machine):
     )
 
 
+def test_fixture_start_error():
+    fixture = time_machine.TimeMachineFixture()
+    with (
+        mock.patch.object(
+            time_machine.travel, "start", side_effect=ValueError("Broken")
+        ),
+        pytest.raises(ValueError),
+    ):
+        fixture.move_to(EPOCH)
+
+    assert fixture.traveller is None
+    fixture.stop()  # nothing to stop
+    assert not time_machine.escape_hatch.is_travelling()
+
+
 def test_marker_function(testdir):
     testdir.makepyfile(
         """
