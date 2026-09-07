@@ -8,6 +8,9 @@ Unreleased
 * Fix the class decorator to stop time travelling when ``tearDownClass()`` raises an exception, or when ``setUpClass()`` raises an exception not deriving from ``Exception``, such as the skip outcome from ``pytest.skip()``.
   Previously, time remained mocked for the rest of the process in these cases.
 
+* Fix ``Traveller.move_to()`` to keep the current timezone mocked when the given destination is unsupported.
+  Previously, the timezone was restored before the destination was checked, leaving it unmocked whilst still time travelling.
+
 3.5.0 (2026-08-25)
 ------------------
 

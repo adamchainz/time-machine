@@ -259,9 +259,15 @@ class Traveller:
         tick: bool | None = None,
     ) -> None:
         self._stop()
-        self._destination_timestamp_ns, self._destination_tzname = (
-            extract_timestamp_tzname(destination)
-        )
+        try:
+            self._destination_timestamp_ns, self._destination_tzname = (
+                extract_timestamp_tzname(destination)
+            )
+        except BaseException:
+            # Keep travelling to the current destination, including its
+            # timezone, rather than leaving the timezone unmocked.
+            self._start()
+            raise
         self._requested = False
         self._start()
         if tick is not None:
