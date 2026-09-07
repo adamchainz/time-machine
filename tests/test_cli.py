@@ -775,6 +775,120 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_datetime_tzinfo(self):
+        check_transformed(
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            from freezegun import freeze_time
+
+            @freeze_time(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC")))
+            def test_function():
+                pass
+            """,
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            import time_machine
+
+            @time_machine.travel(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC")), tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_date(self):
+        check_transformed(
+            """
+            from datetime import date
+
+            from freezegun import freeze_time
+
+            @freeze_time(date(2024, 1, 1))
+            def test_function():
+                pass
+            """,
+            """
+            from datetime import date
+
+            import time_machine
+
+            @time_machine.travel(date(2024, 1, 1), tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_with_date(self):
+        check_transformed(
+            """
+            from datetime import date
+
+            from freezegun import freeze_time
+
+            def test_function():
+                with freeze_time(date(2024, 1, 1)):
+                    pass
+            """,
+            """
+            from datetime import date
+
+            import time_machine
+
+            def test_function():
+                with time_machine.travel(date(2024, 1, 1), tick=False):
+                    pass
+            """,
+        )
+
+    def test_with_expression(self):
+        check_transformed(
+            """
+            from datetime import timedelta
+
+            from freezegun import freeze_time
+
+            def test_function(self):
+                with freeze_time(self.run_details.approve_by + timedelta(hours=1)):
+                    pass
+            """,
+            """
+            from datetime import timedelta
+
+            import time_machine
+
+            def test_function(self):
+                with time_machine.travel(self.run_details.approve_by + timedelta(hours=1), tick=False):
+                    pass
+            """,
+        )
+
+    def test_with_datetime_tzinfo(self):
+        check_transformed(
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            from freezegun import freeze_time
+
+            def test_function():
+                with freeze_time(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC"))):
+                    pass
+            """,
+            """
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            import time_machine
+
+            def test_function():
+                with time_machine.travel(datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC")), tick=False):
+                    pass
+            """,
+        )
+
     def test_function_decorator_no_arguments(self):
         check_transformed(
             """
