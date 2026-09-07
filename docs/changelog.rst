@@ -15,6 +15,9 @@ Unreleased
 
 * Fix the mocked ``time.strftime()`` to raise ``TypeError`` when passed ``None`` as its second argument, like the unmocked function, rather than treating it as the current time.
 
+* Fix the :ref:`Migration CLI <migration-cli>` to keep the rewritten imports on the same line when a freezegun import shares its line with other code, like ``if TYPE_CHECKING: from freezegun import freeze_time, FakeDate``.
+  Previously, the remaining ``from freezegun import FakeDate`` was moved to a new line, outside the block.
+
 3.5.0 (2026-08-25)
 ------------------
 

@@ -343,9 +343,34 @@ class TestMigrateContents:
         )
 
     def test_import_from_freezegun_multiple_compound_statement(self):
+        # The new statements must stay within the block.
         check_transformed(
             "if True: from freezegun import freeze_time, FakeDate\n",
-            "if True: import time_machine\nfrom freezegun import FakeDate\n",
+            "if True: import time_machine; from freezegun import FakeDate\n",
+        )
+
+    def test_import_from_freezegun_multiple_compound_statement_fixture_factory(
+        self,
+    ):
+        check_transformed(
+            """
+            if TYPE_CHECKING: from freezegun import freeze_time, FrozenDateTimeFactory
+
+            def test_function(freezer: FrozenDateTimeFactory):
+                pass
+            """,
+            """
+            if TYPE_CHECKING: import time_machine; from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: TimeMachineFixture):
+                pass
+            """,
+        )
+
+    def test_import_from_freezegun_multiple_semicolon(self):
+        check_transformed(
+            "import os; from freezegun import freeze_time, FakeDate; import sys\n",
+            "import os; import time_machine; from freezegun import FakeDate; import sys\n",
         )
 
     def test_import_from_freezegun_multiple_indented_after_dedent(self):

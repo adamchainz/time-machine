@@ -1062,7 +1062,15 @@ def replace_import_from(
     match.
     """
     j = find_last_token(tokens, i, node=node)
-    src = f"\n{line_indent(tokens, i)}".join(new_stmts)
+    k = line_start_index(tokens, i)
+    if k is None:
+        # Something else shares the line, like `if ...:` or a statement
+        # separated with `;`, so new lines would move the following
+        # statements out of the block.
+        src = "; ".join(new_stmts)
+    else:
+        indent = "".join(token.src for token in tokens[k:i])
+        src = f"\n{indent}".join(new_stmts)
     tokens[i : j + 1] = [Token(name=CODE, src=src)]
 
 
@@ -1075,20 +1083,27 @@ def remove_statement(tokens: list[Token], i: int, node: ast.stmt) -> None:
     j2 = j
     while tokens[j2 + 1].name in (UNIMPORTANT_WS, "COMMENT"):
         j2 += 1
-    k = i
-    while k > 0 and tokens[k - 1].name in (INDENT, UNIMPORTANT_WS):
-        k -= 1
-    starts_line = k == 0 or tokens[k - 1].name in (
-        "ENCODING",
-        "NEWLINE",
-        "NL",
-        DEDENT,
-    )
-    if starts_line and tokens[j2 + 1].name == "NEWLINE":
+    k = line_start_index(tokens, i)
+    if k is not None and tokens[j2 + 1].name == "NEWLINE":
         del tokens[k : j2 + 2]
     else:
         # Something else shares the line, like statements separated with `;`.
         tokens[i : j + 1] = [Token(name=CODE, src="pass")]
+
+
+def line_start_index(tokens: list[Token], i: int) -> int | None:
+    """
+    Return the index of the first token on the line that the statement
+    starting at the given token index begins, including any indentation, or
+    None if the statement does not start its line, like after `if ...:` or
+    `;`.
+    """
+    k = i
+    while k > 0 and tokens[k - 1].name in (INDENT, UNIMPORTANT_WS):
+        k -= 1
+    if k == 0 or tokens[k - 1].name in ("ENCODING", "NEWLINE", "NL", DEDENT):
+        return k
+    return None
 
 
 def containing_block(tree: ast.Module, stmt: ast.stmt) -> list[ast.stmt]:
@@ -1105,21 +1120,6 @@ def containing_block(tree: ast.Module, stmt: ast.stmt) -> list[ast.stmt]:
 
 def replace_name(tokens: list[Token], i: int, *, src: str) -> None:
     tokens[i] = Token(name=CODE, src=src)
-
-
-def line_indent(tokens: list[Token], i: int) -> str:
-    """
-    Return the whitespace indenting the line that the given token starts, or
-    "" if the token does not start a line, like after `if ...:` or `;`.
-    """
-    if (
-        i > 0
-        and tokens[i - 1].name in (INDENT, UNIMPORTANT_WS)
-        and tokens[i - 2].name in ("NEWLINE", "NL", DEDENT)
-    ):
-        # no types for tokenize-rt
-        return tokens[i - 1].src  # type: ignore [no-any-return]
-    return ""
 
 
 def switch_to_travel(
