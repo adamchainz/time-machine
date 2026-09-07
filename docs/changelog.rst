@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix the class decorator to stop time travelling when ``tearDownClass()`` raises an exception, or when ``setUpClass()`` raises an exception not deriving from ``Exception``, such as the skip outcome from ``pytest.skip()``.
+  Previously, time remained mocked for the rest of the process in these cases.
+
 3.5.0 (2026-08-25)
 ------------------
 
