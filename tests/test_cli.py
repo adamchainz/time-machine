@@ -457,6 +457,125 @@ class TestMigrateContents:
             """,
         )
 
+    def test_fixture_factory_string_annotations(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory
+
+            def test_function(freezer: "FrozenDateTimeFactory") -> 'FrozenDateTimeFactory':
+                fixture: "FrozenDateTimeFactory" = None
+                return fixture
+            """,
+            """
+            from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: "TimeMachineFixture") -> 'TimeMachineFixture':
+                fixture: "TimeMachineFixture" = None
+                return fixture
+            """,
+        )
+
+    def test_fixture_factory_string_annotation_aliased(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory as FDF
+
+            def test_function(freezer: "FDF"):
+                pass
+            """,
+            """
+            from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: "TimeMachineFixture"):
+                pass
+            """,
+        )
+
+    def test_fixture_factory_string_annotation_nested(self):
+        check_transformed(
+            """
+            from typing import Optional
+            from freezegun.api import FrozenDateTimeFactory
+
+            def test_function(freezer: Optional["FrozenDateTimeFactory"] = None):
+                pass
+            """,
+            """
+            from typing import Optional
+            from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: Optional["TimeMachineFixture"] = None):
+                pass
+            """,
+        )
+
+    def test_fixture_factory_string_annotation_quote_styles(self):
+        check_transformed(
+            '''
+            from freezegun.api import FrozenDateTimeFactory
+
+            a: r"FrozenDateTimeFactory" = None
+            b: """FrozenDateTimeFactory""" = None
+            c: "Frozen" "DateTimeFactory" = None
+            ''',
+            '''
+            from time_machine import TimeMachineFixture
+
+            a: "TimeMachineFixture" = None
+            b: """TimeMachineFixture""" = None
+            c: "TimeMachineFixture" = None
+            ''',
+        )
+
+    def test_fixture_factory_string_annotation_containing_kept(self):
+        # The import cannot be removed whilst the annotation refers to it.
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory
+
+            def test_function(freezer: "FrozenDateTimeFactory | None"):
+                fixture: "FrozenDateTimeFactory" = None
+            """,
+            """
+            from freezegun.api import FrozenDateTimeFactory
+
+            def test_function(time_machine: "FrozenDateTimeFactory | None"):
+                fixture: "FrozenDateTimeFactory" = None
+            """,
+            reports=[
+                (4, 28, "FrozenDateTimeFactory usage not migrated"),
+                (5, 14, "FrozenDateTimeFactory usage not migrated"),
+            ],
+        )
+
+    def test_fixture_factory_string_annotation_non_annotation_string_ignored(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory
+
+            def test_function(freezer: FrozenDateTimeFactory):
+                '''Uses FrozenDateTimeFactory.'''
+                name: "str" = "FrozenDateTimeFactory"
+            """,
+            """
+            from time_machine import TimeMachineFixture
+
+            def test_function(time_machine: TimeMachineFixture):
+                '''Uses FrozenDateTimeFactory.'''
+                name: "str" = "FrozenDateTimeFactory"
+            """,
+        )
+
+    def test_fixture_factory_string_annotation_function_local_kept(self):
+        check_noop(
+            """
+            def test_function():
+                from freezegun.api import FrozenDateTimeFactory
+                fixture: "FrozenDateTimeFactory" = None
+            """,
+            reports=[(4, 14, "FrozenDateTimeFactory usage not migrated")],
+        )
+
     def test_fixture_factory_with_freeze_time_import(self):
         check_transformed(
             """

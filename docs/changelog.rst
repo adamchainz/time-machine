@@ -18,6 +18,9 @@ Unreleased
 * Fix the :ref:`Migration CLI <migration-cli>` to keep the rewritten imports on the same line when a freezegun import shares its line with other code, like ``if TYPE_CHECKING: from freezegun import freeze_time, FakeDate``.
   Previously, the remaining ``from freezegun import FakeDate`` was moved to a new line, outside the block.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate uses of ``FrozenDateTimeFactory`` in string annotations, like ``freezer: "FrozenDateTimeFactory"``.
+  Previously, the import was removed whilst such annotations were left referring to it.
+
 3.5.0 (2026-08-25)
 ------------------
 

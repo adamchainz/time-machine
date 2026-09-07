@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 import sys
 import warnings
 from collections import defaultdict
@@ -375,8 +376,13 @@ def visit(
             if alias.name == FIXTURE_FACTORY:
                 fixture_bound.add(alias.asname or alias.name)
 
-    fixture_uses: dict[str, list[ast.Name]] = {name: [] for name in fixture_bound}
+    fixture_uses: dict[str, list[ast.Name | ast.Constant]] = {
+        name: [] for name in fixture_bound
+    }
     fixture_blocked: set[str] = set()
+    # String annotations that mention a bound name without being exactly it,
+    # like "FrozenDateTimeFactory | None", which cannot be rewritten.
+    fixture_string_blockers: list[tuple[str, ast.Constant]] = []
     if fixture_bound:
         fixture_blocked = fixture_rebindings(tree, fixture_bound)
         for node in ast.walk(tree):
@@ -393,6 +399,16 @@ def visit(
                     for subnode in ast.walk(node)
                     if isinstance(subnode, ast.Name) and subnode.id in fixture_bound
                 )
+        for constant in annotation_strings(tree):
+            string_value = constant.value
+            assert isinstance(string_value, str)
+            if string_value in fixture_bound:
+                fixture_uses[string_value].append(constant)
+            else:
+                for name in fixture_bound:
+                    if re.search(rf"\b{re.escape(name)}\b", string_value):
+                        fixture_blocked.add(name)
+                        fixture_string_blockers.append((name, constant))
 
     fixture_migratable: set[str] = set()
     fixture_used: set[str] = set()
@@ -425,9 +441,18 @@ def visit(
             for name in fixture_used:
                 fixture_migratable.add(name)
                 for use in fixture_uses[name]:
-                    ret[ast_start_offset(use)].append(
-                        partial(replace_name, src="TimeMachineFixture")
-                    )
+                    if isinstance(use, ast.Name):
+                        ret[ast_start_offset(use)].append(
+                            partial(replace_name, src="TimeMachineFixture")
+                        )
+                    else:
+                        ret[ast_start_offset(use)].append(
+                            partial(
+                                replace_string_constant,
+                                node=use,
+                                value="TimeMachineFixture",
+                            )
+                        )
 
     for import_node in freezegun_from_imports:
         has_freeze_time = any(
@@ -526,9 +551,51 @@ def visit(
                         "pytest.mark.freeze_time usage not migrated",
                     )
                 )
+    for name in unmigrated_fixture_names:
+        unmigrated_strings = [
+            *(use for use in fixture_uses[name] if isinstance(use, ast.Constant)),
+            *(
+                constant
+                for blocker_name, constant in fixture_string_blockers
+                if blocker_name == name
+            ),
+        ]
+        for constant in unmigrated_strings:
+            reports.append(
+                Report(
+                    constant.lineno,
+                    constant.col_offset + 1,
+                    f"{name} usage not migrated",
+                )
+            )
     reports.sort()
 
     return ret, reports
+
+
+def annotation_strings(tree: ast.Module) -> Generator[ast.Constant, None, None]:
+    """
+    Yield the string constants within annotations, which may name types that
+    are not defined until runtime, like ``"FrozenDateTimeFactory"`` or
+    ``Optional["FrozenDateTimeFactory"]``.
+    """
+    for node in ast.walk(tree):
+        annotations: list[ast.expr | None]
+        match node:
+            case ast.FunctionDef() | ast.AsyncFunctionDef():
+                annotations = [node.returns]
+            case ast.arg():
+                annotations = [node.annotation]
+            case ast.AnnAssign():
+                annotations = [node.annotation]
+            case _:
+                continue
+        for annotation in annotations:
+            if annotation is None:
+                continue
+            for subnode in ast.walk(annotation):
+                if isinstance(subnode, ast.Constant) and isinstance(subnode.value, str):
+                    yield subnode
 
 
 def find_freezer_function(
@@ -1120,6 +1187,23 @@ def containing_block(tree: ast.Module, stmt: ast.stmt) -> list[ast.stmt]:
 
 def replace_name(tokens: list[Token], i: int, *, src: str) -> None:
     tokens[i] = Token(name=CODE, src=src)
+
+
+def replace_string_constant(
+    tokens: list[Token], i: int, *, node: ast.Constant, value: str
+) -> None:
+    """
+    Replace the given string constant with one of the given value, keeping the
+    quote style of its first token.
+    """
+    j = find_last_token(tokens, i, node=node)
+    src: str = tokens[i].src
+    # Skip any prefix, like the `r` in r"...".
+    quote_start = next(index for index, char in enumerate(src) if char in "\"'")
+    quote = src[quote_start]
+    if src.startswith(quote * 3, quote_start):
+        quote *= 3
+    tokens[i : j + 1] = [Token(name="STRING", src=f"{quote}{value}{quote}")]
 
 
 def switch_to_travel(
