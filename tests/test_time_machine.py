@@ -21,6 +21,7 @@ import pytest
 from dateutil import tz
 
 import time_machine
+from tests.conftest import HAVE_64_BIT_TIME_T
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
@@ -41,6 +42,10 @@ py_utcnow_deprecated = pytest.mark.skipif(
 )
 py_utcnow_not_deprecated = pytest.mark.skipif(
     sys.version_info >= (3, 12), reason="utcnow() deprecated on Python 3.12+"
+)
+have_64_bit_time_t = pytest.mark.skipif(
+    not HAVE_64_BIT_TIME_T,
+    reason="Platform has 32-bit time_t, cannot represent distant destinations",
 )
 
 
@@ -139,6 +144,7 @@ def test_datetime_now_subclass():
         assert now.year == 1970
 
 
+@have_64_bit_time_t
 def test_datetime_now_distant_destination_exact():
     # Microsecond precision survives destinations far from the epoch, which a
     # floating-point timestamp could not represent.
@@ -201,6 +207,7 @@ def test_datetime_utcnow_no_tick():
         assert now.microsecond == 0
 
 
+@have_64_bit_time_t
 def test_datetime_utcnow_distant_destination_exact():
     destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
     with time_machine.travel(destination, tick=False):
@@ -360,6 +367,7 @@ def test_time_gmtime_no_args_no_tick():
         assert local_time.tm_sec == 0
 
 
+@have_64_bit_time_t
 def test_time_gmtime_no_args_distant_destination():
     # The struct fields stay exact for distant destinations, since gmtime()
     # receives whole integer seconds.
