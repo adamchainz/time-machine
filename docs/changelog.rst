@@ -26,6 +26,8 @@ Unreleased
 * Fix the :ref:`Migration CLI <migration-cli>` to report positions in the rewritten file, rather than the original.
   Previously, positions could be off when rewrites earlier in the file changed the number of lines, or the length of the same line.
 
+* Fix the :ref:`Migration CLI <migration-cli>` to not report a ``freezegun`` usage for migrated calls with a parenthesized module name, like ``(freezegun).freeze_time(...)``.
+
 3.5.0 (2026-08-25)
 ------------------
 

@@ -575,6 +575,16 @@ def visit(
 
     unmigrated_fixture_names = fixture_bound - fixture_migratable
 
+    # Names within migrated attribute accesses, which may start after them
+    # when parenthesized, like `(freezegun).freeze_time`.
+    migrated_attribute_names = {
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and ast_start_offset(node) in ret
+    }
+
     reports = []
     for node in ast.walk(tree):
         match node:
@@ -583,7 +593,10 @@ def visit(
                 or name in freezegun_module_names
                 or name in report_module_names
                 or name in unmigrated_fixture_names
-            ) and ast_start_offset(node) not in ret:
+            ) and (
+                ast_start_offset(node) not in ret
+                and node not in migrated_attribute_names
+            ):
                 reports.append(
                     Report(
                         node.lineno,
