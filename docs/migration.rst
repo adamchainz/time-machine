@@ -267,7 +267,7 @@ In functions with an argument named ``freezer``, the argument is renamed to ``ti
 Other uses of ``freezer`` are left unchanged, for your linter to flag.
 ``freeze_time()`` calls within such functions are also left unchanged, because the renamed argument shadows the ``time_machine`` module.
 
-Imports and uses of ``FrozenDateTimeFactory``, freezegun’s class for the ``freezer`` fixture, often used to annotate the fixture argument, are also migrated: uses are rewritten to time-machine’s equivalent, ``TimeMachineFixture``, and ``from time_machine import TimeMachineFixture`` replaces the freezegun import:
+Imports and uses of ``FrozenDateTimeFactory``, freezegun’s class for the ``freezer`` fixture, often used to annotate the fixture argument, are also migrated: uses, including in string annotations, are rewritten to time-machine’s equivalent, ``TimeMachineFixture``, and ``from time_machine import TimeMachineFixture`` replaces the freezegun import:
 
 .. code-block:: diff
 
