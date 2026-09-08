@@ -24,6 +24,7 @@ from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, invariant, precondition, rule
 
 import time_machine
+from tests.conftest import HAVE_64_BIT_TIME_T
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
 EPOCH_AWARE = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
@@ -31,7 +32,11 @@ EPOCH_AWARE = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
 # Bounds that keep generated timestamps positive, whatever timezone offset is
 # applied, and well within the range that all supported platforms can convert.
 MIN_DATETIME = dt.datetime(1970, 1, 2)
-MAX_DATETIME = dt.datetime(2500, 1, 1)
+if HAVE_64_BIT_TIME_T:
+    MAX_DATETIME = dt.datetime(2500, 1, 1)
+else:  # pragma: no cover
+    # 32-bit time_t cannot represent timestamps beyond 2038-01-19.
+    MAX_DATETIME = dt.datetime(2038, 1, 1)
 MIN_TIMESTAMP = MIN_DATETIME.replace(tzinfo=dt.timezone.utc).timestamp()
 MAX_TIMESTAMP = MAX_DATETIME.replace(tzinfo=dt.timezone.utc).timestamp()
 
