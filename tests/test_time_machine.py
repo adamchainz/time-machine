@@ -1933,6 +1933,30 @@ def test_naive_mode_error_string_aware_works():
 # pytest plugin tests
 
 
+def test_fixture_class_available_without_pytest():
+    # TimeMachineFixture should be importable even when pytest is not
+    # installed.
+    code = dedent(
+        """\
+        import sys
+        sys.modules["pytest"] = None  # block import
+        import time_machine
+        assert not time_machine.HAVE_PYTEST
+        assert time_machine.TimeMachineFixture
+        print("ok")
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    assert result.stdout == "ok\n"
+
+
 def test_fixture_unused(time_machine):
     assert time.time() >= LIBRARY_EPOCH
 

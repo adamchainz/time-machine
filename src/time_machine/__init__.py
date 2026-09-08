@@ -443,6 +443,43 @@ class travel:
 
 # pytest plugin
 
+
+class TimeMachineFixture:
+    traveller: travel | None
+    traveller_obj: Traveller | None
+
+    def __init__(self) -> None:
+        self.traveller = None
+        self.traveller_obj = None
+
+    def move_to(
+        self,
+        destination: DestinationType,
+        tick: bool | None = None,
+    ) -> None:
+        if self.traveller is None:
+            if tick is None:
+                tick = True
+            traveller = travel(destination, tick=tick)
+            self.traveller_obj = traveller.start()
+            self.traveller = traveller
+        else:
+            assert self.traveller_obj is not None
+            self.traveller_obj.move_to(destination, tick=tick)
+
+    def shift(self, delta: dt.timedelta | int | float) -> None:
+        if self.traveller is None:
+            raise RuntimeError(
+                "Initialize time_machine with move_to() before using shift()."
+            )
+        assert self.traveller_obj is not None
+        self.traveller_obj.shift(delta=delta)
+
+    def stop(self) -> None:
+        if self.traveller is not None:
+            self.traveller.stop()
+
+
 if HAVE_PYTEST:  # pragma: no branch
 
     def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
@@ -460,41 +497,6 @@ if HAVE_PYTEST:  # pragma: no branch
         config.addinivalue_line(
             "markers", "time_machine(...): set the time with time-machine"
         )
-
-    class TimeMachineFixture:
-        traveller: travel | None
-        traveller_obj: Traveller | None
-
-        def __init__(self) -> None:
-            self.traveller = None
-            self.traveller_obj = None
-
-        def move_to(
-            self,
-            destination: DestinationType,
-            tick: bool | None = None,
-        ) -> None:
-            if self.traveller is None:
-                if tick is None:
-                    tick = True
-                traveller = travel(destination, tick=tick)
-                self.traveller_obj = traveller.start()
-                self.traveller = traveller
-            else:
-                assert self.traveller_obj is not None
-                self.traveller_obj.move_to(destination, tick=tick)
-
-        def shift(self, delta: dt.timedelta | int | float) -> None:
-            if self.traveller is None:
-                raise RuntimeError(
-                    "Initialize time_machine with move_to() before using shift()."
-                )
-            assert self.traveller_obj is not None
-            self.traveller_obj.shift(delta=delta)
-
-        def stop(self) -> None:
-            if self.traveller is not None:
-                self.traveller.stop()
 
     @pytest.fixture(name="time_machine")
     def time_machine_fixture(
