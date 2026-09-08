@@ -8,35 +8,63 @@ Unreleased
 * Only pass the compiler option ``-mno-omit-leaf-frame-pointer`` when the compiler supports it, checked with a tiny probe program.
   The option is unsupported outside of x86 and ARM64, so this fixes building from source on other architectures, like PowerPC, which failed since the option was added in version 3.3.0.
 
+  `PR #692 <https://github.com/adamchainz/time-machine/pull/692>`__.
   Thanks to Colin Watson for pointing this out and linking to the workaround in `Debian Bug #1146407 <https://bugs.debian.org/1146407>`__.
 
 * Fix the mocked ``datetime.date.today()`` and ``datetime.datetime.today()`` to be exact for all supported dates, like ``datetime.datetime.now()``.
   Previously, they went through a floating-point timestamp, which could round the microseconds, or even the whole day, for dates far in the future.
 
+  `PR #690 <https://github.com/adamchainz/time-machine/pull/690>`__.
+
 * Fix the class decorator to stop time travelling when ``tearDownClass()`` raises an exception, or when ``setUpClass()`` raises an exception not deriving from ``Exception``, such as the skip outcome from ``pytest.skip()``.
   Previously, time remained mocked for the rest of the process in these cases.
+
+  `PR #678 <https://github.com/adamchainz/time-machine/pull/678>`__.
 
 * Fix ``Traveller.move_to()`` to keep the current timezone mocked when the given destination is unsupported.
   Previously, the timezone was restored before the destination was checked, leaving it unmocked whilst still time travelling.
 
+  `PR #679 <https://github.com/adamchainz/time-machine/pull/679>`__.
+
 * Fix the ``time_machine`` pytest fixture to not try to stop a traveller that failed to start.
 
+  `PR #680 <https://github.com/adamchainz/time-machine/pull/680>`__.
+
 * Fix the mocked ``time.strftime()`` to raise ``TypeError`` when passed ``None`` as its second argument, like the unmocked function, rather than treating it as the current time.
+
+  `PR #681 <https://github.com/adamchainz/time-machine/pull/681>`__.
 
 * Fix the :ref:`Migration CLI <migration-cli>` to keep the rewritten imports on the same line when a freezegun import shares its line with other code, like ``if TYPE_CHECKING: from freezegun import freeze_time, FakeDate``.
   Previously, the remaining ``from freezegun import FakeDate`` was moved to a new line, outside the block.
 
+  `PR #682 <https://github.com/adamchainz/time-machine/pull/682>`__.
+
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate uses of ``FrozenDateTimeFactory`` in string annotations, like ``freezer: "FrozenDateTimeFactory"``.
   Previously, the import was removed whilst such annotations were left referring to it.
 
+  `PR #683 <https://github.com/adamchainz/time-machine/pull/683>`__.
+
 * Fix the :ref:`Migration CLI <migration-cli>` to not rename a ``freezer`` argument when the function already has a ``time_machine`` argument, which produced invalid syntax.
+
+  `PR #684 <https://github.com/adamchainz/time-machine/pull/684>`__.
 
 * Fix the :ref:`Migration CLI <migration-cli>` to report positions in the rewritten file, rather than the original.
   Previously, positions could be off when rewrites earlier in the file changed the number of lines, or the length of the same line.
 
+  `PR #686 <https://github.com/adamchainz/time-machine/pull/686>`__.
+
 * Fix the :ref:`Migration CLI <migration-cli>` to not report a ``freezegun`` usage for migrated calls with a parenthesized module name, like ``(freezegun).freeze_time(...)``.
 
+  `PR #687 <https://github.com/adamchainz/time-machine/pull/687>`__.
+
 * Fix the :ref:`Migration CLI <migration-cli>` to leave a ``pass`` statement when removing every unused ``FrozenDateTimeFactory`` import in a block, rather than producing invalid syntax.
+
+  `PR #688 <https://github.com/adamchainz/time-machine/pull/688>`__.
+
+* Make ``TimeMachineFixture`` importable even when pytest isn’t installed.
+  This avoids triggering ``possibly-missing-attribute`` or ``possibly-missing-import`` violations in ty for test files with annotations.
+
+  Thanks to Nick Pope in `PR #675 <https://github.com/adamchainz/time-machine/pull/675>`__.
 
 3.5.0 (2026-08-25)
 ------------------
