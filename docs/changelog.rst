@@ -28,6 +28,8 @@ Unreleased
 
 * Fix the :ref:`Migration CLI <migration-cli>` to not report a ``freezegun`` usage for migrated calls with a parenthesized module name, like ``(freezegun).freeze_time(...)``.
 
+* Fix the :ref:`Migration CLI <migration-cli>` to leave a ``pass`` statement when removing every unused ``FrozenDateTimeFactory`` import in a block, rather than producing invalid syntax.
+
 3.5.0 (2026-08-25)
 ------------------
 

@@ -827,6 +827,30 @@ class TestMigrateContents:
             """,
         )
 
+    def test_fixture_factory_unused_all_statements_in_block(self):
+        check_transformed(
+            """
+            def test_function():
+                from freezegun.api import FrozenDateTimeFactory
+                from freezegun.api import FrozenDateTimeFactory
+            """,
+            """
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_fixture_factory_unused_all_statements_in_module(self):
+        check_transformed(
+            """
+            from freezegun.api import FrozenDateTimeFactory
+            from freezegun import FrozenDateTimeFactory as FDF
+            """,
+            """
+            pass
+            """,
+        )
+
     def test_import_from_freezegun(self):
         check_transformed(
             "from freezegun import freeze_time",

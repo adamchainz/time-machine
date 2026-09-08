@@ -508,6 +508,7 @@ def visit(
                             )
                         )
 
+    removed_imports: list[ast.ImportFrom] = []
     for import_node in freezegun_from_imports:
         has_freeze_time = any(
             alias.name == "freeze_time" for alias in import_node.names
@@ -537,13 +538,19 @@ def visit(
             ret[ast_start_offset(import_node)].append(
                 partial(replace_import_from, node=import_node, new_stmts=new_stmts)
             )
-        elif len(containing_block(tree, import_node)) >= 2:
+        else:
+            removed_imports.append(import_node)
+
+    for import_node in removed_imports:
+        block = containing_block(tree, import_node)
+        remaining = [stmt for stmt in block if stmt not in removed_imports]
+        if remaining or block[-1] is not import_node:
             ret[ast_start_offset(import_node)].append(
                 partial(remove_statement, node=import_node)
             )
         else:
-            # The only statement in its block, so removing it would leave
-            # invalid syntax.
+            # Removing every statement in the block would leave invalid
+            # syntax, so replace the last with `pass`.
             ret[ast_start_offset(import_node)].append(
                 partial(replace_import_from, node=import_node, new_stmts=["pass"])
             )
