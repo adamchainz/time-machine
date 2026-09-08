@@ -227,6 +227,35 @@ def test_date_today():
     assert dt.datetime.today() >= LIBRARY_EPOCH_DATETIME
 
 
+def test_datetime_today_exact_far_future():
+    # A float timestamp this large cannot represent every microsecond.
+    destination = dt.datetime(2243, 1, 1, 0, 0, 0, 1, tzinfo=dt.timezone.utc)
+    with time_machine.travel(destination, tick=False):
+        assert dt.datetime.today() == destination.replace(tzinfo=None)
+        assert dt.date.today() == destination.date()
+
+
+def test_datetime_today_subclass_exact_far_future():
+    class DatetimeSubclass(dt.datetime):
+        pass
+
+    destination = dt.datetime(2243, 1, 1, 0, 0, 0, 1, tzinfo=dt.timezone.utc)
+    with time_machine.travel(destination, tick=False):
+        today = DatetimeSubclass.today()
+    assert isinstance(today, DatetimeSubclass)
+    assert today == destination.replace(tzinfo=None)
+
+
+def test_date_today_exact_far_future():
+    # A float timestamp this large rounds up past midnight, which would move
+    # the date on by a whole day.
+    destination = dt.datetime(3000, 1, 1, tzinfo=dt.timezone.utc) - dt.timedelta(
+        microseconds=1
+    )
+    with time_machine.travel(destination, tick=False):
+        assert dt.date.today() == dt.date(2999, 12, 31)
+
+
 # time module
 
 
