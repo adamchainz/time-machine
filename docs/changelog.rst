@@ -21,6 +21,8 @@ Unreleased
 * Extend the :ref:`Migration CLI <migration-cli>` to migrate uses of ``FrozenDateTimeFactory`` in string annotations, like ``freezer: "FrozenDateTimeFactory"``.
   Previously, the import was removed whilst such annotations were left referring to it.
 
+* Fix the :ref:`Migration CLI <migration-cli>` to not rename a ``freezer`` argument when the function already has a ``time_machine`` argument, which produced invalid syntax.
+
 3.5.0 (2026-08-25)
 ------------------
 
