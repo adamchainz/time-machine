@@ -173,6 +173,33 @@ class TestMain:
             "import time_machine\n@freeze_time\ndef test_function():\n    pass\n"
         )
 
+    def test_migrate_reports_positioned_in_rewritten_file(self, capsys, tmp_path):
+        path = tmp_path / "example.py"
+        path.write_text(
+            "from freezegun import freeze_time, FakeDate\n"
+            "@freeze_time\n"
+            "def test_function():\n"
+            "    pass\n"
+        )
+
+        result = main(["migrate", str(path)])
+
+        assert result == 1
+        out, err = capsys.readouterr()
+        assert out == ""
+        # The rewritten import spans two lines, moving the usage down one.
+        assert err == (
+            f"Rewriting {path}\n" + f"{path}:3:2: freeze_time usage not migrated\n"
+        )
+
+        assert path.read_text() == (
+            "import time_machine\n"
+            "from freezegun import FakeDate\n"
+            "@freeze_time\n"
+            "def test_function():\n"
+            "    pass\n"
+        )
+
 
 def check_noop(
     given: str,
@@ -543,7 +570,7 @@ class TestMigrateContents:
                 fixture: "FrozenDateTimeFactory" = None
             """,
             reports=[
-                (4, 28, "FrozenDateTimeFactory usage not migrated"),
+                (4, 33, "FrozenDateTimeFactory usage not migrated"),
                 (5, 14, "FrozenDateTimeFactory usage not migrated"),
             ],
         )
@@ -646,7 +673,8 @@ class TestMigrateContents:
             def test_function():
                 pass
             """,
-            reports=[(4, 1, "FrozenDateTimeFactory usage not migrated")],
+            # Positioned in the migrated text, after the import expanded.
+            reports=[(5, 1, "FrozenDateTimeFactory usage not migrated")],
         )
 
     def test_fixture_factory_fstring_kept(self):
@@ -3086,6 +3114,34 @@ class TestMigrateContents:
             with time_machine.travel("2023-01-01", tick=False) as tick:
                 (tick).shift(1)
             """,
+        )
+
+    def test_reports_positioned_after_rewrite_on_same_line(self):
+        check_transformed(
+            """
+            pytestmark = [pytest.mark.freeze_time(), pytest.mark.freeze_time]
+            """,
+            """
+            pytestmark = [pytest.mark.time_machine(None, tick=False), pytest.mark.freeze_time]
+            """,
+            reports=[(2, 59, "pytest.mark.freeze_time usage not migrated")],
+        )
+
+    def test_reports_positioned_after_rewrite_within_fstring(self):
+        # On Python < 3.12, names within f-strings have no tokens of their own.
+        check_transformed(
+            """
+            from freezegun import freeze_time, FrozenDateTimeFactory
+
+            print(f"{FrozenDateTimeFactory} here")
+            """,
+            """
+            import time_machine
+            from freezegun import FrozenDateTimeFactory
+
+            print(f"{FrozenDateTimeFactory} here")
+            """,
+            reports=[(5, 10, "FrozenDateTimeFactory usage not migrated")],
         )
 
     def test_freezer_fixture_other_method(self):

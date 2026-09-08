@@ -5,9 +5,11 @@ import ast
 import re
 import sys
 import warnings
+from bisect import bisect_right
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from functools import partial
+from operator import itemgetter
 from typing import NamedTuple
 
 from tokenize_rt import (
@@ -127,7 +129,57 @@ def migrate_contents(contents_text: str) -> tuple[str, list[Report]]:
 
     # no types for tokenize-rt
     new_text: str = tokens_to_src(tokens)
-    return new_text, reports
+    return new_text, relocate_reports(reports, tokens)
+
+
+def relocate_reports(reports: list[Report], tokens: list[Token]) -> list[Report]:
+    """
+    Move the given reports, positioned in the original source, to their
+    positions in the rewritten source, as the user sees them alongside the
+    rewritten file.
+    """
+    # Map the original positions of the surviving tokens to their new ones,
+    # per original line, in order.
+    positions: defaultdict[int, list[tuple[int, int, int]]] = defaultdict(list)
+    lineno = 1
+    utf8_byte_offset = 0
+    for token in tokens:
+        if token.line is not None:
+            positions[token.line].append(
+                (token.utf8_byte_offset, lineno, utf8_byte_offset)
+            )
+        src: str = token.src
+        newlines = src.count("\n")
+        if newlines:
+            lineno += newlines
+            utf8_byte_offset = len(src.rpartition("\n")[2].encode())
+        else:
+            utf8_byte_offset += len(src.encode())
+
+    relocated = []
+    for report in reports:
+        col_offset = report.col - 1
+        # Find the token containing the reported position. Reported usages
+        # are not rewritten, so their tokens survive with the same source,
+        # but on Python < 3.12 names within f-strings have no tokens of
+        # their own, so the position may lie within a string token.
+        line_positions = positions[report.lineno]
+        index = bisect_right(line_positions, col_offset, key=itemgetter(0)) - 1
+        if index < 0:  # pragma: no cover
+            # No token starts on the line, which can only happen within a
+            # multi-line string. Leave the report at its original position.
+            relocated.append(report)
+            continue
+        token_offset, new_lineno, new_offset = line_positions[index]
+        relocated.append(
+            Report(
+                new_lineno,
+                new_offset + (col_offset - token_offset) + 1,
+                report.message,
+            )
+        )
+    relocated.sort()
+    return relocated
 
 
 def ast_parse(contents_text: str) -> ast.Module:
