@@ -265,7 +265,11 @@ def visit(
                     for arg in (*node.args.args, *node.args.kwonlyargs)
                     if arg.arg == "freezer"
                 ]
-                if freezer_args:
+                if freezer_args and not any(
+                    arg.arg == "time_machine" for arg in all_arguments(node)
+                ):
+                    # Renaming freezer to time_machine would duplicate an
+                    # existing argument, so leave such functions alone.
                     for arg in freezer_args:
                         ret[ast_start_offset(arg)].append(replace_freezer)
                     freezer_functions.append(
@@ -571,6 +575,22 @@ def visit(
     reports.sort()
 
     return ret, reports
+
+
+def all_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.arg]:
+    """
+    Return all the arguments of the given function definition.
+    """
+    arguments = [
+        *node.args.posonlyargs,
+        *node.args.args,
+        *node.args.kwonlyargs,
+    ]
+    if node.args.vararg is not None:
+        arguments.append(node.args.vararg)
+    if node.args.kwarg is not None:
+        arguments.append(node.args.kwarg)
+    return arguments
 
 
 def annotation_strings(tree: ast.Module) -> Generator[ast.Constant, None, None]:

@@ -3004,6 +3004,36 @@ class TestMigrateContents:
             """,
         )
 
+    def test_freezer_fixture_existing_time_machine_argument(self):
+        # Renaming would duplicate the argument, giving invalid syntax.
+        check_noop(
+            """
+            def test_function(freezer, time_machine):
+                freezer.move_to("2023-01-01")
+                freezer.tick()
+            """,
+        )
+
+    def test_freezer_fixture_existing_time_machine_vararg(self):
+        # Renaming would duplicate the argument, giving invalid syntax.
+        check_noop(
+            """
+            def test_function(freezer, *time_machine):
+                freezer.move_to("2023-01-01")
+                freezer.tick()
+            """,
+        )
+
+    def test_freezer_fixture_existing_time_machine_kwarg(self):
+        # Renaming would duplicate the argument, giving invalid syntax.
+        check_noop(
+            """
+            def test_function(freezer, **time_machine):
+                freezer.move_to("2023-01-01")
+                freezer.tick()
+            """,
+        )
+
     def test_freezer_fixture_keyword_only(self):
         check_transformed(
             """
