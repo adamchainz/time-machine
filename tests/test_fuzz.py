@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 import sys
 import time
+import uuid
+import warnings
+from collections.abc import Callable, Generator, Iterator
+from contextlib import contextmanager
+from unittest import mock
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -12,8 +19,9 @@ if sys.version_info[:2] == (3, 13) and not sys._is_gil_enabled():
     # Python < 3.14.
     pytest.skip("Hypothesis unavailable", allow_module_level=True)
 
-from hypothesis import given, settings
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
+from hypothesis.stateful import RuleBasedStateMachine, invariant, precondition, rule
 
 import time_machine
 
@@ -252,3 +260,505 @@ def test_extract_timestamp_tzname_timedelta(delta):
     after_ns = time.time_ns()
     assert tzname is None
     assert before_ns + delta_ns <= timestamp_ns <= after_ns + delta_ns
+
+
+# Consistency of all the mocked functions
+
+
+def utc_datetime_from_ns(timestamp_ns: int) -> dt.datetime:
+    return EPOCH_AWARE + dt.timedelta(microseconds=timestamp_ns // 1_000)
+
+
+def struct_time_fields(value: time.struct_time) -> tuple[int, ...]:
+    return (
+        value.tm_year,
+        value.tm_mon,
+        value.tm_mday,
+        value.tm_hour,
+        value.tm_min,
+        value.tm_sec,
+    )
+
+
+def datetime_fields(value: dt.datetime) -> tuple[int, ...]:
+    return (
+        value.year,
+        value.month,
+        value.day,
+        value.hour,
+        value.minute,
+        value.second,
+    )
+
+
+utc_datetimes = st.datetimes(
+    min_value=MIN_DATETIME, max_value=MAX_DATETIME, timezones=st.just(dt.timezone.utc)
+)
+
+
+@settings(deadline=None)
+@given(destination=utc_datetimes)
+def test_mocked_functions_agree(destination):
+    """
+    Every mocked function returns its representation of the same instant.
+    The local timezone is UTC, per conftest.py, and not changed by UTC
+    destinations.
+    """
+    expected_ns = datetime_to_ns(destination)
+    expected_utc = destination.astimezone(dt.timezone.utc)
+    expected_naive = expected_utc.replace(tzinfo=None)
+    expected_seconds = expected_ns // NANOSECONDS_PER_SECOND
+    before_clock_monotonic = time.clock_gettime(time.CLOCK_MONOTONIC)
+    before_monotonic = time.monotonic()
+
+    with time_machine.travel(destination, tick=False):
+        assert time.time_ns() == expected_ns
+        assert time.time() == expected_ns / NANOSECONDS_PER_SECOND
+        assert time.clock_gettime_ns(time.CLOCK_REALTIME) == expected_ns
+        assert time.clock_gettime(time.CLOCK_REALTIME) == time.time()
+
+        assert dt.datetime.now(dt.timezone.utc) == expected_utc
+        assert dt.datetime.now() == expected_naive
+        assert dt.datetime.today() == expected_naive
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            assert dt.datetime.utcnow() == expected_naive
+        assert dt.date.today() == expected_naive.date()
+
+        assert struct_time_fields(time.gmtime()) == datetime_fields(expected_utc)
+        assert struct_time_fields(time.localtime()) == datetime_fields(expected_utc)
+        assert time.gmtime().tm_gmtoff == 0
+        assert time.strftime("%Y-%m-%d %H:%M:%S") == expected_utc.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        # Explicit arguments are unaffected.
+        assert time.gmtime(expected_seconds) == time.gmtime()
+        assert time.localtime(expected_seconds) == time.localtime()
+        assert time.strftime("%Y-%m-%d", time.gmtime(0)) == "1970-01-01"
+
+        # Other clocks are unaffected, so they keep advancing from their own
+        # epochs.
+        assert before_clock_monotonic <= time.clock_gettime(time.CLOCK_MONOTONIC)
+        assert before_monotonic <= time.monotonic()
+
+
+@settings(deadline=None)
+@given(
+    destination=aware_datetimes,
+    offset=st.integers(min_value=-24 * 3600 + 1, max_value=24 * 3600 - 1),
+)
+def test_datetime_now_fixed_offset(destination, offset):
+    tz = dt.timezone(dt.timedelta(seconds=offset))
+    with time_machine.travel(destination, tick=False):
+        assert dt.datetime.now(tz) == destination.astimezone(tz)
+        assert dt.datetime.now(tz=tz) == destination.astimezone(tz)
+
+
+@settings(deadline=None)
+@given(destination=utc_datetimes)
+def test_datetime_subclasses(destination):
+    class MyDate(dt.date):
+        pass
+
+    class MyDateTime(dt.datetime):
+        pass
+
+    expected_naive = destination.astimezone(dt.timezone.utc).replace(tzinfo=None)
+
+    with time_machine.travel(destination, tick=False):
+        now = MyDateTime.now()
+        assert type(now) is MyDateTime
+        assert now == expected_naive
+
+        now_utc = MyDateTime.now(dt.timezone.utc)
+        assert type(now_utc) is MyDateTime
+        assert now_utc == destination
+
+        today = MyDateTime.today()
+        assert type(today) is MyDateTime
+        assert today == expected_naive
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            utcnow = MyDateTime.utcnow()
+        assert type(utcnow) is MyDateTime
+        assert utcnow == expected_naive
+
+        date_today = MyDate.today()
+        assert type(date_today) is MyDate
+        assert date_today == expected_naive.date()
+
+
+strftime_directives = st.sampled_from(
+    [
+        "%Y",
+        "%m",
+        "%d",
+        "%H",
+        "%M",
+        "%S",
+        "%j",
+        "%a",
+        "%A",
+        "%b",
+        "%B",
+        "%p",
+        "%y",
+        "%Z",
+        "%z",
+        "%c",
+        "%x",
+        "%X",
+        "%U",
+        "%W",
+        "%w",
+        "%I",
+        "%%",
+        " ",
+        "-",
+        "ünïcode",
+    ]
+)
+
+
+@settings(deadline=None)
+@given(
+    # Past 2038, some platforms' time functions stop applying zones' POSIX DST
+    # rules, diverging from zoneinfo.
+    destination=st.datetimes(
+        min_value=MIN_DATETIME,
+        max_value=dt.datetime(2038, 1, 1),
+        timezones=st.just(dt.timezone.utc) | zoneinfos,
+    ),
+    directives=st.lists(strftime_directives, min_size=1, max_size=6),
+)
+def test_strftime_formats(destination, directives):
+    fmt = "".join(directives)
+    with time_machine.travel(destination, tick=False):
+        assert time.strftime(fmt) == time.strftime(fmt, time.localtime())
+
+
+# uuid
+
+
+def time_from_uuid1(value: uuid.UUID) -> int:
+    """The timestamp of a uuid1() or uuid6() value, in nanoseconds."""
+    return (value.time - 0x01B21DD213814000) * 100
+
+
+def time_from_uuid7(value: uuid.UUID) -> int:
+    """The timestamp of a uuid7() value, in nanoseconds."""
+    return value.time * 1_000_000
+
+
+uuid_generators: list[
+    tuple[Callable[[], uuid.UUID], Callable[[uuid.UUID], int], int]
+] = [(uuid.uuid1, time_from_uuid1, 100)]
+if sys.version_info >= (3, 14):
+    uuid_generators.append((uuid.uuid6, time_from_uuid1, 100))
+    uuid_generators.append((uuid.uuid7, time_from_uuid7, 1_000_000))
+
+# uuid7() stores unsigned milliseconds since the Unix epoch, so it cannot
+# represent any earlier instant. Start destinations far enough after the epoch
+# that the largest negative shift stays representable.
+uuid_destinations = st.datetimes(
+    min_value=dt.datetime(1973, 1, 1),
+    max_value=MAX_DATETIME,
+    timezones=st.just(dt.timezone.utc) | zoneinfos,
+)
+
+
+@settings(deadline=None)
+@given(
+    destination=uuid_destinations,
+    delta=st.timedeltas(
+        min_value=dt.timedelta(days=-1_000), max_value=dt.timedelta(days=1_000)
+    ),
+)
+def test_uuid_timestamps(destination, delta):
+    """
+    Time-based UUIDs are generated for the mocked time, including after
+    shifting in either direction, despite the uuid module's monotonicity
+    caching.
+    """
+    # Without a shift, the second value is bumped to keep values monotonic.
+    assume(delta != dt.timedelta(0))
+    expected_ns = datetime_to_ns(destination)
+    shifted_ns = expected_ns + timedelta_to_ns(delta)
+    for generate, time_from, resolution_ns in uuid_generators:
+        with time_machine.travel(destination, tick=False) as traveller:
+            assert time_from(generate()) == expected_ns // resolution_ns * resolution_ns
+            traveller.shift(delta)
+            assert time_from(generate()) == shifted_ns // resolution_ns * resolution_ns
+
+
+# Relative destinations
+
+
+@settings(deadline=None)
+@given(
+    first=timestamps,
+    delta=st.timedeltas(
+        min_value=dt.timedelta(days=-1_000), max_value=dt.timedelta(days=1_000)
+    ),
+)
+def test_relative_destinations_use_mocked_time(first, delta):
+    first_ns = round(first * NANOSECONDS_PER_SECOND)
+    delta_ns = timedelta_to_ns(delta)
+    with time_machine.travel(first, tick=False) as traveller:
+        with time_machine.travel(delta, tick=False):
+            assert time.time_ns() == first_ns + delta_ns
+        with time_machine.travel(None, tick=False):
+            assert time.time_ns() == first_ns
+
+        traveller.move_to(delta)
+        assert time.time_ns() == first_ns + delta_ns
+        traveller.move_to(None)
+        assert time.time_ns() == first_ns + delta_ns
+
+
+@settings(deadline=None)
+@given(timestamp=timestamps)
+def test_callable_and_generator_destinations(timestamp):
+    expected_ns = round(timestamp * NANOSECONDS_PER_SECOND)
+
+    def generate() -> Generator[float, None, None]:
+        yield timestamp
+
+    with time_machine.travel(lambda: timestamp, tick=False):
+        assert time.time_ns() == expected_ns
+    with time_machine.travel(generate(), tick=False):
+        assert time.time_ns() == expected_ns
+
+
+# Strings
+
+
+@settings(deadline=None)
+@given(
+    destination=aware_datetimes,
+    style=st.sampled_from(["T", "space", "milliseconds", "seconds", "Z"]),
+)
+def test_travel_to_string_variants(destination, style):
+    # Lower-resolution formats truncate the microseconds they cannot represent.
+    expected = destination
+    if style == "T":
+        value = destination.isoformat()
+    elif style == "space":
+        value = destination.isoformat(sep=" ")
+    elif style == "milliseconds":
+        value = destination.isoformat(timespec="milliseconds")
+        expected = destination.replace(
+            microsecond=destination.microsecond // 1000 * 1000
+        )
+    elif style == "seconds":
+        value = destination.isoformat(timespec="seconds")
+        expected = destination.replace(microsecond=0)
+    else:
+        # fromisoformat() only accepts a "Z" suffix on Python 3.11+, so the
+        # expected value is derived from the datetime rather than the string.
+        value = destination.astimezone(dt.timezone.utc).isoformat()
+        value = value.replace("+00:00", "Z")
+    with time_machine.travel(value, tick=False):
+        assert time.time_ns() == datetime_to_ns(expected)
+
+
+# Naive modes and the local timezone
+
+
+@contextmanager
+def local_timezone(key: str) -> Iterator[None]:
+    try:
+        with mock.patch.dict(os.environ, {"TZ": key}):
+            time.tzset()
+            yield
+    finally:
+        # patch.dict has restored the original TZ by now.
+        time.tzset()
+
+
+def unambiguous_local(destination: dt.datetime, tz: ZoneInfo) -> bool:
+    """
+    Check that the naive datetime is neither in a gap nor a fold of the given
+    zone, so its local interpretation is unambiguous.
+    """
+    aware = destination.replace(tzinfo=tz)
+    if aware.utcoffset() != aware.replace(fold=1).utcoffset():
+        return False
+    return (
+        dt.datetime.fromtimestamp(aware.timestamp(), tz).replace(tzinfo=None)
+        == destination
+    )
+
+
+def test_unambiguous_local():
+    tz = ZoneInfo("Europe/London")
+    assert unambiguous_local(dt.datetime(2023, 6, 1, 12, 0), tz)
+    # The hour repeats when the clocks go back.
+    assert not unambiguous_local(dt.datetime(2023, 10, 29, 1, 30), tz)
+    # The hour does not exist when the clocks go forward.
+    assert not unambiguous_local(dt.datetime(2023, 3, 26, 1, 30), tz)
+
+
+@pytest.mark.skipif(
+    not hasattr(time, "tzset"), reason="Doesn't have tzset, so TZ can't be set"
+)
+@settings(deadline=None)
+@given(
+    destination=st.datetimes(min_value=MIN_DATETIME, max_value=dt.datetime(2038, 1, 1)),
+    tz=zoneinfos,
+    mode=st.sampled_from(list(time_machine.NaiveMode)),
+)
+def test_naive_datetime_modes(destination, tz, mode):
+    assume(unambiguous_local(destination, tz))
+    as_utc = destination.replace(tzinfo=dt.timezone.utc)
+    as_local = destination.replace(tzinfo=tz)
+
+    with (
+        local_timezone(tz.key),
+        mock.patch.object(time_machine, "naive_mode", mode),
+    ):
+        if mode == time_machine.NaiveMode.ERROR:
+            with pytest.raises(RuntimeError):
+                time_machine.travel(destination)
+            with pytest.raises(RuntimeError):
+                time_machine.travel(destination.date())
+            with pytest.raises(RuntimeError):
+                time_machine.travel(destination.isoformat())
+            return
+
+        if mode == time_machine.NaiveMode.LOCAL:
+            expected = as_local
+            expected_date = dt.datetime.combine(
+                destination.date(), dt.time(0, 0), tzinfo=tz
+            )
+        else:
+            expected = as_utc
+            expected_date = dt.datetime.combine(
+                destination.date(), dt.time(0, 0), tzinfo=dt.timezone.utc
+            )
+        if mode == time_machine.NaiveMode.UTC:
+            expected_string = as_utc
+        else:
+            # Naive strings are local in MIXED mode, for backwards compatibility.
+            expected_string = as_local
+
+        with time_machine.travel(destination, tick=False):
+            assert time.time_ns() == datetime_to_ns(expected)
+        with time_machine.travel(destination.isoformat(), tick=False):
+            assert time.time_ns() == datetime_to_ns(expected_string)
+        assume(
+            unambiguous_local(dt.datetime.combine(destination.date(), dt.time()), tz)
+        )
+        with time_machine.travel(destination.date(), tick=False):
+            assert time.time_ns() == datetime_to_ns(expected_date)
+
+
+# Escape hatch
+
+
+@settings(deadline=None)
+@given(destination=aware_datetimes)
+def test_escape_hatch_returns_real_time(destination):
+    with time_machine.travel(destination, tick=False):
+        real_ns = time_machine.escape_hatch.time.time_ns()
+        assert real_ns >= LIBRARY_EPOCH_NS
+        assert time_machine.escape_hatch.time.time() >= LIBRARY_EPOCH_NS / 1e9
+        assert time_machine.escape_hatch.datetime.datetime.now(
+            dt.timezone.utc
+        ) >= utc_datetime_from_ns(LIBRARY_EPOCH_NS)
+        assert time_machine.escape_hatch.datetime.date.today() >= (
+            utc_datetime_from_ns(LIBRARY_EPOCH_NS).date() - dt.timedelta(days=1)
+        )
+        assert time_machine.escape_hatch.time.gmtime().tm_year >= 2020
+        assert time_machine.escape_hatch.time.localtime().tm_year >= 2020
+        assert int(time_machine.escape_hatch.time.strftime("%Y")) >= 2020
+        assert (
+            time_machine.escape_hatch.time.clock_gettime_ns(time.CLOCK_REALTIME)
+            >= LIBRARY_EPOCH_NS
+        )
+
+
+LIBRARY_EPOCH_NS = datetime_to_ns(dt.datetime(2020, 4, 29, tzinfo=dt.timezone.utc))
+
+
+# Stateful testing of nested travel, shift() and move_to()
+
+
+class TravelMachine(RuleBasedStateMachine):
+    """
+    Perform random sequences of travelling, shifting, moving and stopping,
+    checking that the mocked time always matches a simple model.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.travels: list[time_machine.travel] = []
+        self.travellers: list[time_machine.Traveller] = []
+        self.expected_ns: list[int] = []
+
+    @rule(
+        timestamp=st.integers(
+            min_value=int(MIN_TIMESTAMP), max_value=int(MAX_TIMESTAMP)
+        )
+    )
+    def start(self, timestamp: int) -> None:
+        travel = time_machine.travel(timestamp, tick=False)
+        self.travels.append(travel)
+        self.travellers.append(travel.start())
+        self.expected_ns.append(timestamp * NANOSECONDS_PER_SECOND)
+
+    @precondition(lambda self: self.travels)
+    @rule()
+    def stop(self) -> None:
+        self.travels.pop().stop()
+        self.travellers.pop()
+        self.expected_ns.pop()
+
+    @precondition(lambda self: self.travels)
+    @rule(
+        delta=st.integers(min_value=-(10**9), max_value=10**9)
+        | st.timedeltas(
+            min_value=dt.timedelta(days=-10_000), max_value=dt.timedelta(days=10_000)
+        )
+    )
+    def shift(self, delta: int | dt.timedelta) -> None:
+        self.travellers[-1].shift(delta)
+        if isinstance(delta, int):
+            self.expected_ns[-1] += delta * NANOSECONDS_PER_SECOND
+        else:
+            self.expected_ns[-1] += timedelta_to_ns(delta)
+
+    @precondition(lambda self: self.travels)
+    @rule(destination=aware_datetimes)
+    def move_to(self, destination: dt.datetime) -> None:
+        self.travellers[-1].move_to(destination)
+        self.expected_ns[-1] = datetime_to_ns(destination)
+
+    @precondition(lambda self: self.travels)
+    @rule(delta=st.integers(min_value=-(10**6), max_value=10**6))
+    def move_to_relative(self, delta: int) -> None:
+        self.travellers[-1].move_to(dt.timedelta(seconds=delta))
+        self.expected_ns[-1] += delta * NANOSECONDS_PER_SECOND
+
+    @invariant()
+    def time_matches_model(self) -> None:
+        assert time_machine.escape_hatch.is_travelling() == bool(self.travels)
+        if self.travels:
+            assert time.time_ns() == self.expected_ns[-1]
+            assert dt.datetime.now(dt.timezone.utc) == utc_datetime_from_ns(
+                self.expected_ns[-1]
+            )
+        else:
+            assert time.time_ns() >= LIBRARY_EPOCH_NS
+
+    def teardown(self) -> None:
+        while self.travels:
+            self.travels.pop().stop()
+
+
+TestTravelMachine = TravelMachine.TestCase
+TestTravelMachine.settings = settings(
+    deadline=None, max_examples=100, stateful_step_count=30
+)
