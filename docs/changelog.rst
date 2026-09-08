@@ -5,6 +5,9 @@ Changelog
 Unreleased
 ----------
 
+* Fix the mocked ``datetime.date.today()`` and ``datetime.datetime.today()`` to be exact for all supported dates, like ``datetime.datetime.now()``.
+  Previously, they went through a floating-point timestamp, which could round the microseconds, or even the whole day, for dates far in the future.
+
 * Fix the class decorator to stop time travelling when ``tearDownClass()`` raises an exception, or when ``setUpClass()`` raises an exception not deriving from ``Exception``, such as the skip outcome from ``pytest.skip()``.
   Previously, time remained mocked for the rest of the process in these cases.
 

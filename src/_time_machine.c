@@ -412,8 +412,8 @@ Return what datetime.datetime.utcnow() would, after patching.");
 
 /* datetime.date.today() and datetime.datetime.today()
  * Note: datetime.datetime doesn't define its own today(), it inherits from date.
- * So we patch date.today() with a wrapper that calls cls.fromtimestamp(), which
- * returns the right type for date, datetime, and subclasses of either.
+ * So we patch date.today() with a single wrapper that handles cls being date,
+ * datetime, or a subclass of either.
  */
 
 static PyObject *
@@ -425,7 +425,18 @@ _time_machine_today(PyObject *cls, PyObject *args)
         return original_date_today(cls, args);
     }
 
-    PyObject *timestamp = _time_machine_traveller_time(traveller, state);
+    // cls is always a type, since today() is a classmethod.
+    if (PyType_IsSubtype((PyTypeObject *)cls, (PyTypeObject *)state->datetime_class)) {
+        // datetime.today() is datetime.now() without a timezone. Build it
+        // exactly, since a float timestamp can round the microseconds.
+        PyObject *result = _time_machine_traveller_datetime(cls, Py_None, traveller, state);
+        Py_DECREF(traveller);
+        return result;
+    }
+
+    // date.fromtimestamp() ignores the fractional part of the timestamp, so
+    // pass whole seconds, which are exact.
+    PyObject *timestamp = _time_machine_traveller_seconds(traveller, state);
     Py_DECREF(traveller);
     if (timestamp == NULL) {
         return NULL;
