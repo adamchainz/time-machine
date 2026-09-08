@@ -5,6 +5,11 @@ Changelog
 Unreleased
 ----------
 
+* Only pass the compiler option ``-mno-omit-leaf-frame-pointer`` when the compiler supports it, checked with a tiny probe program.
+  The option is unsupported outside of x86 and ARM64, so this fixes building from source on other architectures, like PowerPC, which failed since the option was added in version 3.3.0.
+
+  Thanks to Colin Watson for pointing this out and linking to the workaround in `Debian Bug #1146407 <https://bugs.debian.org/1146407>`__.
+
 * Fix the mocked ``datetime.date.today()`` and ``datetime.datetime.today()`` to be exact for all supported dates, like ``datetime.datetime.now()``.
   Previously, they went through a floating-point timestamp, which could round the microseconds, or even the whole day, for dates far in the future.
 
