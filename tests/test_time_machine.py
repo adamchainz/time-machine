@@ -227,6 +227,14 @@ def test_date_today():
     assert dt.datetime.today() >= LIBRARY_EPOCH_DATETIME
 
 
+def test_datetime_today_exact_far_future():
+    # A float timestamp this large cannot represent every microsecond.
+    destination = dt.datetime(2243, 1, 1, 0, 0, 0, 1, tzinfo=dt.timezone.utc)
+    with time_machine.travel(destination, tick=False):
+        assert dt.datetime.today() == destination.replace(tzinfo=None)
+        assert dt.date.today() == destination.date()
+
+
 # time module
 
 

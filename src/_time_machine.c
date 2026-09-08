@@ -425,7 +425,22 @@ _time_machine_today(PyObject *cls, PyObject *args)
         return original_date_today(cls, args);
     }
 
-    PyObject *timestamp = _time_machine_traveller_time(traveller, state);
+    int is_datetime = PyObject_IsSubclass(cls, state->datetime_class);
+    if (is_datetime < 0) {
+        Py_DECREF(traveller);
+        return NULL;
+    }
+    if (is_datetime) {
+        // datetime.today() is datetime.now() without a timezone. Build it
+        // exactly, since a float timestamp can round the microseconds.
+        PyObject *result = _time_machine_traveller_datetime(cls, Py_None, traveller, state);
+        Py_DECREF(traveller);
+        return result;
+    }
+
+    // date.fromtimestamp() ignores the fractional part of the timestamp, so
+    // pass whole seconds, which are exact.
+    PyObject *timestamp = _time_machine_traveller_seconds(traveller, state);
     Py_DECREF(traveller);
     if (timestamp == NULL) {
         return NULL;

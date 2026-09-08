@@ -30,6 +30,9 @@ Unreleased
 
 * Fix the :ref:`Migration CLI <migration-cli>` to leave a ``pass`` statement when removing every unused ``FrozenDateTimeFactory`` import in a block, rather than producing invalid syntax.
 
+* Fix the mocked ``datetime.datetime.today()`` to be exact for all supported dates, like ``datetime.datetime.now()``.
+  Previously, it went through a floating-point timestamp, which could round the microseconds for dates far in the future.
+
 3.5.0 (2026-08-25)
 ------------------
 
