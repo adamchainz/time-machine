@@ -23,6 +23,9 @@ Unreleased
 
 * Fix the :ref:`Migration CLI <migration-cli>` to not rename a ``freezer`` argument when the function already has a ``time_machine`` argument, which produced invalid syntax.
 
+* Fix the :ref:`Migration CLI <migration-cli>` to report positions in the rewritten file, rather than the original.
+  Previously, positions could be off when rewrites earlier in the file changed the number of lines, or the length of the same line.
+
 3.5.0 (2026-08-25)
 ------------------
 
