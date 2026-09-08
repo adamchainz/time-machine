@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+3.5.1 (2026-09-08)
+------------------
 
 * Only pass the compiler option ``-mno-omit-leaf-frame-pointer`` when the compiler supports it, checked with a tiny probe program.
   The option is unsupported outside of x86 and ARM64, so this fixes building from source on other architectures, like PowerPC, which failed since the option was added in version 3.3.0.
