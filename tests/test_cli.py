@@ -3116,6 +3116,22 @@ class TestMigrateContents:
             """,
         )
 
+    def test_with_attr_parenthesized_module(self):
+        check_transformed(
+            """
+            import freezegun
+
+            with (freezegun).freeze_time("2023-01-01"):
+                pass
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=False):
+                pass
+            """,
+        )
+
     def test_reports_positioned_after_rewrite_on_same_line(self):
         check_transformed(
             """
