@@ -132,7 +132,7 @@ Import updates
 ``freeze_time()`` calls
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-* In function decorators, class decorators, and context managers: ``freeze_time(...)`` -> ``time_machine.travel(...)``.
+* In function decorators, context managers, and class decorators on unittest-style classes: ``freeze_time(...)`` -> ``time_machine.travel(...)``.
   This change is applied only when ``freeze_time()`` is called with a single positional argument and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, ``real_asyncio``, and ``ignore``.
   If ``tick`` is passed, it is kept as-is, otherwise it is replaced with ``tick=False`` (matching freezegun’s default behaviour):
 
@@ -167,6 +167,25 @@ Import updates
       +@time_machine.travel("2023-01-01", tick=False)
        def test_function():
            ...
+
+* In class decorators on pytest-style test classes: ``freeze_time(...)`` -> ``pytest.mark.time_machine(...)``, the marker from time-machine’s :doc:`pytest plugin <pytest_plugin>`, with the same argument handling.
+  ``time_machine.travel()`` only supports ``unittest.TestCase`` subclasses as a class decorator, whilst the marker applies to each test method and its function-scoped fixtures, like freezegun’s decorator.
+  ``import pytest`` is added alongside the migrated freezegun import, if missing:
+
+  .. code-block:: diff
+
+      -from freezegun import freeze_time
+      +import pytest
+
+      -@freeze_time("2023-01-01")
+      +@pytest.mark.time_machine("2023-01-01", tick=False)
+       class TestSomething:
+           def test_function(self):
+               ...
+
+  A class is treated as unittest-style when it has a base class named like ``TestCase``, defines methods like ``setUp()``, or calls ``self.assert*`` methods.
+  Otherwise, it’s treated as pytest-style when it defines at least one ``test``-prefixed method, no ``__init__()`` or ``__new__()``, and either its name starts with ``Test``, pytest’s default for class collection, or it shows another pytest signal: a test method with fixture arguments, an xunit-style hook like ``setup_method()``, a ``pytestmark`` or ``__test__`` assignment, or any use of the ``pytest`` module within the class, such as a fixture or marker decorator.
+  Class decorators on other classes are left unchanged and reported.
 
 * “Raw use” assignments that bind ``freeze_time()`` to a variable for later ``start()`` and ``stop()`` calls: the assigned call is migrated as above, since ``travel()`` instances have the same ``start()`` / ``stop()`` interface:
 

@@ -2039,6 +2039,561 @@ class TestMigrateContents:
             """,
         )
 
+    def test_class_decorator_attr_pytest_class(self):
+        check_transformed(
+            """
+            import freezegun
+            import pytest
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_attr_pytest_class_import_added(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_attr_pytest_class_aliased(self):
+        check_transformed(
+            """
+            import freezegun as fg
+
+            @fg.freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_attr_pytest_class_not_called(self):
+        check_transformed(
+            """
+            import freezegun
+
+            @freezegun.freeze_time
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import time_machine
+
+            @freezegun.freeze_time
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            reports=[(4, 2, "freezegun usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tick=True)
+            class TestClass:
+                async def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=True)
+            class TestClass:
+                async def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_pytest_imported(self):
+        check_transformed(
+            """
+            import pytest
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_pytest_imported_aliased(self):
+        check_transformed(
+            """
+            import pytest as pt
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest as pt
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_travel_also_used(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+
+            @freeze_time("2024-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import pytest
+            import time_machine
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+
+            @time_machine.travel("2024-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_other_names_kept(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time, FakeDate
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+            from freezegun import FakeDate
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_freezer_fixture(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self, freezer):
+                    freezer.move_to("2024-01-01")
+                    freezer.tick()
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self, time_machine):
+                    time_machine.move_to("2024-01-01")
+                    time_machine.shift(1)
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_unmigratable_kwarg(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", tz_offset=1)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01", tz_offset=1)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class_import_not_module_level(self):
+        check_transformed(
+            """
+            def make():
+                from freezegun import freeze_time
+
+                @freeze_time("2023-01-01")
+                class TestClass:
+                    def test_one(self):
+                        pass
+
+                return TestClass
+            """,
+            """
+            def make():
+                import time_machine
+
+                @freeze_time("2023-01-01")
+                class TestClass:
+                    def test_one(self):
+                        pass
+
+                return TestClass
+            """,
+            reports=[(5, 6, "freeze_time usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class_no_test_methods(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def helper(self):
+                    pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def helper(self):
+                    pass
+            """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class_init(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def __init__(self):
+                    pass
+
+                def test_one(self):
+                    pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def __init__(self):
+                    pass
+
+                def test_one(self):
+                    pass
+            """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class_new(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+
+                def __new__(cls):
+                    pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+
+                def __new__(cls):
+                    pass
+            """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class_test_false(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                __test__ = False
+
+                def test_one(self):
+                    pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                __test__ = False
+
+                def test_one(self):
+                    pass
+            """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class_other_name_no_signals(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class SomethingTests:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01")
+            class SomethingTests:
+                def test_one(self):
+                    pass
+            """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
+        )
+
+    def test_class_decorator_name_pytest_class_other_name_test_true(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class SomethingTests:
+                __test__ = True
+
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class SomethingTests:
+                __test__ = True
+
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_other_name_fixture_argument(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class SomethingTests:
+                def test_one(self, tmp_path):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class SomethingTests:
+                def test_one(self, tmp_path):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_other_name_xunit_hook(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class SomethingTests:
+                def setup_method(self):
+                    pass
+
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class SomethingTests:
+                def setup_method(self):
+                    pass
+
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_other_name_pytestmark(self):
+        check_transformed(
+            """
+            import pytest
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class SomethingTests:
+                pytestmark = pytest.mark.django_db
+
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class SomethingTests:
+                pytestmark = pytest.mark.django_db
+
+                def test_one(self):
+                    pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_other_name_pytest_use(self):
+        check_transformed(
+            """
+            import pytest
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class SomethingTests:
+                def test_one(self):
+                    with pytest.raises(ValueError):
+                        raise ValueError()
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class SomethingTests:
+                def test_one(self):
+                    with pytest.raises(ValueError):
+                        raise ValueError()
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_raw_use_also_used(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+
+            def test_function():
+                freezer = freeze_time("2024-01-01")
+                freezer.start()
+                freezer.stop()
+            """,
+            """
+            import pytest
+            import time_machine
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+
+            def test_function():
+                freezer = time_machine.travel("2024-01-01", tick=False)
+                freezer.start()
+                freezer.stop()
+            """,
+        )
+
     def test_with_attr_not_called(self):
         check_transformed(
             """

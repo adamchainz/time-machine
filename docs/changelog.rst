@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` class decorators on pytest-style test classes to the ``pytest.mark.time_machine()`` marker, adding ``import pytest`` where needed.
+  Previously, such decorators were left unchanged and reported, since ``time_machine.travel()`` only supports ``unittest.TestCase`` subclasses as a class decorator.
+
 3.5.1 (2026-09-08)
 ------------------
 
