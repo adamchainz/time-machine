@@ -46,10 +46,14 @@ MAX_TIMESTAMP = MAX_DATETIME.replace(tzinfo=dt.timezone.utc).timestamp()
 zoneinfos = st.timezones().filter(lambda tz: not tz.key.startswith("right/"))
 
 naive_datetimes = st.datetimes(min_value=MIN_DATETIME, max_value=MAX_DATETIME)
+# Imaginary datetimes (those in a DST gap, which never occurred in their zone)
+# do not compare equal to the instant they convert to in another zone, per
+# PEP 495, so they cannot be round-tripped through UTC.
 aware_datetimes = st.datetimes(
     min_value=MIN_DATETIME,
     max_value=MAX_DATETIME,
     timezones=st.just(dt.timezone.utc) | zoneinfos,
+    allow_imaginary=False,
 )
 timestamps = st.floats(min_value=MIN_TIMESTAMP, max_value=MAX_TIMESTAMP)
 
