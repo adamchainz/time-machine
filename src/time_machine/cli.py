@@ -250,12 +250,58 @@ def visit(
     freezegun_module_names: set[str] = set()
     freeze_time_names: set[str] = set()
     report_module_names: set[str] = set()
+    freezegun_imports: list[ast.Import] = []
     freezegun_from_imports: list[ast.ImportFrom] = []
+    # Whether any class decorators were migrated to the pytest marker, which
+    # requires an `import pytest` at module level.
+    class_markers_added = False
+    # Whether any call was rewritten to time_machine.travel(), which requires
+    # an `import time_machine`.
+    travel_used = False
     freezer_functions: list[FreezerFunction] = []
     marker_class_methods: set[ast.FunctionDef | ast.AsyncFunctionDef] = set()
     module_marker_seen = False
     traveller_vars: list[TravellerVar] = []
     module_stmts = module_scope_stmts(tree)
+    module_classes = {
+        stmt.name: stmt for stmt in tree.body if isinstance(stmt, ast.ClassDef)
+    }
+    collectible_classes = collectible_class_defs(module_stmts)
+    pytest_imported = any(
+        isinstance(stmt, ast.Import)
+        and any(alias.name == "pytest" and alias.asname is None for alias in stmt.names)
+        for stmt in tree.body
+    )
+
+    def marker_import_available() -> bool:
+        """
+        Check that a rewritten class decorator could refer to the pytest
+        module: either it is already imported, or `import pytest` can be
+        added alongside a module-level freezegun import.
+        """
+        return pytest_imported or any(
+            import_node in module_stmts
+            for import_node in migrated_import_stmts(
+                freezegun_imports, freezegun_from_imports
+            )
+        )
+
+    def migrate_call(node: ast.expr) -> bool:
+        """
+        Call maybe_migrate_call() with the state gathered so far, recording
+        whether it rewrote the call to time_machine.travel().
+        """
+        nonlocal travel_used
+        migrated = maybe_migrate_call(
+            ret,
+            node,
+            freezegun_module_names=freezegun_module_names,
+            freeze_time_names=freeze_time_names,
+            freezer_functions=freezer_functions,
+        )
+        travel_used |= migrated
+        return migrated
+
     for node in ast.walk(tree):
         match node:
             case ast.Module():
@@ -268,12 +314,7 @@ def visit(
                     and (alias := node.names[0]).name == "freezegun"
                 ):
                     freezegun_module_names.add(alias.asname or "freezegun")
-                    if alias.asname is None:
-                        ret[ast_start_offset(node)].append(replace_import)
-                    else:
-                        ret[ast_start_offset(node)].append(
-                            partial(replace_aliased_import, node=node)
-                        )
+                    freezegun_imports.append(node)
                 else:
                     # Imports of freezegun that cannot be migrated, like
                     # `import freezegun, os` or `import freezegun.config`,
@@ -304,13 +345,7 @@ def visit(
                     if maybe_migrate_marker(ret, decorator):
                         marker_seen = True
                     else:
-                        maybe_migrate_call(
-                            ret,
-                            decorator,
-                            freezegun_module_names=freezegun_module_names,
-                            freeze_time_names=freeze_time_names,
-                            freezer_functions=freezer_functions,
-                        )
+                        migrate_call(decorator)
 
                 freezer_args = [
                     arg
@@ -330,17 +365,28 @@ def visit(
                 class_marker_seen = False
                 if node.decorator_list:
                     unittest_class = looks_like_unittest_class(node)
+                    pytest_class = (
+                        not unittest_class
+                        and node in collectible_classes
+                        and looks_like_pytest_class(node, module_classes)
+                    )
                     for decorator in node.decorator_list:
                         if maybe_migrate_marker(ret, decorator):
                             class_marker_seen = True
                         elif unittest_class:
-                            maybe_migrate_call(
+                            migrate_call(decorator)
+                        elif (
+                            pytest_class
+                            and marker_import_available()
+                            and maybe_migrate_class_marker(
                                 ret,
                                 decorator,
                                 freezegun_module_names=freezegun_module_names,
                                 freeze_time_names=freeze_time_names,
-                                freezer_functions=freezer_functions,
                             )
+                        ):
+                            class_marker_seen = True
+                            class_markers_added = True
                 for stmt in node.body:
                     if maybe_migrate_pytestmark(ret, stmt):
                         class_marker_seen = True
@@ -355,23 +401,11 @@ def visit(
                 for item in node.items:
                     match item.optional_vars:
                         case None:
-                            maybe_migrate_call(
-                                ret,
-                                item.context_expr,
-                                freezegun_module_names=freezegun_module_names,
-                                freeze_time_names=freeze_time_names,
-                                freezer_functions=freezer_functions,
-                            )
+                            migrate_call(item.context_expr)
                         case ast.Name(id=name) as binding:
                             if traveller_var_uses_compatible(
                                 node, binding
-                            ) and maybe_migrate_call(
-                                ret,
-                                item.context_expr,
-                                freezegun_module_names=freezegun_module_names,
-                                freeze_time_names=freeze_time_names,
-                                freezer_functions=freezer_functions,
-                            ):
+                            ) and migrate_call(item.context_expr):
                                 traveller_vars.append(TravellerVar(name, node))
 
             case ast.Expr(
@@ -508,7 +542,56 @@ def visit(
                             )
                         )
 
-    removed_imports: list[ast.ImportFrom] = []
+    if freeze_time_names or freezegun_module_names:
+        for assignment, use_scope in find_candidate_assignments(tree):
+            value = assignment.value
+            assert isinstance(value, ast.Call)
+            if not is_freeze_time_call(
+                value,
+                freezegun_module_names=freezegun_module_names,
+                freeze_time_names=freeze_time_names,
+            ):
+                continue
+            target = assignment.targets[0]
+            if isinstance(target, ast.Name):
+                compatible = name_target_uses_compatible(use_scope, target)
+            else:
+                assert isinstance(target, ast.Attribute)
+                compatible = self_attr_target_uses_compatible(use_scope, target)
+            if compatible:
+                migrate_call(value)
+
+    # The time_machine module is only needed by calls rewritten to
+    # time_machine.travel(). When every migrated use became a pytest marker
+    # instead, importing it would be unused.
+    time_machine_needed = travel_used or not class_markers_added
+
+    # The added `import pytest` goes alongside the first module-level
+    # freezegun import that is rewritten.
+    pytest_import_carrier: ast.Import | ast.ImportFrom | None = None
+    if class_markers_added and not pytest_imported:
+        pytest_import_carrier = next(
+            import_node
+            for import_node in migrated_import_stmts(
+                freezegun_imports, freezegun_from_imports
+            )
+            if import_node in module_stmts
+        )
+
+    removed_imports: list[ast.Import | ast.ImportFrom] = []
+    for module_import in freezegun_imports:
+        new_stmts = []
+        if module_import is pytest_import_carrier:
+            new_stmts.append("import pytest")
+        if time_machine_needed:
+            new_stmts.append("import time_machine")
+        if new_stmts:
+            ret[ast_start_offset(module_import)].append(
+                partial(replace_import, node=module_import, new_stmts=new_stmts)
+            )
+        else:
+            removed_imports.append(module_import)
+
     for import_node in freezegun_from_imports:
         has_freeze_time = any(
             alias.name == "freeze_time" for alias in import_node.names
@@ -527,7 +610,9 @@ def visit(
             and (alias.asname or alias.name) not in fixture_migratable
         ]
         new_stmts = []
-        if has_freeze_time:
+        if import_node is pytest_import_carrier:
+            new_stmts.append("import pytest")
+        if has_freeze_time and time_machine_needed:
             new_stmts.append("import time_machine")
         if import_node is import_carrier:
             new_stmts.append("from time_machine import TimeMachineFixture")
@@ -536,49 +621,24 @@ def visit(
 
         if new_stmts:
             ret[ast_start_offset(import_node)].append(
-                partial(replace_import_from, node=import_node, new_stmts=new_stmts)
+                partial(replace_import, node=import_node, new_stmts=new_stmts)
             )
         else:
             removed_imports.append(import_node)
 
-    for import_node in removed_imports:
-        block = containing_block(tree, import_node)
+    for removed_import in removed_imports:
+        block = containing_block(tree, removed_import)
         remaining = [stmt for stmt in block if stmt not in removed_imports]
-        if remaining or block[-1] is not import_node:
-            ret[ast_start_offset(import_node)].append(
-                partial(remove_statement, node=import_node)
+        if remaining or block[-1] is not removed_import:
+            ret[ast_start_offset(removed_import)].append(
+                partial(remove_statement, node=removed_import)
             )
         else:
             # Removing every statement in the block would leave invalid
             # syntax, so replace the last with `pass`.
-            ret[ast_start_offset(import_node)].append(
-                partial(replace_import_from, node=import_node, new_stmts=["pass"])
+            ret[ast_start_offset(removed_import)].append(
+                partial(replace_import, node=removed_import, new_stmts=["pass"])
             )
-
-    if freeze_time_names or freezegun_module_names:
-        for assignment, use_scope in find_candidate_assignments(tree):
-            value = assignment.value
-            assert isinstance(value, ast.Call)
-            if not is_freeze_time_call(
-                value,
-                freezegun_module_names=freezegun_module_names,
-                freeze_time_names=freeze_time_names,
-            ):
-                continue
-            target = assignment.targets[0]
-            if isinstance(target, ast.Name):
-                compatible = name_target_uses_compatible(use_scope, target)
-            else:
-                assert isinstance(target, ast.Attribute)
-                compatible = self_attr_target_uses_compatible(use_scope, target)
-            if compatible:
-                maybe_migrate_call(
-                    ret,
-                    value,
-                    freezegun_module_names=freezegun_module_names,
-                    freeze_time_names=freeze_time_names,
-                    freezer_functions=freezer_functions,
-                )
 
     unmigrated_fixture_names = fixture_bound - fixture_migratable
 
@@ -663,6 +723,25 @@ def all_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.arg]
     return arguments
 
 
+def migrated_import_stmts(
+    freezegun_imports: list[ast.Import],
+    freezegun_from_imports: list[ast.ImportFrom],
+) -> Generator[ast.Import | ast.ImportFrom, None, None]:
+    """
+    Yield the freezegun imports that are always rewritten, in source order:
+    plain imports of the module, and from-imports of freeze_time().
+    """
+    import_stmts: list[ast.Import | ast.ImportFrom] = [
+        *freezegun_imports,
+        *(
+            import_node
+            for import_node in freezegun_from_imports
+            if any(alias.name == "freeze_time" for alias in import_node.names)
+        ),
+    ]
+    yield from sorted(import_stmts, key=ast_start_offset)
+
+
 def annotation_strings(tree: ast.Module) -> Generator[ast.Constant, None, None]:
     """
     Yield the string constants within annotations, which may name types that
@@ -723,6 +802,27 @@ def module_scope_stmts(tree: ast.Module) -> set[ast.stmt]:
                     add(handler.body)
 
     add(tree.body)
+    return result
+
+
+def collectible_class_defs(module_stmts: set[ast.stmt]) -> set[ast.ClassDef]:
+    """
+    Collect the classes that pytest could collect tests from: those defined at
+    module scope, and those nested within them, recursively. Classes defined
+    inside functions are never collected, so a marker on one would silently do
+    nothing.
+    """
+    result: set[ast.ClassDef] = set()
+
+    def add(node: ast.ClassDef) -> None:
+        result.add(node)
+        for stmt in node.body:
+            if isinstance(stmt, ast.ClassDef):
+                add(stmt)
+
+    for stmt in module_stmts:
+        if isinstance(stmt, ast.ClassDef):
+            add(stmt)
     return result
 
 
@@ -941,6 +1041,36 @@ def maybe_migrate_call(
     return True
 
 
+def maybe_migrate_class_marker(
+    ret: MutableMapping[Offset, list[TokenFunc]],
+    node: ast.expr,
+    *,
+    freezegun_module_names: set[str],
+    freeze_time_names: set[str],
+) -> bool:
+    """
+    Add the callbacks to rewrite the given pytest-style class decorator, if it
+    is a migratable call to freezegun’s freeze_time(), to the
+    pytest.mark.time_machine() marker, returning whether that was the case.
+    """
+    if (
+        not isinstance(node, ast.Call)
+        or not is_freeze_time_call(
+            node,
+            freezegun_module_names=freezegun_module_names,
+            freeze_time_names=freeze_time_names,
+        )
+        or not migratable_call(node)
+    ):
+        return False
+
+    func = node.func
+    assert isinstance(func, (ast.Attribute, ast.Name))
+    ret[ast_start_offset(func)].append(partial(switch_to_marker, node=func))
+    migrate_arguments(ret, node)
+    return True
+
+
 def traveller_var_uses_compatible(node: ast.With, binding: ast.Name) -> bool:
     """
     Check that a variable bound with ``as`` to a freeze_time() context manager
@@ -1142,6 +1272,131 @@ def looks_like_unittest_class(node: ast.ClassDef) -> bool:
     return False
 
 
+def looks_like_pytest_class(
+    node: ast.ClassDef, module_classes: dict[str, ast.ClassDef]
+) -> bool:
+    """
+    Heuristically determine if a class is a pytest-style test class, that
+    pytest would collect and that is not a unittest.TestCase subclass.
+
+    Being conservative here matters: putting the marker on a TestCase
+    subclass would leave setUpClass() unmocked, unlike travel(). So a
+    class only counts when it shows something unittest cannot do, or when
+    its name matches pytest’s default collection prefix and all its base
+    classes can be checked, within the module.
+    """
+    test_method_seen = False
+    definitive_signal = False
+    test_attribute_true = False
+    for stmt in node.body:
+        match stmt:
+            case ast.FunctionDef(name=name) | ast.AsyncFunctionDef(name=name):
+                if name in ("__init__", "__new__"):
+                    # pytest does not collect classes with constructors.
+                    return False
+                if name.startswith("test"):
+                    test_method_seen = True
+                    if has_fixture_arguments(stmt):
+                        definitive_signal = True
+                elif name in PYTEST_XUNIT_HOOK_NAMES:
+                    definitive_signal = True
+            case (
+                ast.Assign(
+                    targets=[ast.Name(id="__test__")],
+                    value=ast.Constant(value=bool(value)),
+                )
+                | ast.AnnAssign(
+                    target=ast.Name(id="__test__"),
+                    value=ast.Constant(value=bool(value)),
+                )
+            ):
+                if value:
+                    test_attribute_true = True
+                else:
+                    return False
+
+    if not test_method_seen:
+        return False
+    if definitive_signal:
+        return True
+    if not (node.name.startswith("Test") or test_attribute_true):
+        return False
+    return bases_look_like_pytest(node, module_classes, seen=set())
+
+
+def has_fixture_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """
+    Check if the given test method takes arguments beyond self, which pytest
+    fills with fixtures or parametrized values, but unittest does not support.
+    Decorators other than pytest markers, like unittest.mock.patch(), can
+    inject arguments too, so they disqualify the check.
+    """
+    if (
+        len(node.args.posonlyargs) + len(node.args.args) + len(node.args.kwonlyargs)
+        <= 1
+    ):
+        return False
+    return all(is_pytest_marker(decorator) for decorator in node.decorator_list)
+
+
+def is_pytest_marker(node: ast.expr) -> bool:
+    """
+    Check if the given decorator is a pytest marker, like
+    ``pytest.mark.django_db`` or ``pytest.mark.parametrize(...)``.
+    """
+    if isinstance(node, ast.Call):
+        node = node.func
+    return (
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Attribute)
+        and node.value.attr == "mark"
+        and isinstance(node.value.value, ast.Name)
+        and node.value.value.id == "pytest"
+    )
+
+
+def bases_look_like_pytest(
+    node: ast.ClassDef,
+    module_classes: dict[str, ast.ClassDef],
+    *,
+    seen: set[str],
+) -> bool:
+    """
+    Check that none of the given class’s bases could be unittest.TestCase
+    subclasses: each is ``object`` or a class defined at module level that
+    does not look like a unittest class, nor define a constructor, checked
+    recursively.
+    """
+    seen.add(node.name)
+    for base in node.bases:
+        if not isinstance(base, ast.Name):
+            return False
+        if base.id == "object":
+            continue
+        base_node = module_classes.get(base.id)
+        if base_node is None or base.id in seen:
+            return False
+        if looks_like_unittest_class(base_node) or any(
+            isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and stmt.name in ("__init__", "__new__")
+            for stmt in base_node.body
+        ):
+            return False
+        if not bases_look_like_pytest(base_node, module_classes, seen=seen):
+            return False
+    return True
+
+
+PYTEST_XUNIT_HOOK_NAMES = frozenset(
+    [
+        "setup_class",
+        "setup_method",
+        "teardown_class",
+        "teardown_method",
+    ]
+)
+
+
 UNITTEST_ASSERT_NAMES = frozenset(
     [
         "assertAlmostEqual",
@@ -1187,36 +1442,22 @@ def ast_start_offset(
     return Offset(node.lineno, node.col_offset)
 
 
-def replace_import(tokens: list[Token], i: int) -> None:
-    while True:
-        if tokens[i].name == "NAME" and tokens[i].src == "freezegun":
-            break
-        i += 1
-    tokens[i] = Token(name="NAME", src="time_machine")
-
-
-def replace_aliased_import(tokens: list[Token], i: int, node: ast.Import) -> None:
-    """
-    Replace an ``import freezegun as <name>`` statement with
-    ``import time_machine``, dropping the alias since calls of
-    ``<name>.freeze_time()`` are rewritten to ``time_machine.travel()``.
-    """
-    j = find_last_token(tokens, i, node=node)
-    tokens[i : j + 1] = [Token(name=CODE, src="import time_machine")]
-
-
 def unparse_alias(alias: ast.alias) -> str:
     if alias.asname is not None:
         return f"{alias.name} as {alias.asname}"
     return alias.name
 
 
-def replace_import_from(
-    tokens: list[Token], i: int, node: ast.ImportFrom, new_stmts: list[str]
+def replace_import(
+    tokens: list[Token],
+    i: int,
+    node: ast.Import | ast.ImportFrom,
+    new_stmts: list[str],
 ) -> None:
     """
-    Replace a from-import of freezegun with the given statements, indented to
-    match.
+    Replace an import of freezegun with the given statements, indented to
+    match. Any alias, like ``import freezegun as fg``, is dropped, since calls
+    using it are rewritten to use the ``time_machine`` module.
     """
     j = find_last_token(tokens, i, node=node)
     k = line_start_index(tokens, i)
@@ -1303,7 +1544,9 @@ def switch_to_travel(
     tokens[i : j + 1] = [Token(name=CODE, src="time_machine.travel")]
 
 
-def switch_to_marker(tokens: list[Token], i: int, node: ast.Attribute) -> None:
+def switch_to_marker(
+    tokens: list[Token], i: int, node: ast.Attribute | ast.Name
+) -> None:
     j = find_last_token(tokens, i, node=node)
     tokens[i : j + 1] = [Token(name=CODE, src="pytest.mark.time_machine")]
 
