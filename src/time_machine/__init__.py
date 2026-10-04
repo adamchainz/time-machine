@@ -13,19 +13,11 @@ from enum import Enum
 from time import gmtime as orig_gmtime
 from time import struct_time
 from types import TracebackType
-from typing import Any, TypeAlias, TypeVar, cast, overload
+from typing import Any, TypeAlias, TypeVar, assert_never, cast, overload
 from unittest import TestCase
 from zoneinfo import ZoneInfo
 
 import _time_machine
-
-if sys.version_info >= (3, 11):
-    from typing import assert_never
-else:
-
-    def assert_never(_: Any) -> None:  # pragma: no cover
-        pass
-
 
 try:
     from time import tzset
@@ -61,7 +53,7 @@ SYSTEM_EPOCH_TIMESTAMP_NS = int(
         _system_epoch.tm_hour,
         _system_epoch.tm_min,
         _system_epoch.tm_sec,
-        tzinfo=dt.timezone.utc,
+        tzinfo=dt.UTC,
     ).timestamp()
     * NANOSECONDS_PER_SECOND
 )
@@ -144,11 +136,11 @@ def extract_timestamp_tzname(
     elif isinstance(dest, dt.datetime):
         if isinstance(dest.tzinfo, ZoneInfo):
             tzname = dest.tzinfo.key
-        elif dest.tzinfo == dt.timezone.utc:
+        elif dest.tzinfo == dt.UTC:
             tzname = "UTC"
         elif dest.tzinfo is None:
             if naive_mode == NaiveMode.MIXED or naive_mode == NaiveMode.UTC:
-                dest = dest.replace(tzinfo=dt.timezone.utc)
+                dest = dest.replace(tzinfo=dt.UTC)
             elif naive_mode == NaiveMode.LOCAL:
                 pass
             elif naive_mode == NaiveMode.ERROR:
@@ -164,7 +156,7 @@ def extract_timestamp_tzname(
     elif isinstance(dest, dt.date):
         if naive_mode == NaiveMode.MIXED or naive_mode == NaiveMode.UTC:
             timestamp_ns = _datetime_to_ns(
-                dt.datetime.combine(dest, dt.time(0, 0), tzinfo=dt.timezone.utc)
+                dt.datetime.combine(dest, dt.time(0, 0), tzinfo=dt.UTC)
             )
         elif naive_mode == NaiveMode.LOCAL:
             timestamp_ns = _datetime_to_ns(dt.datetime.combine(dest, dt.time(0, 0)))
@@ -192,7 +184,7 @@ def extract_timestamp_tzname(
                 # Keep as naive, for backwards compatibility
                 pass
             elif naive_mode == NaiveMode.UTC:
-                parsed = parsed.replace(tzinfo=dt.timezone.utc)
+                parsed = parsed.replace(tzinfo=dt.UTC)
             elif naive_mode == NaiveMode.LOCAL:
                 pass
             elif naive_mode == NaiveMode.ERROR:
@@ -235,7 +227,7 @@ class Traveller:
 
         return base + (now_ns - self._real_start_timestamp_ns)
 
-    def shift(self, delta: dt.timedelta | int | float) -> None:
+    def shift(self, delta: dt.timedelta | float) -> None:
         if isinstance(delta, dt.timedelta):
             delta_ns = _timedelta_to_ns(delta)
         elif isinstance(delta, int):
@@ -467,7 +459,7 @@ class TimeMachineFixture:
             assert self.traveller_obj is not None
             self.traveller_obj.move_to(destination, tick=tick)
 
-    def shift(self, delta: dt.timedelta | int | float) -> None:
+    def shift(self, delta: dt.timedelta | float) -> None:
         if self.traveller is None:
             raise RuntimeError(
                 "Initialize time_machine with move_to() before using shift()."
