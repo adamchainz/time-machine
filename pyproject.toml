@@ -24,7 +24,7 @@ license-files = [ "LICENSE" ]
 authors = [
   { name = "Adam Johnson", email = "me@adamj.eu" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Framework :: Pytest",
@@ -32,7 +32,6 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -85,7 +84,6 @@ build = [
   "cp313-*",
   "cp312-*",
   "cp311-*",
-  "cp310-*",
 ]
 archs = [ "auto64" ]
 

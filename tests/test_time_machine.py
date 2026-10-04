@@ -24,9 +24,9 @@ import time_machine
 from tests.conftest import HAVE_64_BIT_TIME_T
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
-EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+EPOCH_DATETIME = dt.datetime(1970, 1, 1, tzinfo=dt.UTC)
 EPOCH = EPOCH_DATETIME.timestamp()
-EPOCH_PLUS_ONE_YEAR_DATETIME = dt.datetime(1971, 1, 1, tzinfo=dt.timezone.utc)
+EPOCH_PLUS_ONE_YEAR_DATETIME = dt.datetime(1971, 1, 1, tzinfo=dt.UTC)
 EPOCH_PLUS_ONE_YEAR = EPOCH_PLUS_ONE_YEAR_DATETIME.timestamp()
 LIBRARY_EPOCH_DATETIME = dt.datetime(2020, 4, 29)  # The day this library was made
 LIBRARY_EPOCH = LIBRARY_EPOCH_DATETIME.timestamp()
@@ -104,33 +104,31 @@ def test_datetime_now_no_args_no_tick():
 
 def test_datetime_now_arg():
     with time_machine.travel(EPOCH):
-        now = dt.datetime.now(tz=dt.timezone.utc)
+        now = dt.datetime.now(tz=dt.UTC)
         assert now.year == 1970
         assert now.month == 1
         assert now.day == 1
-    assert dt.datetime.now(dt.timezone.utc) >= LIBRARY_EPOCH_DATETIME.replace(
-        tzinfo=dt.timezone.utc
-    )
+    assert dt.datetime.now(dt.UTC) >= LIBRARY_EPOCH_DATETIME.replace(tzinfo=dt.UTC)
 
 
 def test_datetime_now_too_many_args():
     with time_machine.travel(EPOCH):
         with pytest.raises(TypeError) as excinfo:
-            dt.datetime.now(dt.timezone.utc, "extra")  # type: ignore[call-arg]
+            dt.datetime.now(dt.UTC, "extra")  # type: ignore[call-arg]
         assert "now() takes at most 1 argument" in excinfo.value.args[0]
 
 
 def test_datetime_now_invalid_kwarg():
     with time_machine.travel(EPOCH):
         with pytest.raises(TypeError) as excinfo:
-            dt.datetime.now(bad=dt.timezone.utc)  # type: ignore[call-arg]
+            dt.datetime.now(bad=dt.UTC)  # type: ignore[call-arg]
         assert "got an unexpected keyword argument 'bad'" in excinfo.value.args[0]
 
 
 def test_datetime_now_tz_given_twice():
     with time_machine.travel(EPOCH):
         with pytest.raises(TypeError) as excinfo:
-            dt.datetime.now(dt.timezone.utc, tz=dt.timezone.utc)  # type: ignore[misc]
+            dt.datetime.now(dt.UTC, tz=dt.UTC)  # type: ignore[misc]
         assert excinfo.value.args == ("now() takes at most 1 argument (2 given)",)
 
 
@@ -148,9 +146,9 @@ def test_datetime_now_subclass():
 def test_datetime_now_distant_destination_exact():
     # Microsecond precision survives destinations far from the epoch, which a
     # floating-point timestamp could not represent.
-    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.UTC)
     with time_machine.travel(destination, tick=False):
-        assert dt.datetime.now(dt.timezone.utc) == destination
+        assert dt.datetime.now(dt.UTC) == destination
 
 
 def test_datetime_utcnow():
@@ -209,7 +207,7 @@ def test_datetime_utcnow_no_tick():
 
 @have_64_bit_time_t
 def test_datetime_utcnow_distant_destination_exact():
-    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.UTC)
     with time_machine.travel(destination, tick=False):
         assert dt.datetime.utcnow() == destination.replace(tzinfo=None)
 
@@ -236,7 +234,7 @@ def test_date_today():
 
 def test_datetime_today_exact_far_future():
     # A float timestamp this large cannot represent every microsecond.
-    destination = dt.datetime(2243, 1, 1, 0, 0, 0, 1, tzinfo=dt.timezone.utc)
+    destination = dt.datetime(2243, 1, 1, 0, 0, 0, 1, tzinfo=dt.UTC)
     with time_machine.travel(destination, tick=False):
         assert dt.datetime.today() == destination.replace(tzinfo=None)
         assert dt.date.today() == destination.date()
@@ -246,7 +244,7 @@ def test_datetime_today_subclass_exact_far_future():
     class DatetimeSubclass(dt.datetime):
         pass
 
-    destination = dt.datetime(2243, 1, 1, 0, 0, 0, 1, tzinfo=dt.timezone.utc)
+    destination = dt.datetime(2243, 1, 1, 0, 0, 0, 1, tzinfo=dt.UTC)
     with time_machine.travel(destination, tick=False):
         today = DatetimeSubclass.today()
     assert isinstance(today, DatetimeSubclass)
@@ -256,9 +254,7 @@ def test_datetime_today_subclass_exact_far_future():
 def test_date_today_exact_far_future():
     # A float timestamp this large rounds up past midnight, which would move
     # the date on by a whole day.
-    destination = dt.datetime(3000, 1, 1, tzinfo=dt.timezone.utc) - dt.timedelta(
-        microseconds=1
-    )
+    destination = dt.datetime(3000, 1, 1, tzinfo=dt.UTC) - dt.timedelta(microseconds=1)
     with time_machine.travel(destination, tick=False):
         assert dt.date.today() == dt.date(2999, 12, 31)
 
@@ -371,7 +367,7 @@ def test_time_gmtime_no_args_no_tick():
 def test_time_gmtime_no_args_distant_destination():
     # The struct fields stay exact for distant destinations, since gmtime()
     # receives whole integer seconds.
-    destination = dt.datetime(2500, 1, 1, microsecond=3, tzinfo=dt.timezone.utc)
+    destination = dt.datetime(2500, 1, 1, microsecond=3, tzinfo=dt.UTC)
     with time_machine.travel(destination, tick=False):
         local_time = time.gmtime()
     assert (local_time.tm_year, local_time.tm_mon, local_time.tm_mday) == (2500, 1, 1)
@@ -529,7 +525,7 @@ def test_time_time_ns_no_tick():
 
 
 def test_time_time_ns_distant_destination_exact():
-    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.UTC)
     with time_machine.travel(destination, tick=False):
         assert time.time_ns() == 16_725_225_600_000_001_000
 
@@ -644,7 +640,7 @@ def test_destination_datetime_tzinfo_zoneinfo_utc_no_orig_tz():
 def test_destination_datetime_tzinfo_datetime_timezone_utc_no_orig_tz():
     with change_local_timezone(None):
         orig_tzname = time.tzname
-        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=dt.timezone.utc)
+        dest = LIBRARY_EPOCH_DATETIME.replace(tzinfo=dt.UTC)
 
         with time_machine.travel(dest):
             assert time.tzname == ("UTC", "UTC")
@@ -652,9 +648,6 @@ def test_destination_datetime_tzinfo_datetime_timezone_utc_no_orig_tz():
         assert time.tzname == orig_tzname
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 11), reason="datetime.UTC was introduced in Python 3.11"
-)
 def test_destination_datetime_tzinfo_datetime_utc_no_orig_tz():
     with change_local_timezone(None):
         orig_tzname = time.tzname
@@ -774,10 +767,6 @@ def test_destination_string_no_dateutil(string, expected_time):
         assert time.time() == expected_time
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 11),
-    reason="datetime.fromisoformat extended formats added in 3.11",
-)
 @pytest.mark.parametrize(
     ("string", "expected_time"),
     [
@@ -1090,7 +1079,7 @@ def test_extract_timestamp_tzname_float_rounded():
 
 
 def test_extract_timestamp_tzname_datetime_utc():
-    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.timezone.utc)
+    destination = dt.datetime(2500, 1, 1, microsecond=1, tzinfo=dt.UTC)
     assert time_machine.extract_timestamp_tzname(destination) == (
         16_725_225_600_000_001_000,
         "UTC",
@@ -1431,7 +1420,7 @@ def test_uuid_after_travel(generate, time_from):
     with time_machine.travel(dt.datetime(2056, 2, 6, 14, 3, 21), tick=False):
         generate()
 
-    now = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+    now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     assert abs(time_from(generate()) - now) < dt.timedelta(seconds=10)
 
 
@@ -1706,7 +1695,7 @@ def test_fallback_time_machine_unavailable(bad_value):
             assert time.localtime().tm_year >= 2020
             assert int(time.strftime("%Y")) >= 2020
             assert dt.datetime.now().year >= 2020
-            assert dt.datetime.now(dt.timezone.utc).year >= 2020
+            assert dt.datetime.now(dt.UTC).year >= 2020
             assert dt.datetime.utcnow().year >= 2020
             assert dt.date.today().year >= 2020
 
@@ -1874,7 +1863,7 @@ def test_naive_mode_error_date():
 
 
 def test_naive_mode_error_aware_datetime_works():
-    aware_dt = dt.datetime(1970, 1, 1, 0, 2, 0, tzinfo=dt.timezone.utc)
+    aware_dt = dt.datetime(1970, 1, 1, 0, 2, 0, tzinfo=dt.UTC)
     with (
         mock.patch.object(time_machine, "naive_mode", time_machine.NaiveMode.ERROR),
         time_machine.travel(aware_dt),
@@ -2143,10 +2132,10 @@ class TestEscapeHatch:
         assert excinfo.value.args == ("Not currently time-travelling.",)
 
     def test_datetime_now_tz(self):
-        real_now = dt.datetime.now(tz=dt.timezone.utc)
+        real_now = dt.datetime.now(tz=dt.UTC)
 
         with time_machine.travel(EPOCH):
-            eh_now = time_machine.escape_hatch.datetime.datetime.now(tz=dt.timezone.utc)
+            eh_now = time_machine.escape_hatch.datetime.datetime.now(tz=dt.UTC)
             assert eh_now >= real_now
 
     def test_datetime_today(self):

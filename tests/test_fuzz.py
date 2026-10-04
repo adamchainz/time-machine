@@ -27,7 +27,7 @@ import time_machine
 from tests.conftest import HAVE_64_BIT_TIME_T
 
 NANOSECONDS_PER_SECOND = time_machine.NANOSECONDS_PER_SECOND
-EPOCH_AWARE = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+EPOCH_AWARE = dt.datetime(1970, 1, 1, tzinfo=dt.UTC)
 
 # Bounds that keep generated timestamps positive, whatever timezone offset is
 # applied, and well within the range that all supported platforms can convert.
@@ -37,8 +37,8 @@ if HAVE_64_BIT_TIME_T:
 else:  # pragma: no cover
     # 32-bit time_t cannot represent timestamps beyond 2038-01-19.
     MAX_DATETIME = dt.datetime(2038, 1, 1)
-MIN_TIMESTAMP = MIN_DATETIME.replace(tzinfo=dt.timezone.utc).timestamp()
-MAX_TIMESTAMP = MAX_DATETIME.replace(tzinfo=dt.timezone.utc).timestamp()
+MIN_TIMESTAMP = MIN_DATETIME.replace(tzinfo=dt.UTC).timestamp()
+MAX_TIMESTAMP = MAX_DATETIME.replace(tzinfo=dt.UTC).timestamp()
 
 # The "right/*" zones count leap seconds in POSIX timestamps, which makes
 # timestamps inconsistent with datetime arithmetic. They're only installed on
@@ -52,7 +52,7 @@ naive_datetimes = st.datetimes(min_value=MIN_DATETIME, max_value=MAX_DATETIME)
 aware_datetimes = st.datetimes(
     min_value=MIN_DATETIME,
     max_value=MAX_DATETIME,
-    timezones=st.just(dt.timezone.utc) | zoneinfos,
+    timezones=st.just(dt.UTC) | zoneinfos,
     allow_imaginary=False,
 )
 timestamps = st.floats(min_value=MIN_TIMESTAMP, max_value=MAX_TIMESTAMP)
@@ -81,7 +81,7 @@ def test_travel_to_timestamp(timestamp):
 def test_travel_to_aware_datetime(destination):
     with time_machine.travel(destination, tick=False):
         assert time.time_ns() == datetime_to_ns(destination)
-        now_utc = dt.datetime.now(dt.timezone.utc)
+        now_utc = dt.datetime.now(dt.UTC)
         assert now_utc == destination
         assert dt.datetime.now(destination.tzinfo) == now_utc
 
@@ -91,10 +91,8 @@ def test_travel_to_aware_datetime(destination):
 def test_travel_to_naive_datetime_treated_as_utc(destination):
     # In the default naive_mode (MIXED), naive datetimes are treated as UTC.
     with time_machine.travel(destination, tick=False):
-        assert time.time_ns() == datetime_to_ns(
-            destination.replace(tzinfo=dt.timezone.utc)
-        )
-        assert dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) == destination
+        assert time.time_ns() == datetime_to_ns(destination.replace(tzinfo=dt.UTC))
+        assert dt.datetime.now(dt.UTC).replace(tzinfo=None) == destination
 
 
 @settings(deadline=None)
@@ -102,11 +100,11 @@ def test_travel_to_naive_datetime_treated_as_utc(destination):
     destination=st.dates(min_value=MIN_DATETIME.date(), max_value=MAX_DATETIME.date())
 )
 def test_travel_to_date(destination):
-    midnight = dt.datetime.combine(destination, dt.time(0, 0), tzinfo=dt.timezone.utc)
+    midnight = dt.datetime.combine(destination, dt.time(0, 0), tzinfo=dt.UTC)
     with time_machine.travel(destination, tick=False):
         assert time.time_ns() == datetime_to_ns(midnight)
         assert time.time() == midnight.timestamp()
-        now = dt.datetime.now(dt.timezone.utc)
+        now = dt.datetime.now(dt.UTC)
         assert now == midnight
         assert now.date() == destination
 
@@ -145,7 +143,7 @@ def test_travel_tick_monotonic(timestamp):
     )
 )
 def test_shift_timedelta(delta):
-    start = dt.datetime(2020, 4, 29, tzinfo=dt.timezone.utc)
+    start = dt.datetime(2020, 4, 29, tzinfo=dt.UTC)
     with time_machine.travel(start, tick=False) as traveller:
         traveller.shift(delta)
         assert time.time_ns() == datetime_to_ns(start) + timedelta_to_ns(delta)
@@ -157,7 +155,7 @@ def test_shift_timedelta(delta):
     | st.floats(min_value=-(2.0**30), max_value=2.0**30)
 )
 def test_shift_number(delta_seconds):
-    start = dt.datetime(2020, 4, 29, tzinfo=dt.timezone.utc)
+    start = dt.datetime(2020, 4, 29, tzinfo=dt.UTC)
     expected_delta_ns = round(delta_seconds * NANOSECONDS_PER_SECOND)
     with time_machine.travel(start, tick=False) as traveller:
         traveller.shift(delta_seconds)
@@ -210,7 +208,7 @@ def test_localtime_and_gmtime_match_datetime(destination, tz):
         assert local.tm_gmtoff == int(utcoffset.total_seconds())
 
         utc = time.gmtime()
-        expected_utc = dt.datetime.fromtimestamp(seconds, dt.timezone.utc)
+        expected_utc = dt.datetime.fromtimestamp(seconds, dt.UTC)
         assert (
             utc.tm_year,
             utc.tm_mon,
@@ -251,7 +249,7 @@ def test_extract_timestamp_tzname_zoneinfo_datetime(destination, tz):
 
 @given(destination=naive_datetimes)
 def test_extract_timestamp_tzname_utc_datetime(destination):
-    aware = destination.replace(tzinfo=dt.timezone.utc)
+    aware = destination.replace(tzinfo=dt.UTC)
     timestamp_ns, tzname = time_machine.extract_timestamp_tzname(aware)
     assert timestamp_ns == datetime_to_ns(aware)
     assert tzname == "UTC"
@@ -301,7 +299,7 @@ def datetime_fields(value: dt.datetime) -> tuple[int, ...]:
 
 
 utc_datetimes = st.datetimes(
-    min_value=MIN_DATETIME, max_value=MAX_DATETIME, timezones=st.just(dt.timezone.utc)
+    min_value=MIN_DATETIME, max_value=MAX_DATETIME, timezones=st.just(dt.UTC)
 )
 
 
@@ -314,7 +312,7 @@ def test_mocked_functions_agree(destination):
     destinations.
     """
     expected_ns = datetime_to_ns(destination)
-    expected_utc = destination.astimezone(dt.timezone.utc)
+    expected_utc = destination.astimezone(dt.UTC)
     expected_naive = expected_utc.replace(tzinfo=None)
     expected_seconds = expected_ns // NANOSECONDS_PER_SECOND
     before_clock_monotonic = time.clock_gettime(time.CLOCK_MONOTONIC)
@@ -326,7 +324,7 @@ def test_mocked_functions_agree(destination):
         assert time.clock_gettime_ns(time.CLOCK_REALTIME) == expected_ns
         assert time.clock_gettime(time.CLOCK_REALTIME) == time.time()
 
-        assert dt.datetime.now(dt.timezone.utc) == expected_utc
+        assert dt.datetime.now(dt.UTC) == expected_utc
         assert dt.datetime.now() == expected_naive
         assert dt.datetime.today() == expected_naive
         with warnings.catch_warnings():
@@ -373,14 +371,14 @@ def test_datetime_subclasses(destination):
     class MyDateTime(dt.datetime):
         pass
 
-    expected_naive = destination.astimezone(dt.timezone.utc).replace(tzinfo=None)
+    expected_naive = destination.astimezone(dt.UTC).replace(tzinfo=None)
 
     with time_machine.travel(destination, tick=False):
         now = MyDateTime.now()
         assert type(now) is MyDateTime
         assert now == expected_naive
 
-        now_utc = MyDateTime.now(dt.timezone.utc)
+        now_utc = MyDateTime.now(dt.UTC)
         assert type(now_utc) is MyDateTime
         assert now_utc == destination
 
@@ -438,7 +436,7 @@ strftime_directives = st.sampled_from(
     destination=st.datetimes(
         min_value=MIN_DATETIME,
         max_value=dt.datetime(2038, 1, 1),
-        timezones=st.just(dt.timezone.utc) | zoneinfos,
+        timezones=st.just(dt.UTC) | zoneinfos,
     ),
     directives=st.lists(strftime_directives, min_size=1, max_size=6),
 )
@@ -474,7 +472,7 @@ if sys.version_info >= (3, 14):
 uuid_destinations = st.datetimes(
     min_value=dt.datetime(1973, 1, 1),
     max_value=MAX_DATETIME,
-    timezones=st.just(dt.timezone.utc) | zoneinfos,
+    timezones=st.just(dt.UTC) | zoneinfos,
 )
 
 
@@ -567,7 +565,7 @@ def test_travel_to_string_variants(destination, style):
     else:
         # fromisoformat() only accepts a "Z" suffix on Python 3.11+, so the
         # expected value is derived from the datetime rather than the string.
-        value = destination.astimezone(dt.timezone.utc).isoformat()
+        value = destination.astimezone(dt.UTC).isoformat()
         value = value.replace("+00:00", "Z")
     with time_machine.travel(value, tick=False):
         assert time.time_ns() == datetime_to_ns(expected)
@@ -621,7 +619,7 @@ def test_unambiguous_local():
 )
 def test_naive_datetime_modes(destination, tz, mode):
     assume(unambiguous_local(destination, tz))
-    as_utc = destination.replace(tzinfo=dt.timezone.utc)
+    as_utc = destination.replace(tzinfo=dt.UTC)
     as_local = destination.replace(tzinfo=tz)
 
     with (
@@ -645,7 +643,7 @@ def test_naive_datetime_modes(destination, tz, mode):
         else:
             expected = as_utc
             expected_date = dt.datetime.combine(
-                destination.date(), dt.time(0, 0), tzinfo=dt.timezone.utc
+                destination.date(), dt.time(0, 0), tzinfo=dt.UTC
             )
         if mode == time_machine.NaiveMode.UTC:
             expected_string = as_utc
@@ -675,7 +673,7 @@ def test_escape_hatch_returns_real_time(destination):
         assert real_ns >= LIBRARY_EPOCH_NS
         assert time_machine.escape_hatch.time.time() >= LIBRARY_EPOCH_NS / 1e9
         assert time_machine.escape_hatch.datetime.datetime.now(
-            dt.timezone.utc
+            dt.UTC
         ) >= utc_datetime_from_ns(LIBRARY_EPOCH_NS)
         assert time_machine.escape_hatch.datetime.date.today() >= (
             utc_datetime_from_ns(LIBRARY_EPOCH_NS).date() - dt.timedelta(days=1)
@@ -689,7 +687,7 @@ def test_escape_hatch_returns_real_time(destination):
         )
 
 
-LIBRARY_EPOCH_NS = datetime_to_ns(dt.datetime(2020, 4, 29, tzinfo=dt.timezone.utc))
+LIBRARY_EPOCH_NS = datetime_to_ns(dt.datetime(2020, 4, 29, tzinfo=dt.UTC))
 
 
 # Stateful testing of nested travel, shift() and move_to()
@@ -756,9 +754,7 @@ class TravelMachine(RuleBasedStateMachine):
         assert time_machine.escape_hatch.is_travelling() == bool(self.travels)
         if self.travels:
             assert time.time_ns() == self.expected_ns[-1]
-            assert dt.datetime.now(dt.timezone.utc) == utc_datetime_from_ns(
-                self.expected_ns[-1]
-            )
+            assert dt.datetime.now(dt.UTC) == utc_datetime_from_ns(self.expected_ns[-1])
         else:
             assert time.time_ns() >= LIBRARY_EPOCH_NS
 
