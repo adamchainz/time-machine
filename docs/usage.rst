@@ -156,7 +156,7 @@ Main API
 
       @time_machine.travel("1970-01-01 00:00 +0000")
       def test_in_the_deep_past():
-          assert 0.0 < time.time() < 1.0
+          assert 0.0 <= time.time() < 1.0
 
   You can also decorate asynchronous functions (coroutines):
 
@@ -168,7 +168,7 @@ Main API
 
       @time_machine.travel("1970-01-01 00:00 +0000")
       async def test_in_the_deep_past():
-          assert 0.0 < time.time() < 1.0
+          assert 0.0 <= time.time() < 1.0
 
   .. _travel-context-manager:
 
@@ -186,7 +186,7 @@ Main API
 
       def test_in_the_deep_past():
           with time_machine.travel(0.0):
-              assert 0.0 < time.time() < 1.0
+              assert 0.0 <= time.time() < 1.0
 
   …and asynchronously:
 
@@ -198,7 +198,7 @@ Main API
 
       async def test_in_the_deep_past():
           async with time_machine.travel(0.0):
-              assert 0.0 < time.time() < 1.0
+              assert 0.0 <= time.time() < 1.0
 
   Class decorator
   ^^^^^^^^^^^^^^^
@@ -214,9 +214,9 @@ Main API
 
 
       @time_machine.travel(0.0)
-      class DeepPastTests(TestCase):
+      class DeepPastTests(unittest.TestCase):
           def test_in_the_deep_past(self):
-              assert 0.0 < time.time() < 1.0
+              assert 0.0 <= time.time() < 1.0
 
   Note this is different to ``unittest.mock.patch()``\'s behaviour, which is to mock only during the test methods.
   For pytest-style test classes, see the autouse fixture pattern :doc:`in the pytest plugin documentation <pytest_plugin>`.
