@@ -94,6 +94,22 @@ Main API
   So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
   The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
 
+  If ``tick`` is a ``datetime.timedelta``, successive calls instead increase by that fixed step *on each call.*
+  This gives deterministic tests that still see distinct values:
+
+  .. code-block:: python
+
+      import datetime as dt
+      import time_machine
+
+      start = dt.datetime(2025, 7, 4, 10, 1, 47, 962744, tzinfo=dt.UTC)
+      step = dt.timedelta(minutes=8)
+
+      with time_machine.travel(start, tick=step):
+          assert dt.datetime.now(dt.UTC) == start
+          assert dt.datetime.now(dt.UTC) == start + step
+          assert dt.datetime.now(dt.UTC) == start + step * 2
+
   Mocked functions
   ^^^^^^^^^^^^^^^^
 
@@ -267,7 +283,7 @@ Main API
   ``move_to()`` moves the current time to a new destination.
   ``destination`` may be any of the types supported by ``travel``.
 
-  ``tick`` may be set to a boolean, to change the ``tick`` flag of ``travel``.
+  ``tick`` may be set to a boolean or a ``datetime.timedelta``, to change the ``tick`` flag of ``travel``.
 
   For example:
 

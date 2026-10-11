@@ -102,6 +102,37 @@ def test_datetime_now_no_args_no_tick():
     assert dt.datetime.now() >= LIBRARY_EPOCH_DATETIME
 
 
+def test_datetime_now_tick_timedelta():
+    step = dt.timedelta(minutes=8)
+    with time_machine.travel(EPOCH, tick=step):
+        assert dt.datetime.now(dt.UTC) == EPOCH_DATETIME
+        assert dt.datetime.now(dt.UTC) == EPOCH_DATETIME + step
+        assert dt.datetime.now(dt.UTC) == EPOCH_DATETIME + step * 2
+
+
+def test_time_tick_timedelta():
+    step = dt.timedelta(seconds=8)
+    with time_machine.travel(EPOCH, tick=step):
+        assert time.time() == EPOCH
+        assert time.time() == EPOCH + 8
+        assert time.time() == EPOCH + 16
+
+
+def test_tick_timedelta_zero():
+    # A zero timedelta is falsy, but still means "tick", by an offset of zero.
+    with time_machine.travel(EPOCH, tick=dt.timedelta(0)):
+        assert time.time() == EPOCH
+        assert time.time() == EPOCH
+
+
+def test_tick_timedelta_microseconds():
+    # The step accumulates as whole nanoseconds, never through a float.
+    with time_machine.travel(EPOCH, tick=dt.timedelta(microseconds=1)):
+        assert time.time_ns() == 0
+        assert time.time_ns() == 1_000
+        assert time.time_ns() == 2_000
+
+
 def test_datetime_now_arg():
     with time_machine.travel(EPOCH):
         now = dt.datetime.now(tz=dt.UTC)
@@ -1325,6 +1356,41 @@ def test_move_to_datetime_change_tick_off():
         assert time.time() == EPOCH_PLUS_ONE_YEAR
 
 
+def test_move_to_datetime_change_tick_timedelta():
+    step = dt.timedelta(seconds=10)
+    with time_machine.travel(EPOCH, tick=False) as traveller:
+        assert time.time() == EPOCH
+
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME, tick=step)
+
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+        assert time.time() == EPOCH_PLUS_ONE_YEAR + 10
+
+
+def test_move_to_datetime_keeps_tick_timedelta():
+    step = dt.timedelta(seconds=10)
+    with time_machine.travel(EPOCH, tick=step) as traveller:
+        assert time.time() == EPOCH
+        assert time.time() == EPOCH + 10
+
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR_DATETIME)
+
+        # The step restarts from the new destination.
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+        assert time.time() == EPOCH_PLUS_ONE_YEAR + 10
+
+
+def test_tick_timedelta_with_shift():
+    with time_machine.travel(EPOCH, tick=dt.timedelta(seconds=10)) as traveller:
+        assert time.time() == EPOCH
+
+        traveller.shift(dt.timedelta(seconds=1000))
+
+        # shift() moves the destination; the step continues from there.
+        assert time.time() == EPOCH + 1010
+        assert time.time() == EPOCH + 1020
+
+
 # uuid tests
 
 
@@ -1967,6 +2033,12 @@ def test_fixture_used_tick_true(time_machine):
     sleep_one_cycle(time.CLOCK_MONOTONIC)
     assert original == EPOCH
     assert original < time.time() < EPOCH + 10.0
+
+
+def test_fixture_used_tick_timedelta(time_machine):
+    time_machine.move_to(EPOCH, tick=dt.timedelta(seconds=5))
+    assert time.time() == EPOCH
+    assert time.time() == EPOCH + 5
 
 
 def test_fixture_move_to_twice(time_machine):
