@@ -12,6 +12,11 @@ Unreleased
 
   `PR #696 <https://github.com/adamchainz/time-machine/pull/696>`__.
 
+* Allow ``tick`` to be a ``datetime.timedelta``, in which case each call to a mocked function returns a value increased by that fixed step.
+  This gives deterministic tests that still see distinct timestamps, unlike ``tick=True``, which follows the elapsed real time.
+
+  `PR #701 <https://github.com/adamchainz/time-machine/pull/701>`__.
+
 3.5.1 (2026-09-08)
 ------------------
 
