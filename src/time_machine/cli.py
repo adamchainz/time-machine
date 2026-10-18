@@ -786,11 +786,11 @@ def module_scope_stmts(tree: ast.Module) -> set[ast.stmt]:
     module-level compound statements like `if` and `try`, but not within
     functions or classes.
     """
-    result: set[ast.stmt] = set()
+    stmts: set[ast.stmt] = set()
 
     def add(body: list[ast.stmt]) -> None:
         for stmt in body:
-            result.add(stmt)
+            stmts.add(stmt)
             if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 continue
             for field in ("body", "orelse", "finalbody"):
@@ -802,7 +802,7 @@ def module_scope_stmts(tree: ast.Module) -> set[ast.stmt]:
                     add(handler.body)
 
     add(tree.body)
-    return result
+    return stmts
 
 
 def collectible_class_defs(module_stmts: set[ast.stmt]) -> set[ast.ClassDef]:
@@ -812,10 +812,10 @@ def collectible_class_defs(module_stmts: set[ast.stmt]) -> set[ast.ClassDef]:
     inside functions are never collected, so a marker on one would silently do
     nothing.
     """
-    result: set[ast.ClassDef] = set()
+    class_defs: set[ast.ClassDef] = set()
 
     def add(node: ast.ClassDef) -> None:
-        result.add(node)
+        class_defs.add(node)
         for stmt in node.body:
             if isinstance(stmt, ast.ClassDef):
                 add(stmt)
@@ -823,7 +823,7 @@ def collectible_class_defs(module_stmts: set[ast.stmt]) -> set[ast.ClassDef]:
     for stmt in module_stmts:
         if isinstance(stmt, ast.ClassDef):
             add(stmt)
-    return result
+    return class_defs
 
 
 def fixture_rebindings(tree: ast.Module, names: set[str]) -> set[str]:
