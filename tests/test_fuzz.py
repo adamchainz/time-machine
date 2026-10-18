@@ -12,13 +12,6 @@ from unittest import mock
 from zoneinfo import ZoneInfo
 
 import pytest
-
-if sys.version_info[:2] == (3, 13) and not sys._is_gil_enabled():
-    # Hypothesis has no free-threaded wheels for Python 3.13, and cannot be
-    # built from source there, since PyO3 does not support free-threaded
-    # Python < 3.14.
-    pytest.skip("Hypothesis unavailable", allow_module_level=True)
-
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, invariant, precondition, rule

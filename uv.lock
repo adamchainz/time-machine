@@ -974,13 +974,6 @@ test = [
     { name = "pytest-randomly" },
     { name = "python-dateutil" },
 ]
-test-base = [
-    { name = "coverage", extra = ["toml"] },
-    { name = "freezegun" },
-    { name = "pytest" },
-    { name = "pytest-randomly" },
-    { name = "python-dateutil" },
-]
 
 [package.group-requires-python]
 build = ">=3.14"
@@ -1003,13 +996,6 @@ test = [
     { name = "coverage", extras = ["toml"] },
     { name = "freezegun" },
     { name = "hypothesis" },
-    { name = "pytest", specifier = ">=9" },
-    { name = "pytest-randomly" },
-    { name = "python-dateutil" },
-]
-test-base = [
-    { name = "coverage", extras = ["toml"] },
-    { name = "freezegun" },
     { name = "pytest", specifier = ">=9" },
     { name = "pytest-randomly" },
     { name = "python-dateutil" },

@@ -53,8 +53,12 @@ entry-points.pytest11.time_machine = "time_machine"
 
 [dependency-groups]
 test = [
+  "coverage[toml]",
+  "freezegun",
   "hypothesis",
-  { include-group = "test-base" },
+  "pytest>=9",
+  "pytest-randomly",
+  "python-dateutil",
 ]
 docs = [
   "furo>=2024.8.6",
@@ -63,13 +67,6 @@ docs = [
 ]
 build = [
   "cibuildwheel>=3.3.1",
-]
-test-base = [
-  "coverage[toml]",
-  "freezegun",
-  "pytest>=9",
-  "pytest-randomly",
-  "python-dateutil",
 ]
 
 [tool.uv]
