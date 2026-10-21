@@ -66,7 +66,7 @@ docs = [
   "sphinx-copybutton>=0.5.2",
 ]
 build = [
-  "cibuildwheel>=3.3.1",
+  "cibuildwheel>=4.3.1",
 ]
 
 [tool.uv]
