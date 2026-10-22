@@ -12,6 +12,9 @@ Unreleased
 
   `PR #696 <https://github.com/adamchainz/time-machine/pull/696>`__.
 
+* Extend the :ref:`Migration CLI <migration-cli>` to migrate ``freeze_time()`` calls that pass the destination with the ``time_to_freeze`` keyword argument.
+  The argument is made positional, or renamed to ``destination`` if it follows another kept keyword argument.
+
 3.5.1 (2026-09-08)
 ------------------
 
