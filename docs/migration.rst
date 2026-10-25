@@ -133,7 +133,7 @@ Import updates
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 * In function decorators, context managers, and class decorators on unittest-style classes: ``freeze_time(...)`` -> ``time_machine.travel(...)``.
-  This change is applied only when ``freeze_time()`` is called with a single positional argument and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, ``real_asyncio``, and ``ignore``.
+  This change is applied only when ``freeze_time()`` is called with at most one destination, passed positionally or as ``time_to_freeze``, and only supported keyword arguments: ``tick``, ``tz_offset`` with a literal zero value, ``real_asyncio``, and ``ignore``.
   If ``tick`` is passed, it is kept as-is, otherwise it is replaced with ``tick=False`` (matching freezegun’s default behaviour):
 
   .. code-block:: diff
@@ -155,6 +155,20 @@ Import updates
       -@freeze_time()
       +@time_machine.travel(None, tick=False)
        def test_function():
+           ...
+
+  If the destination is passed with freezegun’s ``time_to_freeze`` keyword argument, it is made positional, or, if it follows a kept keyword argument, renamed to time-machine’s ``destination``:
+
+  .. code-block:: diff
+
+      -@freeze_time(time_to_freeze="2023-01-01")
+      +@time_machine.travel("2023-01-01", tick=False)
+       def test_function():
+           ...
+
+      -@freeze_time(tick=True, time_to_freeze="2023-01-01")
+      +@time_machine.travel(tick=True, destination="2023-01-01")
+       def test_function2():
            ...
 
   ``tz_offset=0`` is dropped, since a zero offset has no effect.
