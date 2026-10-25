@@ -58,6 +58,15 @@ freeze_time_arglists = st.sampled_from(
         ("real_asyncio=True",),
         ("tz_offset=0", "tick=True"),
         ("tz_offset=0", "real_asyncio=True", 'ignore=["threading"]'),
+        ('time_to_freeze="2023-01-01"',),
+        ("time_to_freeze=None",),
+        ("time_to_freeze=dest", "tick=True"),
+        ("tick=True", "time_to_freeze=dest"),
+        ("tz_offset=0", 'time_to_freeze="2023-01-01"'),
+        ('time_to_freeze="2023-01-01"', "real_asyncio=True", "tick=False"),
+        ('time_to_freeze="2023-01-01"', "as_arg=True"),
+        ('"2023-01-01"', "time_to_freeze=dest"),
+        ("time_to_freeze=dest", "**kwargs"),
     ]
 )
 
@@ -452,7 +461,8 @@ def test_migrate_contents_properties(source: str) -> None:
     assert reports == sorted(set(reports))
     check_report_positions(migrated, reports)
 
-    # migrated calls have a single destination and only the tick keyword
+    # migrated calls have a single destination, positional or keyword, and
+    # the tick keyword
     for node in ast.walk(migrated_tree):
         match node:
             case ast.Call(
@@ -468,8 +478,13 @@ def test_migrate_contents_properties(source: str) -> None:
                     attr="time_machine",
                 )
             ):
-                assert len(node.args) == 1, ast.unparse(node)
-                assert [kw.arg for kw in node.keywords] == ["tick"], ast.unparse(node)
+                keyword_names = [kw.arg for kw in node.keywords]
+                if "destination" in keyword_names:
+                    assert node.args == [], ast.unparse(node)
+                    keyword_names.remove("destination")
+                else:
+                    assert len(node.args) == 1, ast.unparse(node)
+                assert keyword_names == ["tick"], ast.unparse(node)
 
     # without reports, no uses of the names bound by freezegun imports remain
     if not reports:

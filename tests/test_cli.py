@@ -1281,6 +1281,191 @@ class TestMigrateContents:
             """,
         )
 
+    def test_function_decorator_time_to_freeze_kwarg(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(time_to_freeze="2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_time_to_freeze_kwarg_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(time_to_freeze="2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_time_to_freeze_kwarg_after_tick(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(tick=True, time_to_freeze="2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(tick=True, destination="2023-01-01")
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_time_to_freeze_kwarg_after_tz_offset_zero(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(tz_offset=0, time_to_freeze="2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_time_to_freeze_kwarg_spaced(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(time_to_freeze = "2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel("2023-01-01", tick=True)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_time_to_freeze_kwarg_multiline(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(
+                time_to_freeze="2023-01-01",
+            )
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @time_machine.travel(
+                "2023-01-01", tick=False
+            )
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_function_decorator_time_to_freeze_kwarg_and_positional(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time("2023-01-01", time_to_freeze="2024-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import time_machine
+
+            @freeze_time("2023-01-01", time_to_freeze="2024-01-01")
+            def test_function():
+                pass
+            """,
+            reports=[(4, 2, "freeze_time usage not migrated")],
+        )
+
+    def test_with_time_to_freeze_kwarg(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            with freeze_time(time_to_freeze="2023-01-01"):
+                pass
+            """,
+            """
+            import time_machine
+
+            with time_machine.travel("2023-01-01", tick=False):
+                pass
+            """,
+        )
+
+    def test_marker_time_to_freeze_kwarg(self):
+        check_transformed(
+            """
+            import pytest
+
+            @pytest.mark.freeze_time(time_to_freeze="2023-01-01")
+            def test_function():
+                pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            def test_function():
+                pass
+            """,
+        )
+
+    def test_class_decorator_name_pytest_class_time_to_freeze_kwarg(self):
+        check_transformed(
+            """
+            from freezegun import freeze_time
+
+            @freeze_time(time_to_freeze="2023-01-01")
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+            """
+            import pytest
+
+            @pytest.mark.time_machine("2023-01-01", tick=False)
+            class TestClass:
+                def test_one(self):
+                    pass
+            """,
+        )
+
     def test_function_decorator_tz_offset_zero(self):
         check_transformed(
             """

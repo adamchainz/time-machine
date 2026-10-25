@@ -1168,11 +1168,23 @@ def migrate_arguments(
 ) -> None:
     """
     Add the callbacks to adjust the arguments of a migratable freeze_time()
-    call: add a None destination if there is no positional argument, add
-    tick=False if tick is not passed, and remove droppable keyword arguments.
+    call: make a time_to_freeze keyword argument positional, or rename it to
+    destination if it follows a kept keyword argument, add a None destination
+    if there is no destination argument, add tick=False if tick is not passed,
+    and remove droppable keyword arguments.
     """
     tick_kwargs = [kw for kw in node.keywords if kw.arg == "tick"]
-    if not node.args:
+    destination_kwargs = [kw for kw in node.keywords if kw.arg == "time_to_freeze"]
+    if destination_kwargs:
+        destination_kwarg = destination_kwargs[0]
+        kept_kwargs = [kw for kw in node.keywords if not droppable_kwarg(kw)]
+        if kept_kwargs[0] is destination_kwarg:
+            ret[ast_start_offset(destination_kwarg)].append(remove_kwarg_name)
+        else:
+            ret[ast_start_offset(destination_kwarg)].append(
+                partial(replace_name, src="destination")
+            )
+    if not node.args and not destination_kwargs:
         if tick_kwargs:
             ret[ast_start_offset(tick_kwargs[0])].append(insert_none_arg)
         else:
@@ -1185,8 +1197,15 @@ def migrate_arguments(
 
 
 def migratable_call(node: ast.Call) -> bool:
-    return len(node.args) <= 1 and all(
-        kw.arg == "tick" or droppable_kwarg(kw) for kw in node.keywords
+    return (
+        len(node.args) <= 1
+        and all(
+            kw.arg in ("tick", "time_to_freeze") or droppable_kwarg(kw)
+            for kw in node.keywords
+        )
+        # Passing the destination both positionally and by keyword is an
+        # error.
+        and not (node.args and any(kw.arg == "time_to_freeze" for kw in node.keywords))
     )
 
 
@@ -1590,6 +1609,20 @@ def remove_kwarg(tokens: list[Token], i: int, node: ast.keyword) -> None:
         if tokens[j + 1].name == UNIMPORTANT_WS:
             j += 1
     del tokens[i : j + 1]
+
+
+def remove_kwarg_name(tokens: list[Token], i: int) -> None:
+    """
+    Remove the name and `=` of the keyword argument starting at the given
+    index, making its value a positional argument.
+    """
+    j = i + 1
+    while tokens[j].src != "=":
+        j += 1
+    j += 1
+    while tokens[j].name in NON_CODING_TOKENS:
+        j += 1
+    del tokens[i:j]
 
 
 def insert_none_arg(tokens: list[Token], i: int) -> None:
