@@ -40,8 +40,10 @@ zoneinfos = st.timezones().filter(lambda tz: not tz.key.startswith("right/"))
 
 naive_datetimes = st.datetimes(min_value=MIN_DATETIME, max_value=MAX_DATETIME)
 # Imaginary datetimes (those in a DST gap, which never occurred in their zone)
-# do not compare equal to the instant they convert to in another zone, per
-# PEP 495, so they cannot be round-tripped through UTC.
+# do not convert to the instant they appear to, so they cannot be round-tripped
+# through UTC. Ambiguous datetimes (those in a DST fold) are kept, since they
+# are valid instants, but they must be checked against the instant they
+# represent, rather than compared to another zone's datetime for it.
 aware_datetimes = st.datetimes(
     min_value=MIN_DATETIME,
     max_value=MAX_DATETIME,
@@ -72,11 +74,42 @@ def test_travel_to_timestamp(timestamp):
 @settings(deadline=None)
 @given(destination=aware_datetimes)
 def test_travel_to_aware_datetime(destination):
+    # In UTC, so that comparing against it is exact: for an ambiguous
+    # destination, an equivalent datetime in another zone does not compare
+    # equal to it, per PEP 495, even when both describe the same instant.
+    expected_utc = EPOCH_AWARE + dt.timedelta(
+        microseconds=datetime_to_ns(destination) // 1_000
+    )
     with time_machine.travel(destination, tick=False):
         assert time.time_ns() == datetime_to_ns(destination)
         now_utc = dt.datetime.now(dt.UTC)
-        assert now_utc == destination
-        assert dt.datetime.now(destination.tzinfo) == now_utc
+        assert now_utc == expected_utc
+        assert dt.datetime.now(destination.tzinfo).astimezone(dt.UTC) == now_utc
+
+
+def test_travel_to_aware_datetime_ambiguous():
+    """
+    A destination in a DST fold is frozen exactly, and both now(UTC) and
+    now(tz) report that instant.
+
+    Regression test for https://github.com/adamchainz/time-machine/issues/707:
+    the fuzz test above compared now(UTC) with the destination directly, which
+    per PEP 495 is not equal for an ambiguous datetime, so it failed
+    intermittently whenever the generated destination repeated an hour.
+    """
+    destination = dt.datetime(2000, 10, 29, 1, 0, tzinfo=ZoneInfo("EST5EDT"))
+    # The hour repeats, when clocks go back in this zone.
+    assert destination.utcoffset() != destination.replace(fold=1).utcoffset()
+
+    with time_machine.travel(destination, tick=False):
+        # 972795600000000000 is datetime_to_ns() for this destination.
+        assert time.time_ns() == 972_795_600_000_000_000
+        now_utc = dt.datetime.now(dt.UTC)
+        assert now_utc == dt.datetime(2000, 10, 29, 5, 0, tzinfo=dt.UTC)
+        now_tz = dt.datetime.now(destination.tzinfo)
+        assert now_tz == destination
+        assert now_tz.fold == destination.fold
+        assert now_tz.astimezone(dt.UTC) == now_utc
 
 
 @settings(deadline=None)
