@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix ``time.gmtime()`` and ``time.localtime()`` on Python 3.16, where the original functions now use the fast-call convention.
+  This also fixes their escape-hatch methods and ``time.strftime()`` without an explicit time tuple.
+
 3.6.0 (2026-10-25)
 ------------------
 

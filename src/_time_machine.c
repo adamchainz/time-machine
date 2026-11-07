@@ -562,18 +562,33 @@ Call time.clock_gettime_ns() after patching.");
 /* time.gmtime() */
 
 static PyObject *
+#if PY_VERSION_HEX >= 0x031000a1
+_time_machine_gmtime(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
+{
+    PyObject *arg = nargs == 1 ? args[0] : NULL;
+#else
 _time_machine_gmtime(PyObject *self, PyObject *args)
 {
     Py_ssize_t nargs = PyTuple_GET_SIZE(args);
-    if (nargs > 1 || (nargs == 1 && PyTuple_GET_ITEM(args, 0) != Py_None)) {
+    PyObject *arg = nargs == 1 ? PyTuple_GET_ITEM(args, 0) : NULL;
+#endif
+    if (nargs > 1 || (nargs == 1 && arg != Py_None)) {
         // Pass through, including invalid arguments for their error messages.
+#if PY_VERSION_HEX >= 0x031000a1
+        return ((PyCFunctionFast)original_gmtime)(self, args, nargs);
+#else
         return original_gmtime(self, args);
+#endif
     }
 
     _time_machine_state *state;
     PyObject *traveller = _time_machine_current_traveller(&state);
     if (traveller == NULL) {
+#if PY_VERSION_HEX >= 0x031000a1
+        return ((PyCFunctionFast)original_gmtime)(self, args, nargs);
+#else
         return original_gmtime(self, args);
+#endif
     }
 
     PyObject *timestamp = _time_machine_traveller_seconds(traveller, state);
@@ -581,6 +596,10 @@ _time_machine_gmtime(PyObject *self, PyObject *args)
     if (timestamp == NULL) {
         return NULL;
     }
+#if PY_VERSION_HEX >= 0x031000a1
+    PyObject *result = ((PyCFunctionFast)original_gmtime)(self, &timestamp, 1);
+    Py_DECREF(timestamp);
+#else
     PyObject *new_args = PyTuple_Pack(1, timestamp);
     Py_DECREF(timestamp);
     if (new_args == NULL) {
@@ -588,6 +607,7 @@ _time_machine_gmtime(PyObject *self, PyObject *args)
     }
     PyObject *result = original_gmtime(self, new_args);
     Py_DECREF(new_args);
+#endif
     return result;
 }
 
@@ -601,7 +621,12 @@ _time_machine_original_gmtime(PyObject *module, PyObject *args)
         return NULL;
     }
 
+#if PY_VERSION_HEX >= 0x031000a1
+    PyObject *result = ((PyCFunctionFast)original_gmtime)(
+        state->time_module, PySequence_Fast_ITEMS(args), PyTuple_GET_SIZE(args));
+#else
     PyObject *result = original_gmtime(state->time_module, args);
+#endif
 
     return result;
 }
@@ -613,18 +638,33 @@ Call time.gmtime() after patching.");
 /* time.localtime() */
 
 static PyObject *
+#if PY_VERSION_HEX >= 0x031000a1
+_time_machine_localtime(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
+{
+    PyObject *arg = nargs == 1 ? args[0] : NULL;
+#else
 _time_machine_localtime(PyObject *self, PyObject *args)
 {
     Py_ssize_t nargs = PyTuple_GET_SIZE(args);
-    if (nargs > 1 || (nargs == 1 && PyTuple_GET_ITEM(args, 0) != Py_None)) {
+    PyObject *arg = nargs == 1 ? PyTuple_GET_ITEM(args, 0) : NULL;
+#endif
+    if (nargs > 1 || (nargs == 1 && arg != Py_None)) {
         // Pass through, including invalid arguments for their error messages.
+#if PY_VERSION_HEX >= 0x031000a1
+        return ((PyCFunctionFast)original_localtime)(self, args, nargs);
+#else
         return original_localtime(self, args);
+#endif
     }
 
     _time_machine_state *state;
     PyObject *traveller = _time_machine_current_traveller(&state);
     if (traveller == NULL) {
+#if PY_VERSION_HEX >= 0x031000a1
+        return ((PyCFunctionFast)original_localtime)(self, args, nargs);
+#else
         return original_localtime(self, args);
+#endif
     }
 
     PyObject *timestamp = _time_machine_traveller_seconds(traveller, state);
@@ -632,6 +672,10 @@ _time_machine_localtime(PyObject *self, PyObject *args)
     if (timestamp == NULL) {
         return NULL;
     }
+#if PY_VERSION_HEX >= 0x031000a1
+    PyObject *result = ((PyCFunctionFast)original_localtime)(self, &timestamp, 1);
+    Py_DECREF(timestamp);
+#else
     PyObject *new_args = PyTuple_Pack(1, timestamp);
     Py_DECREF(timestamp);
     if (new_args == NULL) {
@@ -639,6 +683,7 @@ _time_machine_localtime(PyObject *self, PyObject *args)
     }
     PyObject *result = original_localtime(self, new_args);
     Py_DECREF(new_args);
+#endif
     return result;
 }
 
@@ -652,7 +697,12 @@ _time_machine_original_localtime(PyObject *module, PyObject *args)
         return NULL;
     }
 
+#if PY_VERSION_HEX >= 0x031000a1
+    PyObject *result = ((PyCFunctionFast)original_localtime)(
+        state->time_module, PySequence_Fast_ITEMS(args), PyTuple_GET_SIZE(args));
+#else
     PyObject *result = original_localtime(state->time_module, args);
+#endif
 
     return result;
 }
@@ -687,6 +737,10 @@ _time_machine_strftime(PyObject *self, PyObject *args)
     if (timestamp == NULL) {
         return NULL;
     }
+#if PY_VERSION_HEX >= 0x031000a1
+    PyObject *local_time = ((PyCFunctionFast)original_localtime)(self, &timestamp, 1);
+    Py_DECREF(timestamp);
+#else
     PyObject *localtime_args = PyTuple_Pack(1, timestamp);
     Py_DECREF(timestamp);
     if (localtime_args == NULL) {
@@ -694,6 +748,7 @@ _time_machine_strftime(PyObject *self, PyObject *args)
     }
     PyObject *local_time = original_localtime(self, localtime_args);
     Py_DECREF(localtime_args);
+#endif
     if (local_time == NULL) {
         return NULL;
     }
@@ -857,15 +912,15 @@ _time_machine_patch(PyObject *module, PyObject *unused)
         state->time_clock_gettime_ns->m_ml->ml_meth = _time_machine_clock_gettime_ns;
     }
 
-    if (state->time_gmtime->m_ml->ml_meth != _time_machine_gmtime) {
+    if (state->time_gmtime->m_ml->ml_meth != (PyCFunction)_time_machine_gmtime) {
         original_gmtime = state->time_gmtime->m_ml->ml_meth;
     }
-    state->time_gmtime->m_ml->ml_meth = _time_machine_gmtime;
+    state->time_gmtime->m_ml->ml_meth = (PyCFunction)_time_machine_gmtime;
 
-    if (state->time_localtime->m_ml->ml_meth != _time_machine_localtime) {
+    if (state->time_localtime->m_ml->ml_meth != (PyCFunction)_time_machine_localtime) {
         original_localtime = state->time_localtime->m_ml->ml_meth;
     }
-    state->time_localtime->m_ml->ml_meth = _time_machine_localtime;
+    state->time_localtime->m_ml->ml_meth = (PyCFunction)_time_machine_localtime;
 
     if (state->time_strftime->m_ml->ml_meth != _time_machine_strftime) {
         original_strftime = state->time_strftime->m_ml->ml_meth;

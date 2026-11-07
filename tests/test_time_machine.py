@@ -426,6 +426,35 @@ def test_time_localtime_too_many_args():
         time.localtime(EPOCH, EPOCH)  # type: ignore[call-arg]
 
 
+@pytest.mark.parametrize("name", ["gmtime", "localtime"])
+def test_time_conversion_none(name):
+    convert = getattr(time, name)
+    expected = convert(EPOCH)
+    with time_machine.travel(EPOCH, tick=False):
+        assert convert(None) == expected
+
+
+@pytest.mark.parametrize("name", ["gmtime", "localtime"])
+@pytest.mark.parametrize("args", [("not-a-number",), (EPOCH, EPOCH)])
+def test_time_conversion_preserves_argument_errors(name, args):
+    convert = getattr(time, name)
+    with pytest.raises(TypeError) as original:
+        convert(*args)
+    with time_machine.travel(EPOCH), pytest.raises(TypeError) as patched:
+        convert(*args)
+    assert patched.value.args == original.value.args
+
+
+@pytest.mark.parametrize("name", ["gmtime", "localtime"])
+def test_time_conversion_escape_hatch_arg(name):
+    expected = getattr(time, name)(EPOCH_PLUS_ONE_YEAR)
+    with time_machine.travel(EPOCH):
+        assert (
+            getattr(time_machine.escape_hatch.time, name)(EPOCH_PLUS_ONE_YEAR)
+            == expected
+        )
+
+
 def test_time_strftime_format():
     with time_machine.travel(EPOCH):
         assert time.strftime("%Y-%m-%d") == "1970-01-01"
