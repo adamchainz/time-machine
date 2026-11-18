@@ -101,9 +101,13 @@ naive_mode = NaiveMode.MIXED
 
 
 def _datetime_to_ns(destination: dt.datetime) -> int:
-    # timestamp() on a whole-second datetime returns an integer-valued float,
-    # exact for any supported year since UTC offsets are whole seconds, so the
-    # nanosecond timestamp can be computed with exact integer arithmetic.
+    offset = destination.utcoffset()
+    if offset is not None:
+        delta = destination.replace(tzinfo=None) - dt.datetime(1970, 1, 1) - offset
+        return _timedelta_to_ns(delta)
+
+    # Preserve local-time handling for naive datetimes, with integer arithmetic
+    # retaining microsecond precision across the supported year range.
     seconds = int(destination.replace(microsecond=0).timestamp())
     return seconds * NANOSECONDS_PER_SECOND + destination.microsecond * 1_000
 
