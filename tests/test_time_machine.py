@@ -530,6 +530,40 @@ def test_time_time_ns_distant_destination_exact():
         assert time.time_ns() == 16_725_225_600_000_001_000
 
 
+def test_datetime_now_tick_timedelta():
+    destination = dt.datetime(2025, 7, 4, 10, 1, 47, 962744)
+    step = dt.timedelta(minutes=8)
+    with time_machine.travel(destination, tick=step):
+        assert dt.datetime.now() == destination
+        assert dt.datetime.now() == destination + step
+        assert dt.datetime.now() == destination + step * 2
+        assert dt.datetime.now() == destination + step * 3
+
+
+def test_time_time_tick_timedelta():
+    with time_machine.travel(EPOCH, tick=dt.timedelta(seconds=1.5)):
+        assert time.time() == EPOCH
+        assert time.time() == EPOCH + 1.5
+        assert time.time() == EPOCH + 3.0
+
+
+def test_time_time_ns_tick_timedelta():
+    step_ns = 2 * NANOSECONDS_PER_SECOND
+    with time_machine.travel(EPOCH, tick=dt.timedelta(seconds=2)):
+        assert time.time_ns() == int(EPOCH * NANOSECONDS_PER_SECOND)
+        assert time.time_ns() == int(EPOCH * NANOSECONDS_PER_SECOND) + step_ns
+
+
+def test_tick_timedelta_move_to_resets_steps():
+    step = dt.timedelta(seconds=10)
+    with time_machine.travel(EPOCH, tick=step) as traveller:
+        assert time.time() == EPOCH
+        assert time.time() == EPOCH + 10.0
+        traveller.move_to(EPOCH_PLUS_ONE_YEAR)
+        assert time.time() == EPOCH_PLUS_ONE_YEAR
+        assert time.time() == EPOCH_PLUS_ONE_YEAR + 10.0
+
+
 # all supported forms
 
 
