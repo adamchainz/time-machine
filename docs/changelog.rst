@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Allow passing a ``datetime.timedelta`` to the ``tick`` argument of ``travel()``, ``Traveller.move_to()``, and the pytest fixture’s ``move_to()``.
+  In this mode, successive calls to mocked functions return values increasing by the given interval on each call, starting from the destination.
+  This makes time progress in fixed, deterministic steps.
+
 3.6.0 (2026-10-25)
 ------------------
 

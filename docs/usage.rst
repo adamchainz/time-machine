@@ -94,6 +94,10 @@ Main API
   So after starting travel to ``0.0`` (the UNIX epoch), the first call to any datetime function will return its representation of ``1970-01-01 00:00:00.000000`` exactly.
   The following calls "tick," so if a call was made exactly half a second later, it would return ``1970-01-01 00:00:00.500000``.
 
+  ``tick`` may also be a ``datetime.timedelta``, in which case successive calls to mocked functions return values increasing by that fixed interval on each call, regardless of the real time elapsed.
+  This keeps time progressing whilst remaining deterministic.
+  For example, travelling to ``2025-07-04 10:01:47`` with ``tick=datetime.timedelta(minutes=8)`` makes successive calls to ``datetime.datetime.now()`` return ``2025-07-04 10:01:47``, ``2025-07-04 10:09:47``, ``2025-07-04 10:17:47``, and so on.
+
   Mocked functions
   ^^^^^^^^^^^^^^^^
 
@@ -267,7 +271,7 @@ Main API
   ``move_to()`` moves the current time to a new destination.
   ``destination`` may be any of the types supported by ``travel``.
 
-  ``tick`` may be set to a boolean, to change the ``tick`` flag of ``travel``.
+  ``tick`` may be set to a boolean or a ``datetime.timedelta``, to change the ``tick`` behaviour of ``travel``.
 
   For example:
 

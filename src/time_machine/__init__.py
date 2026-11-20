@@ -206,14 +206,22 @@ class Traveller:
         self,
         destination_timestamp_ns: int,
         destination_tzname: str | None,
-        tick: bool,
+        tick: bool | dt.timedelta,
     ) -> None:
         self._destination_timestamp_ns = destination_timestamp_ns
         self._destination_tzname = destination_tzname
         self._tick = tick
         self._requested = False
+        self._tick_calls = 0
 
     def time_ns(self) -> int:
+        if isinstance(self._tick, dt.timedelta):
+            result = self._destination_timestamp_ns + (
+                self._tick_calls * _timedelta_to_ns(self._tick)
+            )
+            self._tick_calls += 1
+            return result
+
         if not self._tick:
             return self._destination_timestamp_ns
 
@@ -247,7 +255,7 @@ class Traveller:
     def move_to(
         self,
         destination: DestinationType,
-        tick: bool | None = None,
+        tick: bool | dt.timedelta | None = None,
     ) -> None:
         self._stop()
         try:
@@ -260,6 +268,7 @@ class Traveller:
             self._start()
             raise
         self._requested = False
+        self._tick_calls = 0
         self._start()
         if tick is not None:
             self._tick = tick
@@ -287,7 +296,9 @@ original_uuid_uuid_create = None
 
 
 class travel:
-    def __init__(self, destination: DestinationType, *, tick: bool = True) -> None:
+    def __init__(
+        self, destination: DestinationType, *, tick: bool | dt.timedelta = True
+    ) -> None:
         self.destination_timestamp_ns, self.destination_tzname = (
             extract_timestamp_tzname(destination)
         )
@@ -447,7 +458,7 @@ class TimeMachineFixture:
     def move_to(
         self,
         destination: DestinationType,
-        tick: bool | None = None,
+        tick: bool | dt.timedelta | None = None,
     ) -> None:
         if self.traveller is None:
             if tick is None:
