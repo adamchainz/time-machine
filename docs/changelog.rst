@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Speed up mocked functions in the main interpreter by caching its module state, rather than finding it through ``sys.modules`` on every call.
+  For example, a mocked ``time.time()`` call takes about half as long.
+
 3.6.0 (2026-10-25)
 ------------------
 

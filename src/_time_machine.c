@@ -9,6 +9,7 @@ typedef struct {
     PyObject *time_module;
     PyObject *datetime_class;
     PyObject *timezone_utc;
+    PyObject *str_time_machine;
     PyObject *str_traveller_stack;
     PyObject *str_time_ns;
     PyObject *str_replace;
@@ -113,19 +114,31 @@ patch_mutex_unlock(void)
 */
 
 /*
-    Return the current interpreter's active traveller,
-    time_machine.traveller_stack[-1], as a new reference, and set *state to
-    the current interpreter's module state.
+    The main interpreter's module state, set when it imports this module, so
+    the common case can skip finding the state through sys.modules below,
+    which allocates two strings on every call of a patched function.
+*/
+static _time_machine_state *main_interpreter_state = NULL;
 
-    Return NULL, with no exception set, if the current interpreter is not
-    time travelling: because time_machine is not imported in it, or no travel
-    is in progress. Patching applies process-wide, so this happens when
-    another interpreter is travelling and this one is not. Callers should
-    then fall back to the original functions.
+/*
+    Return the current interpreter's time_machine module, as a new reference,
+    and set *state to the current interpreter's module state. Return NULL,
+    with no exception set, if time_machine is not imported in it.
 */
 static PyObject *
-_time_machine_current_traveller(_time_machine_state **state)
+_time_machine_module_and_state(_time_machine_state **state)
 {
+    if (PyInterpreterState_Get() == PyInterpreterState_Main() &&
+        main_interpreter_state != NULL) {
+        *state = main_interpreter_state;
+        PyObject *time_machine_module =
+            PyImport_GetModule(main_interpreter_state->str_time_machine);
+        if (time_machine_module == NULL) {
+            PyErr_Clear();
+        }
+        return time_machine_module;
+    }
+
     PyObject *name = PyUnicode_FromString("time_machine");
     if (name == NULL) {
         PyErr_Clear();
@@ -153,6 +166,27 @@ _time_machine_current_traveller(_time_machine_state **state)
     if (*state == NULL || (*state)->str_traveller_stack == NULL) {
         PyErr_Clear();
         Py_DECREF(time_machine_module);
+        return NULL;
+    }
+    return time_machine_module;
+}
+
+/*
+    Return the current interpreter's active traveller,
+    time_machine.traveller_stack[-1], as a new reference, and set *state to
+    the current interpreter's module state.
+
+    Return NULL, with no exception set, if the current interpreter is not
+    time travelling: because time_machine is not imported in it, or no travel
+    is in progress. Patching applies process-wide, so this happens when
+    another interpreter is travelling and this one is not. Callers should
+    then fall back to the original functions.
+*/
+static PyObject *
+_time_machine_current_traveller(_time_machine_state **state)
+{
+    PyObject *time_machine_module = _time_machine_module_and_state(state);
+    if (time_machine_module == NULL) {
         return NULL;
     }
 
@@ -1016,6 +1050,11 @@ _time_machine_exec(PyObject *module)
 {
     _time_machine_state *state = get_time_machine_state(module);
 
+    state->str_time_machine = PyUnicode_InternFromString("time_machine");
+    if (state->str_time_machine == NULL) {
+        goto error;
+    }
+
     state->str_traveller_stack = PyUnicode_InternFromString("traveller_stack");
     if (state->str_traveller_stack == NULL) {
         goto error;
@@ -1191,12 +1230,17 @@ _time_machine_exec(PyObject *module)
         goto error;
     }
 
+    if (PyInterpreterState_Get() == PyInterpreterState_Main()) {
+        main_interpreter_state = state;
+    }
+
     return 0;
 
 error:
     Py_CLEAR(state->datetime_module);
     Py_CLEAR(state->datetime_class);
     Py_CLEAR(state->timezone_utc);
+    Py_CLEAR(state->str_time_machine);
     Py_CLEAR(state->str_traveller_stack);
     Py_CLEAR(state->str_time_ns);
     Py_CLEAR(state->str_replace);
@@ -1227,6 +1271,7 @@ _time_machine_traverse(PyObject *module, visitproc visit, void *arg)
     Py_VISIT(state->datetime_module);
     Py_VISIT(state->datetime_class);
     Py_VISIT(state->timezone_utc);
+    Py_VISIT(state->str_time_machine);
     Py_VISIT(state->str_traveller_stack);
     Py_VISIT(state->str_time_ns);
     Py_VISIT(state->str_replace);
@@ -1254,9 +1299,13 @@ static int
 _time_machine_clear(PyObject *module)
 {
     _time_machine_state *state = get_time_machine_state(module);
+    if (main_interpreter_state == state) {
+        main_interpreter_state = NULL;
+    }
     Py_CLEAR(state->datetime_module);
     Py_CLEAR(state->datetime_class);
     Py_CLEAR(state->timezone_utc);
+    Py_CLEAR(state->str_time_machine);
     Py_CLEAR(state->str_traveller_stack);
     Py_CLEAR(state->str_time_ns);
     Py_CLEAR(state->str_replace);
