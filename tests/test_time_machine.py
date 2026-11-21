@@ -1993,6 +1993,19 @@ def test_fixture_shift_without_move_to(time_machine):
     )
 
 
+def test_fixture_stop_then_move_to():
+    fixture = time_machine.TimeMachineFixture()
+    fixture.move_to(EPOCH, tick=False)
+    fixture.stop()
+    assert not time_machine.escape_hatch.is_travelling()
+
+    fixture.move_to(EPOCH_PLUS_ONE_YEAR, tick=False)
+    assert time.time() == EPOCH_PLUS_ONE_YEAR
+    fixture.stop()
+    fixture.stop()  # already stopped
+    assert not time_machine.escape_hatch.is_travelling()
+
+
 def test_fixture_start_error():
     fixture = time_machine.TimeMachineFixture()
     with (
