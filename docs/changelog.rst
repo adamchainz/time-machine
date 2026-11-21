@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix ``travel()`` as a decorator on generator functions, such as pytest fixtures that use ``yield``.
+  Previously, time travel ended as soon as the generator was created, before any of its code ran.
+  The :ref:`Migration CLI <migration-cli>` migrates such decorators from freezegun, which supports them.
+
 3.6.0 (2026-10-25)
 ------------------
 

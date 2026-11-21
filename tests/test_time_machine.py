@@ -862,6 +862,16 @@ def test_coroutine_decorator():
     assert recorded_time == EPOCH + 140.0
 
 
+def test_generator_decorator():
+    @time_machine.travel(EPOCH + 145.0, tick=False)
+    def record_times() -> typing.Generator[float]:
+        yield time.time()
+        yield time.time()
+
+    assert list(record_times()) == [EPOCH + 145.0, EPOCH + 145.0]
+    assert time.time() >= LIBRARY_EPOCH
+
+
 def test_async_context_manager():
     recorded_time = None
 
