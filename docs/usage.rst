@@ -170,6 +170,8 @@ Main API
       async def test_in_the_deep_past():
           assert 0.0 < time.time() < 1.0
 
+  Generator functions, such as pytest fixtures that use ``yield``, have time mocked until the generator finishes.
+
   .. _travel-context-manager:
 
   Context manager

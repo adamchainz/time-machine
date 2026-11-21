@@ -422,6 +422,14 @@ class travel:
                     return await wrapped(*args, **kwargs)
 
             return cast(_AF, wrapper)
+        elif inspect.isgeneratorfunction(wrapped):
+
+            @functools.wraps(wrapped)
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
+                with self:
+                    return (yield from wrapped(*args, **kwargs))
+
+            return cast(_F, wrapper)
         else:
             assert callable(wrapped)
 
