@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix the ``time_machine`` fixture after calling its ``stop()`` method.
+  Previously, a later ``move_to()`` didn't mock time, and the fixture's teardown raised ``IndexError``.
+
 3.6.0 (2026-10-25)
 ------------------
 

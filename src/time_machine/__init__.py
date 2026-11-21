@@ -470,6 +470,8 @@ class TimeMachineFixture:
     def stop(self) -> None:
         if self.traveller is not None:
             self.traveller.stop()
+            self.traveller = None
+            self.traveller_obj = None
 
 
 if HAVE_PYTEST:  # pragma: no branch
