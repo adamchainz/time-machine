@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Import ``dateutil.parser`` only when a destination string needs it, rather than on import.
+  This makes importing time-machine a few milliseconds faster when dateutil is installed.
+
 3.6.0 (2026-10-25)
 ------------------
 
