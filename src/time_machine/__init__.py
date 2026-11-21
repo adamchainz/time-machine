@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import functools
+import importlib.util
 import inspect
 import os
 import sys
@@ -26,12 +27,9 @@ except ImportError:  # pragma: no cover
 else:
     HAVE_TZSET = True
 
-try:
-    from dateutil.parser import parse as parse_datetime
-except ImportError:  # pragma: no cover
-    HAVE_DATEUTIL = False
-else:
-    HAVE_DATEUTIL = True
+# dateutil.parser is slow to import and only needed for strings that
+# fromisoformat() can't parse, so import it on first use.
+HAVE_DATEUTIL = importlib.util.find_spec("dateutil") is not None
 
 try:
     import pytest
@@ -172,6 +170,8 @@ def extract_timestamp_tzname(
             parsed = dt.datetime.fromisoformat(dest)
         except ValueError as exc:
             if HAVE_DATEUTIL:
+                from dateutil.parser import parse as parse_datetime
+
                 try:
                     parsed = parse_datetime(dest)
                 except ValueError as dateutil_exc:

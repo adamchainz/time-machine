@@ -741,6 +741,23 @@ def test_destination_timedelta_nested():
         assert time.time() == EPOCH + 10.0
 
 
+def test_import_does_not_import_dateutil_parser():
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            dedent(
+                """
+                import sys
+                import time_machine
+                assert "dateutil.parser" not in sys.modules
+                """
+            ),
+        ],
+        check=True,
+    )
+
+
 def test_destination_string_no_dateutil_unparsable():
     with (
         mock.patch.object(time_machine, "HAVE_DATEUTIL", new=False),
